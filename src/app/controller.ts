@@ -12,6 +12,7 @@ import { RaceAudio } from '../render/audio';
 import type { CityData } from '../render/city';
 import { saveUniverse, getPref, setPref } from '../persist/db';
 import type { WorkerOut, Until } from '../worker/sim.worker';
+import { reached } from '../worker/until';
 import type { FeedItem } from '../sim/race/engine';
 import { monthOf, dayOf } from '../sim/dates';
 
@@ -70,6 +71,8 @@ export class Controller {
   lastResume: { stage: string; t: number; s: number[] } | null = null;
   private lastResumeSave = 0;
   private workerBackground = false;
+  private workerFailed = false;
+  private fallbackCancel = false;
   private listeners = new Set<() => void>();
   private lastNotify = 0;
   private raf = 0;
@@ -364,13 +367,52 @@ export class Controller {
     this.live = null;
     this.progress = { label, done: 0, total: 1, year: u.clock.year, cancellable: true };
     this.notify(true);
-    const w = this.ensureWorker();
-    const result = await new Promise<Universe | null>((resolve) => { this.workerResolve = resolve; w.postMessage({ type: 'run', universe: u, until }); });
+    const result = await this.runInBackground(u, until);
     if (result) { this.u = result; try { await saveUniverse(result); } catch (err) { this.message = `Save failed: ${err}`; } }
     this.progress = null;
     this.beginNextMeeting();
   }
-  cancelSimulation() { this.worker?.postMessage({ type: 'cancel' }); }
+  cancelSimulation() { this.worker?.postMessage({ type: 'cancel' }); this.fallbackCancel = true; }
+
+  /** Run the simulation off the live universe: in the worker when it can start, otherwise on this thread in slices. */
+  private runInBackground(u: Universe, until: Until): Promise<Universe | null> {
+    let w: Worker | null = null;
+    if (!this.workerFailed) { try { w = this.ensureWorker(); } catch { this.workerFailed = true; } }
+    if (!w) return this.runOnMainThread(u, until);
+    return new Promise<Universe | null>((resolve) => {
+      this.workerResolve = resolve;
+      // a worker that cannot load reports an error event; the same run then continues on this thread
+      w!.onerror = (e) => {
+        e.preventDefault?.();
+        if (!this.workerResolve) return;
+        this.workerResolve = null; this.workerFailed = true;
+        this.worker?.terminate(); this.worker = null;
+        this.runOnMainThread(u, until).then(resolve);
+      };
+      w!.postMessage({ type: 'run', universe: u, until });
+    });
+  }
+
+  /** Main-thread fallback with the same code: tasks run in ~30 ms slices so the page stays responsive between them. */
+  private async runOnMainThread(src: Universe, until: Until): Promise<Universe | null> {
+    const u = structuredClone(src); // the same independent copy a worker would receive
+    this.fallbackCancel = false;
+    const startYear = u.clock.year, endYear = until.kind === 'nextMeeting' ? startYear : until.year;
+    const total = Math.max(1, endYear - startYear + 1);
+    try {
+      while (!reached(u, until) && !this.fallbackCancel) {
+        const t0 = performance.now();
+        while (!reached(u, until) && !this.fallbackCancel && performance.now() - t0 < 30) runTask(u, nextTask(u));
+        const t = nextTask(u), s = u.seasons[t.year];
+        const done = (t.year - startYear) + (s ? s.meetings.filter((m) => m.status !== 'scheduled').length / Math.max(1, s.meetings.length) : 0);
+        const p = { label: `${t.year}`, done, total, year: t.year, cancellable: true };
+        if (this.workerBackground) this.bgProgress = p; else this.progress = p;
+        this.notify(true);
+        await new Promise((r) => setTimeout(r, 0));
+      }
+      return u;
+    } catch (err: any) { this.message = `Simulation error: ${String(err?.message ?? err).split('\n')[0]}`; return null; }
+  }
 
   /**
    * Explore mode: generate history in a worker from a copy of the universe while the player keeps watching
@@ -382,8 +424,7 @@ export class Controller {
     this.workerBackground = true;
     this.bgProgress = { label, done: 0, total: 1, year: u.clock.year, cancellable: true };
     this.notify(true);
-    const w = this.ensureWorker();
-    const result = await new Promise<Universe | null>((resolve) => { this.workerResolve = resolve; w.postMessage({ type: 'run', universe: u, until }); });
+    const result = await this.runInBackground(u, until);
     this.workerBackground = false; this.bgProgress = null;
     if (result) await this.adoptUniverse(result);
     this.notify(true);

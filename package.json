@@ -2,7 +2,7 @@
   "name": "st-albans-racing",
   "private": true,
   "version": "1.0.0",
-  "description": "100 Years of St Albans Racing — a deeply simulated motorsport spectator game set in a miniature St Albans.",
+  "description": "100 Years of St Albans Racing \u2014 a deeply simulated motorsport spectator game set in a miniature St Albans.",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -13,7 +13,8 @@
     "geodata:fetch": "bash tools/fetch-geodata.sh",
     "geodata:build": "tsx tools/build-map.ts",
     "century": "tsx scripts/century.ts",
-    "e2e": "node scripts/e2e.mjs"
+    "e2e": "node scripts/e2e.mjs",
+    "build:artifact": "node scripts/build-artifact.mjs"
   },
   "license": "MIT",
   "dependencies": {

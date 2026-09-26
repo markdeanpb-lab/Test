@@ -1,0 +1,12 @@
+import { chromium } from 'playwright-core';
+import fs from 'node:fs';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage();
+await p.route('https://cdn.jsdelivr.net/npm/**', async (route) => { const m = route.request().url().match(/\/npm\/([^@/]+)@([^/]+)\/(.+)$/); await route.fulfill({ path: `node_modules/${m[1]}/${m[3]}`, contentType: 'text/javascript' }); });
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+await p.goto(process.argv[2]); await p.click('text=Watch history unfold'); await p.waitForSelector('.tower', { timeout: 60000 });
+const t0 = Date.now();
+await p.evaluate(() => window.__ctrl.simulate({ kind: 'seasonEnd', year: 1926 }, 'Simulating the rest of 1926'));
+await p.waitForFunction(() => !window.__ctrl.progress && window.__ctrl.live, null, { timeout: 300000 });
+console.log(JSON.stringify(await p.evaluate(() => { const c = window.__ctrl; return { workerFailed: c.workerFailed, worker: !!c.worker, champion: c.u.people[c.u.seasons[1926].championId]?.last, races1926: Object.values(c.u.races).filter((r) => r.year === 1926).length, nextLive: c.live?.meeting.name + ' ' + c.live?.meeting.year }; })), 'seconds', (Date.now() - t0) / 1000, 'errors', errs);
+await b.close();

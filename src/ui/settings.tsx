@@ -1,6 +1,6 @@
 import type { Controller } from '../app/controller';
 
-export function Settings({ c, onClose, onExport }: { c: Controller; onClose: () => void; onExport: () => void }) {
+export function Settings({ c, onClose, onExport }: { c: Controller; onClose: () => void; onExport?: () => void }) {
   const p = c.prefs;
   const set = (patch: Partial<typeof p>) => { Object.assign(c.prefs, patch); c.savePrefs(); };
   return (
@@ -28,8 +28,8 @@ export function Settings({ c, onClose, onExport }: { c: Controller; onClose: () 
         </div>
         <div class="section"><h3>Universe</h3>
           <div class="small muted" style={{ marginBottom: 8 }}>Seed <code>{c.u?.meta.seed}</code> · engine {c.u?.meta.engineVersion}</div>
-          <div class="pill-row"><button class="btn" onClick={onExport}>Export universe (.json)</button><button class="btn" onClick={() => location.reload()}>Back to title screen</button></div>
-          <p class="small muted">The universe autosaves after every race. Exports can be imported on another device from the title screen.</p>
+          <div class="pill-row">{onExport && <button class="btn" onClick={onExport}>Export universe (.json)</button>}<button class="btn" onClick={() => location.reload()}>Back to title screen</button></div>
+          <p class="small muted">{onExport ? 'The universe autosaves after every race. Exports can be imported on another device from the title screen.' : 'The universe autosaves in this browser after every race. Saving to a file is not available in this web version; importing a file from the title screen still works.'}</p>
         </div>
         <div class="section"><h3>Keyboard</h3><div class="small"><span class="kbd">Space</span> play/pause · <span class="kbd">1–4</span> speed · <span class="kbd">N</span> next moment · <span class="kbd">A</span> auto camera · <span class="kbd">O</span> overview · <span class="kbd">Esc</span> back to live · <span class="kbd">P</span> performance meter</div></div>
       </div>

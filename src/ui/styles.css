@@ -46,6 +46,7 @@ button { font: inherit; color: inherit; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { background: transparent; border-color: transparent; }
+.btn.danger { background: var(--warn); border-color: transparent; color: #fff; }
 .btn[aria-pressed='true'], .btn.on { background: var(--ink); color: var(--panel); border-color: transparent; }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; background: var(--panel-2); font-size: 12px; color: var(--ink-2); }
@@ -53,7 +54,7 @@ button { font: inherit; color: inherit; }
 .link:hover { text-decoration-color: currentColor; }
 
 /* ---------------- start screen */
-.start { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(1200px 600px at 70% 20%, #e8efe6 0%, var(--paper) 60%); overflow: auto; padding: 24px 16px; }
+.start { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(1200px 600px at 70% 20%, #e8efe6 0%, var(--paper) 60%); overflow: auto; padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .start { background: radial-gradient(1200px 600px at 70% 20%, #1f2a22 0%, var(--paper) 60%); } }
 .start-card { width: min(560px, 100%); }
 .start h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0 0 8px; letter-spacing: -0.02em; font-weight: 700; }
@@ -74,7 +75,7 @@ button { font: inherit; color: inherit; }
 .attrib { margin-top: 26px; font-size: 11px; color: var(--muted); max-width: 60ch; }
 
 /* ---------------- game shell */
-.game { position: fixed; inset: 0; }
+.game { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top, 0px); bottom: env(safe-area-inset-bottom, 0px); }
 .scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .topbar { position: absolute; top: 0; left: 0; right: 0; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: color-mix(in srgb, var(--panel) 94%, transparent); border-bottom: 1px solid var(--line); z-index: 20; }
 .brand { font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; display: flex; align-items: center; gap: 8px; }

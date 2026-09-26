@@ -2,19 +2,15 @@
 // real work (tasks completed); cancellation takes effect at the next safe checkpoint (between tasks).
 import type { Universe } from '../sim/types';
 import { nextTask, runTask } from '../sim/world/season';
+import { reached, type Until } from './until';
 
 let cancel = false;
 
-export type Until = { kind: 'seasonEnd'; year: number } | { kind: 'year'; year: number } | { kind: 'nextMeeting' };
+export type { Until };
 export type WorkerIn = { type: 'run'; universe: Universe; until: Until } | { type: 'cancel' };
 export type WorkerOut = { type: 'progress'; year: number; round: number; rounds: number; label: string; done: number; total: number } | { type: 'done'; universe: Universe; cancelled: boolean; ms: number } | { type: 'error'; message: string };
 
-function stop(u: Universe, until: Until): boolean {
-  const t = nextTask(u);
-  if (until.kind === 'nextMeeting') return t.kind === 'meeting';
-  if (until.kind === 'seasonEnd') return t.year > until.year || (t.year === until.year && t.kind === 'newyear' && !!u.seasons[until.year]?.review);
-  return t.year >= until.year && t.kind === 'newyear';
-}
+const stop = reached;
 
 self.onmessage = (e: MessageEvent<WorkerIn>) => {
   const msg = e.data;

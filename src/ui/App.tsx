@@ -28,6 +28,7 @@ function StartScreen({ c }: { c: Controller }) {
   const [saves, setSaves] = useState<SaveSummary[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => { listSaves().then(setSaves); }, []);
   const start = async (mode: 'watch' | 'explore') => {
@@ -57,7 +58,11 @@ function StartScreen({ c }: { c: Controller }) {
         </div>
         {saves.length > 0 && <section class="saves" aria-label="Saved universes">
           <h2>Saved universes</h2>
-          {saves.map((s) => <div class="save-row" key={s.id}><div><b>{s.name}</b><div class="small muted">{s.year} · seed {s.seed} · saved {new Date(s.savedAt).toLocaleString()}</div></div><div class="pill-row"><button class="btn" onClick={() => resume(s.id)}>Open</button><button class="btn ghost" onClick={async () => { if (confirm(`Delete "${s.name}"? This cannot be undone.`)) { await deleteSave(s.id); setSaves(await listSaves()); } }} aria-label={`Delete ${s.name}`}>Delete</button></div></div>)}
+          {saves.map((s) => <div class="save-row" key={s.id}><div><b>{s.name}</b><div class="small muted">{s.year} · seed {s.seed} · saved {new Date(s.savedAt).toLocaleString()}</div></div><div class="pill-row"><button class="btn" onClick={() => resume(s.id)}>Open</button>
+            {/* two-step delete confirmed in the page itself (browser confirm dialogs are not available everywhere) */}
+            {confirmDel === s.id
+              ? <><button class="btn danger" onClick={async () => { await deleteSave(s.id); setConfirmDel(null); setSaves(await listSaves()); }} aria-label={`Confirm deleting ${s.name}`}>Delete permanently</button><button class="btn ghost" onClick={() => setConfirmDel(null)}>Keep</button></>
+              : <button class="btn ghost" onClick={() => setConfirmDel(s.id)} aria-label={`Delete ${s.name}`}>Delete</button>}</div></div>)}
         </section>}
         <div class="start-options"><button class="btn ghost" onClick={() => fileRef.current?.click()}>Import universe…</button><input ref={fileRef} type="file" accept="application/json" hidden onChange={(e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) onImport(f); }} /></div>
         {err && <p role="alert" style={{ color: 'var(--warn)' }}>{err}</p>}
@@ -115,7 +120,7 @@ function Game({ c }: { c: Controller }) {
       {c.showPerf && <PerfMeter c={c} />}
       {c.notice && <div class="notice" role="status"><span>{c.notice.text}</span>{c.notice.action && <button class="btn primary" onClick={() => c.notice!.action!.run()}>{c.notice.action.label}</button>}<button class="btn ghost" aria-label="Dismiss" onClick={() => { c.notice = null; c.notify(true); }}>✕</button></div>}
       {c.message && <div class="toast" role="status" onClick={() => { c.message = null; c.notify(true); }}>{c.message}</div>}
-      {settings && <Settings c={c} onClose={() => setSettings(false)} onExport={() => { const b = exportUniverse(c.u!); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `st-albans-${c.u!.meta.seed}-${c.u!.clock.year}.json`; a.click(); }} />}
+      {settings && <Settings c={c} onClose={() => setSettings(false)} onExport={import.meta.env.VITE_ARTIFACT ? undefined : () => { const b = exportUniverse(c.u!); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `st-albans-${c.u!.meta.seed}-${c.u!.clock.year}.json`; a.click(); }} />}
     </div>
   );
 }

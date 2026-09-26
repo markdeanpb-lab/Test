@@ -16,6 +16,17 @@ const logs = [];
 page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`));
 page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
 const results = {};
+// --cdn-local: answer jsdelivr requests from node_modules (same pinned versions). Used to test the hosted-page
+// build where the test browser cannot reach the CDN; the page, import map, worker and data are unchanged.
+if (process.argv.includes('--cdn-local')) {
+  await page.route('https://cdn.jsdelivr.net/npm/**', async (route) => {
+    const m = route.request().url().match(/\/npm\/((?:@[^/]+\/)?[^@/]+)@([^/]+)\/(.+)$/);
+    const file = m && `node_modules/${m[1]}/${m[3]}`;
+    const ver = m && JSON.parse(fs.readFileSync(`node_modules/${m[1]}/package.json`, 'utf8')).version;
+    if (!file || !fs.existsSync(file) || ver !== m[2]) return route.fulfill({ status: 404, body: 'not available locally' });
+    await route.fulfill({ path: file, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' } });
+  });
+}
 const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
 await page.goto(url);
 await page.waitForSelector('text=Watch history unfold');

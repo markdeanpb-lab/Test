@@ -17,6 +17,8 @@ npm run preview      # serve the production build (http://localhost:4173)
 
 The production build is a static site (`dist/`); host it anywhere. No server, account or network access is needed once loaded.
 
+`npm run build:artifact` makes a second build for pages hosted where scripts may only come from approved CDNs (`dist-artifact/`). There, three.js and Preact load from jsdelivr through an import map, the game's own code, worker and map data ship as files, and export-to-file is hidden because downloads are blocked. If a Web Worker cannot start, background simulation runs on the main thread in short slices with the same code.
+
 ### Controls
 
 | Action | Mouse / touch | Keyboard |
