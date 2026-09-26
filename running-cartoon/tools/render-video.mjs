@@ -2,7 +2,7 @@
 // headless Chromium and piping the raw pixels to ffmpeg.
 //
 //   node tools/render-video.mjs                       -> output/the-long-run.mp4
-//   node tools/render-video.mjs --out my.mp4 --fps 30 --scale 6
+//   node tools/render-video.mjs --out my.mp4 --fps 30 --scale 6 --crf 24
 //   node tools/render-video.mjs --sheet 3,20,41 --out sheet.png   (contact sheet of stills, for checking)
 //
 // Needs Playwright (playwright or playwright-core) with Chromium, and an ffmpeg with libx264 + aac:
@@ -18,6 +18,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : def; };
 const fps = Number(arg('fps', 30));
 const scale = Number(arg('scale', 6));
+const crf = String(arg('crf', 24));
 const sheet = arg('sheet', null);
 const out = path.resolve(arg('out', path.join(root, sheet ? 'output/sheet.png' : 'output/the-long-run.mp4')));
 
@@ -79,7 +80,7 @@ console.log(`audio: ${(info.bytes / 1e6).toFixed(1)} MB, peak ${info.peak.toFixe
 const total = Math.ceil(duration * fps);
 fs.mkdirSync(path.dirname(out), { recursive: true });
 const job = run(['-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', String(fps), '-i', 'pipe:0', '-i', wav,
-  '-vf', `scale=${W * scale}:${H * scale}:flags=neighbor`, '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-tune', 'animation',
+  '-vf', `scale=${W * scale}:${H * scale}:flags=neighbor`, '-c:v', 'libx264', '-preset', 'slow', '-crf', crf, '-tune', 'animation',
   '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out]);
 const batch = 30;
 const t0 = Date.now();
