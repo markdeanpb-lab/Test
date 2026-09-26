@@ -2,7 +2,7 @@
 // Hidden attributes generate performance; ratings shown to the player (Elo, reputation) are derived
 // from recorded results only.
 import { Rng } from '../rng';
-import { clamp } from '../dmath';
+import { clamp, dexp } from '../dmath';
 import type { Universe, Person, Attrs, DevProfile, Personality, DriverStyle, PersonKind, Day, AttrKey } from '../types';
 import { ATTR_KEYS } from '../types';
 import { genName, pickNationality, pickTown, femaleShare } from '../names';
@@ -174,7 +174,7 @@ export function retirementChance(u: Universe, p: Person, year: number, hasSeat: 
   const age = ageYears(p.dob, dayOf(year, 12, 1));
   const era = year < 1960 ? 5 : year < 1990 ? 2 : 0; // longer careers were common in early decades
   const pivot = 36 + era + (p.personality.ambition - 0.5) * 4;
-  let pr = 1 / (1 + Math.exp(-(age - pivot) / 1.8));
+  let pr = 1 / (1 + dexp(-(age - pivot) / 1.8));
   if (!hasSeat) pr = Math.max(pr, age > 27 ? 0.35 : 0.12);
   if (p.health < 0.5) pr += 0.3;
   pr += clamp(-recentResults, 0, 1) * 0.15 * (age > 30 ? 1 : 0.3);

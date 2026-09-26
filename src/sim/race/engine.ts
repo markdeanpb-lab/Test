@@ -153,7 +153,7 @@ export function createRace(setup: WeekendSetup, tr: Track, gridOrder: number[]):
     kind: 'race', v: setup.v, meetingId: setup.meetingId, t: 0, step: 0, phase: 'grid', laps: lapsTotal, maxT: setup.rules.maxSeconds,
     cars: [], order: [], rng: rng.s, wrng: wrng.s, w, wAcc: 0,
     sc: { on: false, dist: 0, v: 0, laps: 0, clearT: 0, deployT: 0, reason: '', inNext: false, count: 0, restartT: -1 },
-    yellows: [], red: null, delayUntil: 0, delayed: 0, lightsT: 20, leaderDone: false, fastest: null, events: [], feed: [],
+    yellows: [], red: null, delayUntil: 0, delayed: 0, lightsT: 8, leaderDone: false, fastest: null, events: [], feed: [],
     leadChanges: 0, overtakeCount: 0, scCount: 0, redCount: 0, lastLeader: -1, startLap: 0, status: '', endNote: '', hazardClock: 0,
     wetLaps: 0, maxRain: w.rain, changeable: false, startWeather: weatherLabel(w), pending: [], swapT: {}, redOrder: null, leadCand: -1, leadCandT: 0, lapNow: 1, tried: {},
   };

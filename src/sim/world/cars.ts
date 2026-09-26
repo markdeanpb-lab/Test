@@ -40,11 +40,11 @@ export function designCar(u: Universe, t: Team, rng: Rng, year: number): CarMode
   const fx = techEffects(u, t);
   const s: CarSpec = { ...b };
   // know-how (0..1 relative to the frontier)
-  s.powerKW *= 0.9 + 0.12 * K.engine;
-  s.clA *= 0.75 + 0.35 * K.aero;
-  s.cdA *= 1.06 - 0.08 * K.aero;
-  s.mechGrip *= 0.955 + 0.055 * K.chassis;
-  s.massKg += (1 - K.chassis) * 28;
+  s.powerKW *= 0.93 + 0.08 * K.engine;
+  s.clA *= 0.82 + 0.25 * K.aero;
+  s.cdA *= 1.04 - 0.06 * K.aero;
+  s.mechGrip *= 0.968 + 0.04 * K.chassis;
+  s.massKg += (1 - K.chassis) * 22;
   s.tyreWear *= 1.12 - 0.2 * K.chassis;
   s.fuelPerKm *= 1.12 - 0.2 * K.efficiency;
   s.reliability = 2.1 - 1.55 * K.reliability;
@@ -56,15 +56,16 @@ export function designCar(u: Universe, t: Team, rng: Rng, year: number): CarMode
   for (const [k, v] of Object.entries(fx.add)) (s as any)[k] += v as number;
   // design concept: an emphasis with uncertain execution
   const focus = t.philosophy.focus;
-  const gamble = rng.gauss(0, 0.25 + t.philosophy.risk * 0.35);
+  const gamble = rng.gauss(0, 0.35 + t.philosophy.risk * 0.45);
   const conceptQ = clamp(gamble + (t.engineering - 0.5) * 0.4, -1, 1);
   const conceptName = conceptQ > 0.35 ? 'inspired' : conceptQ < -0.35 ? 'troubled' : 'solid';
   if (focus === 'power') { s.powerKW *= 1.03 + 0.02 * conceptQ; s.clA *= 0.97; s.cooling -= 0.05; }
   else if (focus === 'aero') { s.clA *= 1.06 + 0.05 * conceptQ; s.cdA *= 1.02; s.aeroWindow += 0.1; }
   else if (focus === 'mechanical') { s.mechGrip *= 1.012 + 0.008 * conceptQ; s.tyreWear *= 0.96; }
   else if (focus === 'reliability') { s.reliability *= 0.85 - 0.05 * conceptQ; s.powerKW *= 0.99; }
-  s.mechGrip *= 1 + 0.008 * conceptQ;
-  s.clA *= 1 + 0.03 * conceptQ;
+  s.mechGrip *= 1 + 0.012 * conceptQ;
+  s.clA *= 1 + 0.05 * conceptQ;
+  s.powerKW *= 1 + 0.012 * conceptQ;
   s.balance = clamp(rng.gauss(0, 0.35), -1, 1);
   // regulations
   if (s.powerKW > regs.powerCapKW) s.powerKW = regs.powerCapKW * (0.985 + 0.015 * K.engine);

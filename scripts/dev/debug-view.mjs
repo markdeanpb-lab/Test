@@ -1,0 +1,18 @@
+import { chromium } from 'playwright-core';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const logs = []; page.on('console', (m) => logs.push(m.text())); page.on('pageerror', (e) => logs.push('ERR ' + e.message));
+await page.goto('http://localhost:4173/');
+await page.fill('input[aria-label="Universe seed (optional)"]', 'e2e-seed');
+await page.click('text=Watch history unfold');
+await page.waitForSelector('.tower', { timeout: 120000 });
+await page.waitForTimeout(6000);
+const dbg = await page.evaluate(() => { const c = window.__ctrl; const r = c.renderer; const tr = r.scene.getObjectByName('track'); const surf = r.scene.getObjectByName('surface'); return { mode: r.mode, cam: r.camera.position.toArray().map(Math.round), fps: 0, trackChildren: tr?.children.length, surfVerts: surf?.geometry.attributes.position.count, surfVisible: surf?.visible, target: r.camTarget?.toArray?.(), trackX: [c.live.tr.x[0], c.live.tr.z[0]], stage: c.live.stage }; });
+console.log(JSON.stringify(dbg));
+await page.screenshot({ path: 'test-results/05-overview.png' });
+await page.evaluate(() => window.__ctrl.followEntrant(0));
+await page.click('text=5×');
+await page.waitForTimeout(6000);
+await page.screenshot({ path: 'test-results/06-follow.png' });
+console.log(logs.slice(0, 10).join('\n'));
+await browser.close();

@@ -2,7 +2,7 @@
 // relationships and development philosophy), rookie supply and family links.
 import type { Universe, Person, Team, Day } from '../types';
 import { Rng } from '../rng';
-import { clamp } from '../dmath';
+import { clamp, dpow } from '../dmath';
 import { createPerson, retireDriver, retirementChance, perceivedLevel, relativeCandidate, makeChildDriver, trueLevel } from './people';
 import { addEvent, activeTeams } from './events';
 import { scaleMoney } from './cars';
@@ -82,8 +82,15 @@ export function offseasonMarket(u: Universe, rng: Rng, year: number, day: Day) {
     const cands = Object.values(u.people).filter((p) => p.kind === 'driver' && (p.status === 'free' || p.status === 'prospect' || p.status === 'reserve') && !p.teamId && ageYears(p.dob, day) >= 16.5 && p.health > 0.6);
     if (!cands.length) { const p = createPerson(u, rng, { kind: 'driver', year }); cands.push(p); }
     let best: Person | null = null, bestScore = -Infinity;
+    // what the team already has, and what it can afford in wages
+    const mates = t.drivers.map((d) => u.people[d]).filter(Boolean);
+    const mateLvl = Math.max(0, ...mates.map((m) => perceivedLevel(u, m, scout(t), rng)));
+    const wageBudget = Math.max(0.05, (t.finance[t.finance.length - 1]?.prize ?? 0) + t.sponsors.reduce((a, x) => a + x.value, 0) + t.ownerBacking) * 0.3 - mates.reduce((a, m) => a + (m.contract?.salary ?? 0), 0);
     for (const p of cands) {
-      let sc = perceivedLevel(u, p, scout(t), rng);
+      const lvl = perceivedLevel(u, p, scout(t), rng);
+      let sc = lvl;
+      // two stars rarely share a garage: number-one status, harmony and wage demands
+      if (mateLvl > 74 && lvl > 74) sc -= (lvl - 74) * (0.5 + p.personality.ambition * 0.8);
       const age = ageYears(p.dob, day);
       if (p.status === 'prospect') sc += (t.philosophy.youth - 0.5) * 6 - (1 - p.readiness) * 8;
       if (age > 34) sc -= (age - 34) * (1.5 - t.philosophy.youth);
@@ -91,6 +98,7 @@ export function offseasonMarket(u: Universe, rng: Rng, year: number, day: Day) {
       // money: poorer teams favour cheaper drivers
       const sal = salaryFor(u, p, null);
       sc -= (sal / Math.max(0.1, t.cash + t.ownerBacking)) * 6;
+      if (sal > wageBudget) sc -= (sal - wageBudget) / Math.max(0.05, scaleMoney(u) * 0.05) * 3;
       // relationships: a past dispute with this team or its lead driver is a real deterrent
       for (const d of t.drivers) { const r = relBetween(u, p.id, d); if (r?.kind === 'dispute' && r.status === 'active') sc -= 8 * r.intensity; if (r?.kind === 'friendship') sc += 1.5 * r.intensity; }
       if (t.notes.includes(`dispute:${p.id}`)) sc -= 10;
@@ -111,15 +119,19 @@ function renewWanted(u: Universe, t: Team, p: Person, rng: Rng, year: number): b
   const res = recentResults(u, p, year - 1);
   let want = 0.45 + res * 0.3 + (lvl - 70) * 0.02 + t.philosophy.stability * 0.2 + p.personality.loyalty * 0.15 - (age > 35 ? 0.2 : 0);
   for (const d of t.drivers) { const r = relBetween(u, p.id, d); if (r?.kind === 'dispute' && r.status === 'active') want -= 0.3 * r.intensity; }
-  // ambitious drivers leave struggling teams
-  if (p.personality.ambition > 0.7 && t.prestige < 35 && lvl > 72) want -= 0.3;
+  // ambitious drivers leave teams that have fallen behind; long-serving stars grow restless
+  const prevSeason = u.seasons[year - 1];
+  const teamPos = prevSeason ? prevSeason.teamStandings.findIndex((r) => r.id === t.id) + 1 : 5;
+  if (lvl > 72 && teamPos > 3) want -= 0.25 * p.personality.ambition + (teamPos > 6 ? 0.15 : 0);
+  const tenure = year - (p.roles.filter((r) => r.role === 'driver' && r.teamId === t.id).map((r) => new Date((r.fromDay - 25567) * 864e5).getUTCFullYear())[0] ?? year);
+  if (tenure > 5) want -= 0.04 * (tenure - 5) * (1 - p.personality.loyalty);
   return rng.chance(clamp(want, 0.05, 0.95));
 }
 
 export function salaryFor(u: Universe, p: Person, rng: Rng | null): number {
   const scale = scaleMoney(u);
   const lvl = 70 + (p.elo.rating - 1500) / 12 + p.reputation * 0.1;
-  const v = scale * 0.06 * Math.max(0.2, Math.pow(Math.max(0, lvl - 55) / 20, 2.2));
+  const v = scale * 0.06 * Math.max(0.2, dpow(Math.max(0, lvl - 55) / 20, 2.2));
   return Math.round(v * (rng ? rng.range(0.85, 1.15) : 1) * 100) / 100;
 }
 

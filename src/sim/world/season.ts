@@ -4,7 +4,7 @@
 import type { Universe, Meeting, Season, RaceRecord, ResultRow, QualiRow, StandingRow, Day, Person, Team, RegSet } from '../types';
 import { ENGINE_VERSION } from '../types';
 import { Rng, streamFor } from '../rng';
-import { clamp, dexp } from '../dmath';
+import { clamp, dexp, dpow } from '../dmath';
 import { getTrack } from '../track';
 import { createQuali, createRace, stepRace, isOver, type RaceState } from '../race/engine';
 import { classify } from '../race/results';
@@ -155,7 +155,7 @@ function testing(u: Universe, year: number, day: Day) {
 /** A simple public lap-time proxy from a spec (lower is faster) used for testing estimates and previews. */
 export function carPaceIndex(c: { powerKW: number; massKg: number; mechGrip: number; clA: number; cdA: number; brakeG: number }) {
   const pw = c.powerKW / (c.massKg + 75);
-  return 100 / (Math.pow(pw, 0.35) * Math.pow(c.mechGrip, 0.9) * (1 + c.clA * 0.035) * (1 + c.brakeG * 0.03) / Math.pow(c.cdA, 0.05));
+  return 100 / (dpow(pw, 0.35) * dpow(c.mechGrip, 0.9) * (1 + c.clA * 0.035) * (1 + c.brakeG * 0.03) / dpow(c.cdA, 0.05));
 }
 
 // ---------------------------------------------------------------------------- race weekend

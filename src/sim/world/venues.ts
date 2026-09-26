@@ -104,6 +104,11 @@ export function buildCalendar(u: Universe, rng: Rng, year: number, regSetId: str
     }
     if (fixed) break;
   }
+  // the season opens at a signature (forward-running) event; the very first championship race is the
+  // inaugural St Albans Grand Prix on the Abbey circuit
+  const inaugural = !Object.keys(u.seasons).some((y) => +y < year && u.seasons[+y].meetings.some((m) => m.status === 'completed'));
+  if (inaugural) { const gi = order.findIndex((m) => m.name === 'St Albans Grand Prix'); if (gi > 0) { const [g] = order.splice(gi, 1); order.unshift(g); } }
+  else if (order[0]?.reverse) { const j = order.findIndex((m) => !m.reverse); if (j > 0) { const t = order[0]; order[0] = order[j]; order[j] = t; } }
   // dates between late April and mid October
   const first = dayOf(year, 4, 20), last = dayOf(year, 10, 12);
   const step = (last - first) / Math.max(1, order.length - 1);
@@ -119,6 +124,7 @@ export function buildCalendar(u: Universe, rng: Rng, year: number, regSetId: str
     };
   });
   // record justified exceptions (only one venue available)
+  if (inaugural && meetings[0]?.name === 'St Albans Grand Prix') meetings[0].calendarReason = 'Inaugural championship race';
   for (let i = 2; i < meetings.length; i++) if (meetings[i].venueId === meetings[i - 1].venueId && meetings[i].venueId === meetings[i - 2].venueId) meetings[i].calendarReason = `Third consecutive meeting at ${u.venues[meetings[i].venueId].name}: only ${venues.length} venue${venues.length > 1 ? 's' : ''} available`;
   return meetings;
 }

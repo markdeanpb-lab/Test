@@ -2,7 +2,7 @@
 // staff, and the consequences of success or failure (takeover, merger, withdrawal, new entrants).
 import type { Universe, Team, SponsorDeal, Day, Person } from '../types';
 import { Rng } from '../rng';
-import { clamp, dsqrt } from '../dmath';
+import { clamp, dsqrt, dpow } from '../dmath';
 import { TEAM_ROOTS, TEAM_FORMS, SPONSOR_SECTORS, NATIONS } from '../names';
 import { addEvent, registerEvent, activeTeams } from './events';
 import { nextId, createPerson } from './people';
@@ -19,6 +19,7 @@ const PATTERNS: Team['pattern'][] = ['plain', 'stripe', 'band', 'chevron', 'quar
 
 export function teamName(u: Universe, rng: Rng, founderLast?: string): { name: string; short: string } {
   const taken = new Set(Object.values(u.teams).map((t) => t.name));
+  const takenShort = new Set(Object.values(u.teams).filter((t) => t.status === 'active').map((t) => t.short));
   for (let i = 0; i < 50; i++) {
     const root = rng.pick(TEAM_ROOTS);
     const surname = founderLast ?? rng.pick(['Holloway', 'Pemberton', 'Delorme', 'Varela', 'Brandt', 'Ashby', 'Fairfax', 'Marchetti', 'Kessler', 'Whitmore', 'Sinclair', 'Laurent', 'Rinaldi', 'Hartmann', 'Crane', 'Latimer', 'Osborne', 'Vance', 'Talbot', 'Ferri', 'Moreau', 'Keller', 'Andrade', 'Tennant']);
@@ -26,6 +27,7 @@ export function teamName(u: Universe, rng: Rng, founderLast?: string): { name: s
     const name = form.replace('{r}', root).replace('{s}', surname);
     if (taken.has(name)) continue;
     const short = form.includes('{r}') ? root.split(' ')[0] : surname;
+    if (takenShort.has(short)) continue;
     return { name, short };
   }
   return { name: `Team ${Object.keys(u.teams).length + 1}`, short: `T${Object.keys(u.teams).length + 1}` };
@@ -82,7 +84,7 @@ export function teamStrengthNow(u: Universe, t: Team): number {
 // ------------------------------------------------------------------ yearly finance
 export function prizeShare(pos: number, n: number): number {
   // top teams take more; everyone who races receives something
-  const w = (p: number) => 1 / (p + 1.5);
+  const w = (p: number) => 1 / (p + 3);
   let tot = 0; for (let p = 1; p <= n; p++) tot += w(p);
   return w(pos) / tot;
 }
@@ -166,20 +168,33 @@ export function planDevelopment(u: Universe, t: Team, rng: Rng, year: number, da
   (t.finance[t.finance.length - 1] as any) && ((t.finance[t.finance.length - 1] as any)._devPlanned = r2(dev));
   if (!t.finance.length) t.finance.push({ year: year - 1, prize: 0, sponsor: 0, owner: 0, other: 0, wages: 0, development: 0, operations: 0, cashEnd: t.cash, debtEnd: t.debt, _devPlanned: r2(dev) } as any);
   // frontier moves on; everyone falls back unless they invest
-  const drift = 0.05 + (u.world.industry < 1.1 ? 0.03 : 0.01);
+  const baseDrift = 0.06 + (u.world.industry < 1.1 ? 0.02 : 0.005);
   const td = t.techDirectorId ? u.people[t.techDirectorId] : undefined;
   const staff = 0.45 * t.engineering + 0.35 * (td?.skill ?? 0.4) + 0.2 * t.facilities;
-  const eff = dsqrt(dev / scale) * (0.35 + staff * 0.9);
+  // money has strongly diminishing returns: people, time and ideas limit what budgets can buy
+  const eff = dpow(Math.max(0.01, dev / scale), 0.35) * (0.4 + staff * 0.8);
   const alloc = allocation(t);
   const K = t.knowledge as any;
   // knowledge diffusion: the field copies what works
   const best: any = {};
   for (const k of Object.keys(t.knowledge)) best[k] = Math.max(...activeTeams(u).map((x) => (x.knowledge as any)[k]));
+  const champion = u.seasons[year - 1]?.teamChampionId === t.id;
   for (const k of Object.keys(t.knowledge)) {
-    const gain = eff * alloc[k] * 0.22 * Math.pow(1 - K[k], 1.3) * rng.range(0.6, 1.4);
-    const copy = 0.08 * (best[k] - K[k]);
-    K[k] = clamp(K[k] - drift + gain + copy + rng.gauss(0, 0.015), 0.02, 0.99);
+    // the frontier is harder to hold the closer you are to it; the field copies what works
+    const drift = baseDrift + (K[k] > 0.6 ? (K[k] - 0.6) * 0.3 : 0);
+    const gain = eff * alloc[k] * 0.2 * dpow(Math.max(0.001, 1 - K[k]), 1.1) * rng.range(0.55, 1.45);
+    const copy = 0.17 * (best[k] - K[k]);
+    K[k] = clamp(K[k] - drift + gain + copy + rng.gauss(0, 0.02), 0.02, 0.99);
   }
+  // occasional breakthroughs can come from anywhere (bolder teams find more of them)
+  if (rng.chance(0.06 + t.philosophy.risk * 0.08)) {
+    const area = rng.pick(Object.keys(t.knowledge));
+    K[area] = clamp(K[area] + rng.range(0.08, 0.2), 0, 0.99);
+    addEvent(u, { day, type: 'engineering-breakthrough', scope: 'team', title: `${t.name} find a breakthrough in ${area === 'efficiency' ? 'fuel efficiency' : area}`, teams: [t.id], severity: 0.35, facts: { area } });
+  }
+  // success breeds caution and complacency
+  if (champion) { t.philosophy.risk = clamp(t.philosophy.risk - 0.05, 0.05, 0.95); t.engineering = clamp(t.engineering - 0.015, 0.05, 1); }
+  else if ((u.seasons[year - 1]?.teamStandings.findIndex((r) => r.id === t.id) ?? 0) > 5) t.philosophy.risk = clamp(t.philosophy.risk + 0.04, 0.05, 0.95);
   // research programmes: at most two concurrent, uncertain outcomes
   const running = Object.entries(t.tech).filter(([, p]) => p.status === 'research');
   for (const [id, p] of running) {
@@ -407,6 +422,19 @@ function hireTD(u: Universe, t: Team, rng: Rng, year: number, day: Day) {
 }
 
 // ------------------------------------------------------------------ stochastic team events
+registerEvent<Team>({
+  type: 'works-exit', entities: ({ u }) => activeTeams(u).filter((t) => t.ownerType === 'works'), key: (t) => t.id,
+  prereq: ({ year }, t) => year - t.joinedYear >= 4,
+  rate: ({ u, year }, t) => 0.03 + (year - t.joinedYear) * 0.002 + (u.world.economy < -0.2 ? 0.06 : 0),
+  cooldownDays: 365 * 5,
+  apply: ({ u, rng, day, year }, t) => {
+    const ev = addEvent(u, { day, type: 'works-exit', scope: 'team', title: `${t.name}'s parent company pulls its backing`, teams: [t.id], severity: 0.6, facts: { years: year - t.joinedYear, economy: +u.world.economy.toFixed(2) }, causes: u.events.filter((e) => e.type === 'recession' && e.day > day - 700).map((e) => e.id) });
+    // the organisation survives as a privateer with far less money, or is sold on
+    t.ownerType = 'privateer'; t.ownerBacking *= 0.25; t.facilities = clamp(t.facilities - 0.05, 0.05, 1);
+    if (rng.chance(0.4)) takeover(u, t, rng, year, day, ev.id);
+    return ev;
+  },
+});
 registerEvent<Team>({
   type: 'factory-fire', entities: ({ u }) => activeTeams(u), key: (t) => t.id,
   prereq: () => true, rate: () => 0.004, cooldownDays: 365 * 20,
