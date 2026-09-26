@@ -6,12 +6,18 @@ import { weatherLabel } from '../sim/weather';
 import { meetingPreview } from '../narrative/preview';
 import { RaceResult } from './results';
 
+function ReplayBanner({ c }: { c: Controller }) {
+  const r = c.replaying; if (!r || c.dest !== 'live') return null;
+  return <div class="replay-banner" role="status"><b>Replay</b> · {r.label}{r.note && <div class="small">{r.note}</div>}<button class="btn" onClick={() => c.exitReplay()}>Back to live</button></div>;
+}
+
 export function LiveOverlay({ c }: { c: Controller }) {
   const live = c.live;
   if (!live) return <Paddock c={c} />;
-  if (live.stage === 'done') return <><Paddock c={c} /><PlaybackBar c={c} /></>;
+  if (live.stage === 'done') return <><ReplayBanner c={c} /><Paddock c={c} /><PlaybackBar c={c} /></>;
   return (
     <>
+      <ReplayBanner c={c} />
       {c.dest === 'live' && <TimingTower c={c} />}
       {c.dest === 'live' && <RaceInfo c={c} />}
       {c.dest === 'live' && <Feed c={c} />}
@@ -131,15 +137,20 @@ function PlaybackBar({ c }: { c: Controller }) {
         <button class="btn" aria-pressed={c.camManual === 'free' && c.renderer?.mode === 'overview'} onClick={() => c.overview()} title="O">Overview</button>
         <button class="btn" aria-pressed={c.renderer?.mode === 'free'} onClick={() => c.freeCamera()}>Free</button>
       </>}
-      {done && <>
-        <button class="btn primary" onClick={() => c.continueAfterRace()}>Next race →</button>
-        <button class="btn" onClick={() => c.simulate({ kind: 'seasonEnd', year }, `Simulating the rest of ${year}`)}>Simulate season</button>
-        <button class="btn" onClick={() => c.simulate({ kind: 'year', year: year + 10 }, 'Simulating ten years')}>+10 years</button>
+      {done && c.replaying && <>
+        <button class="btn primary" onClick={() => c.exitReplay()}>Back to live →</button>
+        <button class="btn" onClick={() => c.replay(c.replaying!.meetingId)}>Watch again</button>
       </>}
-      {!done && <>
+      {done && !c.replaying && <>
+        <button class="btn primary" onClick={() => c.continueAfterRace()}>Next race →</button>
+        {!c.bgProgress && <button class="btn" onClick={() => c.simulate({ kind: 'seasonEnd', year }, `Simulating the rest of ${year}`)}>Simulate season</button>}
+        {!c.bgProgress && <button class="btn" onClick={() => c.simulate({ kind: 'year', year: year + 10 }, 'Simulating ten years')}>+10 years</button>}
+      </>}
+      {!done && !c.replaying && !c.bgProgress && <>
         <span class="sep" />
         <button class="btn" onClick={() => c.simulate({ kind: 'seasonEnd', year }, `Simulating the rest of ${year}`)}>Simulate season</button>
       </>}
+      {!done && c.replaying && <><span class="sep" /><button class="btn" onClick={() => c.exitReplay()}>Exit replay</button></>}
     </nav>
   );
 }
@@ -150,7 +161,13 @@ function Paddock({ c }: { c: Controller }) {
   const last = live?.stage === 'done' ? u.races[live.meeting.id] : null;
   const next = c.nextMeeting();
   if (c.dest !== 'live') return null;
-  if (last) return <div class="paddock"><RaceResult c={c} rec={last} /></div>;
+  if (last) {
+    const rp = live?.replay;
+    return <div class="paddock">
+      {rp?.result && <p class={`verify ${rp.result}`} role="status">{rp.result === 'match' ? '✓ Replay reproduced the recorded result exactly (same classification, laps and times).' : rp.result === 'mismatch' ? '✗ This replay differs from the record. The stored result below is the official one.' : 'No stored fingerprint to verify this replay against.'}</p>}
+      <RaceResult c={c} rec={last} />
+    </div>;
+  }
   if (!next) {
     const y = u.clock.year;
     const s = u.seasons[y];

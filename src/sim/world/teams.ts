@@ -429,9 +429,9 @@ registerEvent<Team>({
   cooldownDays: 365 * 5,
   apply: ({ u, rng, day, year }, t) => {
     const ev = addEvent(u, { day, type: 'works-exit', scope: 'team', title: `${t.name}'s parent company pulls its backing`, teams: [t.id], severity: 0.6, facts: { years: year - t.joinedYear, economy: +u.world.economy.toFixed(2) }, causes: u.events.filter((e) => e.type === 'recession' && e.day > day - 700).map((e) => e.id) });
-    // the organisation survives as a privateer with far less money, or is sold on
+    // the organisation carries on as a privateer with far less money; any sale happens at season end
     t.ownerType = 'privateer'; t.ownerBacking *= 0.25; t.facilities = clamp(t.facilities - 0.05, 0.05, 1);
-    if (rng.chance(0.4)) takeover(u, t, rng, year, day, ev.id);
+    void rng; void year;
     return ev;
   },
 });

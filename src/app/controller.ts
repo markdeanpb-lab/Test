@@ -2,7 +2,8 @@
 // autosave and background simulation. The UI observes it and issues commands.
 import type { Universe, Meeting } from '../sim/types';
 import { createUniverse } from '../sim/universe';
-import { nextTask, runTask } from '../sim/world/season';
+import { nextTask, runTask, loadSetup } from '../sim/world/season';
+import { ENGINE_VERSION } from '../sim/types';
 import { LiveSession } from './live';
 import { Director, type Shot } from './director';
 import { Commentator, type Line, type Density } from '../narrative/commentary';
@@ -16,7 +17,17 @@ import { monthOf } from '../sim/dates';
 export type Screen = 'start' | 'loading' | 'game';
 export type Destination = 'live' | 'season' | 'people' | 'history' | 'stories';
 export interface Prefs { quality: 'low' | 'medium' | 'high'; density: Density; spoilers: boolean; reducedMotion: boolean; volume: number; muted: boolean; pauseInPanels: boolean }
+export type View =
+  | { kind: 'person'; id: string; asOf?: number }
+  | { kind: 'team'; id: string; asOf?: number }
+  | { kind: 'race'; id: string }
+  | { kind: 'season'; year: number }
+  | { kind: 'layout'; id: string }
+  | { kind: 'story'; id: string }
+  | { kind: 'compare'; a: string; b: string };
 export interface Progress { label: string; done: number; total: number; year: number; cancellable: boolean }
+export interface Notice { text: string; action?: { label: string; run: () => void } }
+interface Suspended { live: LiveSession; director: Director | null; commentary: Commentator | null; follow: number | null; camManual: 'follow' | 'free' | null; wasPlaying: boolean }
 
 export class Controller {
   u: Universe | null = null;
@@ -32,6 +43,15 @@ export class Controller {
   camManual: 'follow' | 'free' | null = null;
   prefs: Prefs = { quality: 'medium', density: 'normal', spoilers: true, reducedMotion: false, volume: 0.6, muted: true, pauseInPanels: false };
   message: string | null = null;
+  notice: Notice | null = null;
+  /** Spoiler-safe exploration: views show history as known on this day (undefined = everything). */
+  cutoff: number | undefined = undefined;
+  /** Set while watching a past race rebuilt from its stored setup. */
+  replaying: { meetingId: string; label: string; note?: string; suspended: Suspended | null } | null = null;
+  /** Background generation (explore mode) runs while the player keeps watching. */
+  bgProgress: Progress | null = null;
+  exploreMode = false;
+  private workerBackground = false;
   private listeners = new Set<() => void>();
   private lastNotify = 0;
   private raf = 0;
@@ -119,17 +139,55 @@ export class Controller {
       if (this.nextMeeting() && this.nextMeeting() !== m) return this.beginNextMeeting();
       this.live = null; this.notify(true); return;
     }
+    this.attachLive(live);
+  }
+
+  /** Wire a live session (new weekend or replay) to the director, commentary and scene. */
+  private attachLive(live: LiveSession) {
+    const u = this.u!;
     this.live = live;
     this.director = new Director(u, live.setup);
     this.commentary = new Commentator(u, live.setup);
     this.commentary.density = this.prefs.density;
     this.follow = null; this.camManual = null;
     live.onFeed = (items, st) => { this.commentary!.onFeed(items, st); this.director!.onFeed(items, st); for (const f of this.feedListeners) f(items); };
-    live.onStage = (stage) => { if (stage === 'race') this.setupCars(); if (stage === 'done') { this.follow = null; this.camManual = 'free'; if (this.director) this.director.auto = false; this.renderer?.setMode('overview'); this.afterMeeting(); } this.notify(true); };
+    live.onStage = (stage) => { if (stage === 'race') this.setupCars(); if (stage === 'done') { this.follow = null; this.camManual = 'free'; if (this.director) this.director.auto = false; this.renderer?.setMode('overview'); if (!live.replay) this.afterMeeting(); } this.notify(true); };
     this.setupScene();
     this.notify(true);
   }
 
+  // ------------------------------------------------------------------ replays
+  /** Rebuild a past weekend from its stored setup and watch it; the current live weekend is paused, not lost. */
+  replay(meetingId: string) {
+    const u = this.u!; const rec = u.races[meetingId];
+    const m = rec ? u.seasons[rec.year]?.meetings.find((x) => x.id === meetingId) : undefined;
+    const setup = loadSetup(u, meetingId);
+    if (!rec || !m || !setup) { this.message = 'This race has no stored setup, so it cannot be replayed.'; this.notify(true); return; }
+    if (!this.replaying) this.replaying = { meetingId, label: '', suspended: this.live ? { live: this.live, director: this.director, commentary: this.commentary, follow: this.follow, camManual: this.camManual, wasPlaying: this.live.playing } : null };
+    if (this.replaying.suspended) this.replaying.suspended.live.playing = false;
+    this.replaying.meetingId = meetingId;
+    this.replaying.label = `${rec.name} ${rec.year}`;
+    this.replaying.note = rec.engineVersion !== ENGINE_VERSION ? `Recorded with engine ${rec.engineVersion}; this is engine ${ENGINE_VERSION}, so the replay may differ from the record.` : undefined;
+    this.attachLive(new LiveSession(u, m, setup, { expectHash: rec.hash }));
+    this.dest = 'live'; this.views = [];
+    this.notify(true);
+  }
+  /** Leave a replay and return to exactly where the live weekend was. */
+  exitReplay() {
+    const r = this.replaying; if (!r) return;
+    this.replaying = null;
+    const s = r.suspended;
+    if (s && s.live.u === this.u) {
+      this.live = s.live; this.director = s.director; this.commentary = s.commentary; this.follow = s.follow; this.camManual = s.camManual;
+      s.live.playing = s.wasPlaying;
+      this.setupScene();
+      if (s.live.stage === 'done') this.renderer?.setMode('overview');
+      this.dest = 'live'; this.views = [];
+      this.notify(true);
+    } else { this.live = null; this.dest = 'live'; this.views = []; this.beginNextMeeting(); }
+  }
+
+  refreshScene() { if (this.live) this.setupScene(); }
   private setupScene() {
     const live = this.live!; const r = this.renderer; const u = this.u!;
     if (!r || !this.city) return;
@@ -208,7 +266,10 @@ export class Controller {
   autoCamera() { this.follow = null; this.camManual = null; if (this.director) this.director.auto = true; this.renderer?.setMode('overview'); this.notify(true); }
   overview() { this.follow = null; this.camManual = 'free'; if (this.director) this.director.auto = false; this.renderer?.setMode('overview'); this.notify(true); }
   freeCamera() { this.follow = null; this.camManual = 'free'; if (this.director) this.director.auto = false; this.renderer?.setMode('free'); this.notify(true); }
-  go(d: Destination) { this.dest = d; this.notify(true); }
+  go(d: Destination) { this.dest = d; this.views = []; this.notify(true); }
+  views: View[] = [];
+  open(v: View) { if (this.dest === 'live') this.dest = v.kind === 'story' ? 'stories' : v.kind === 'person' || v.kind === 'team' ? 'people' : 'history'; this.views.push(v); this.notify(true); }
+  back() { this.views.pop(); this.notify(true); }
   toggleFavourite(kind: 'people' | 'teams', id: string) { const u = this.u!; const arr = u.favourites[kind]; const i = arr.indexOf(id); if (i >= 0) arr.splice(i, 1); else arr.push(id); this.notify(true); }
 
   /** Test/automation hook: advance the live session synchronously by `seconds` of sporting time. */
@@ -226,9 +287,9 @@ export class Controller {
       this.worker = new Worker(new URL('../worker/sim.worker.ts', import.meta.url), { type: 'module' });
       this.worker.onmessage = (e: MessageEvent<WorkerOut>) => {
         const m = e.data;
-        if (m.type === 'progress') { this.progress = { label: `${m.year}: ${m.label}`, done: m.done, total: m.total, year: m.year, cancellable: true }; this.notify(true); }
+        if (m.type === 'progress') { const p = { label: `${m.year}: ${m.label}`, done: m.done, total: m.total, year: m.year, cancellable: true }; if (this.workerBackground) this.bgProgress = p; else this.progress = p; this.notify(); }
         else if (m.type === 'done') { const res = this.workerResolve; this.workerResolve = null; this.progress = null; res?.(m.universe); }
-        else if (m.type === 'error') { const res = this.workerResolve; this.workerResolve = null; this.progress = null; this.message = `Simulation error: ${m.message.split('\n')[0]}`; res?.(null); }
+        else if (m.type === 'error') { const res = this.workerResolve; this.workerResolve = null; this.progress = null; this.bgProgress = null; this.message = `Simulation error: ${m.message.split('\n')[0]}`; res?.(null); }
       };
     }
     return this.worker;
@@ -237,6 +298,8 @@ export class Controller {
   /** Simulate in the background with identical rules; the live race (if any) is finished first. */
   async simulate(until: Until, label: string) {
     const u = this.u!;
+    if (this.bgProgress) { this.message = 'History is still being generated in the background.'; this.notify(true); return; }
+    if (this.replaying) { const s = this.replaying.suspended; this.replaying = null; this.live = s && s.live.u === u ? s.live : null; }
     if (this.live && this.live.stage !== 'done') {
       // finish the current weekend with the same engine, fast
       this.progress = { label: 'Finishing the current race', done: 0, total: 1, year: u.clock.year, cancellable: false };
@@ -253,6 +316,37 @@ export class Controller {
     this.beginNextMeeting();
   }
   cancelSimulation() { this.worker?.postMessage({ type: 'cancel' }); }
+
+  /**
+   * Explore mode: generate history in a worker from a copy of the universe while the player keeps watching
+   * the opening weekend on the main thread. Both copies run the same deterministic code from the same state,
+   * so the race being watched is exactly the one in the generated history; it is verified when it ends.
+   */
+  async generateInBackground(until: Until, label: string) {
+    const u = this.u!;
+    this.workerBackground = true;
+    this.bgProgress = { label, done: 0, total: 1, year: u.clock.year, cancellable: true };
+    this.notify(true);
+    const w = this.ensureWorker();
+    const result = await new Promise<Universe | null>((resolve) => { this.workerResolve = resolve; w.postMessage({ type: 'run', universe: u, until }); });
+    this.workerBackground = false; this.bgProgress = null;
+    if (result) await this.adoptUniverse(result);
+    this.notify(true);
+  }
+
+  /** Switch to a universe produced elsewhere (the worker); a weekend in progress becomes a verified replay. */
+  private async adoptUniverse(nu: Universe) {
+    const old = this.live;
+    this.u = nu;
+    if (old && old.u !== nu) {
+      if (old.stage !== 'done') old.replay = { expectHash: nu.races[old.meeting.id]?.hash };
+      this.replaying = { meetingId: old.meeting.id, label: `${old.meeting.name} ${old.meeting.year}`, note: 'This weekend is part of the history just generated; its result is checked against the record when it ends.', suspended: null };
+    }
+    try { await saveUniverse(nu); } catch (err) { this.message = `Save failed: ${err}`; }
+    const champs = new Set(Object.values(nu.seasons).map((s) => s.championId).filter(Boolean)).size;
+    const years = Object.keys(nu.seasons).map(Number);
+    this.notice = { text: `History generated: ${Math.min(...years)}–${Math.max(...years)}, ${Object.keys(nu.races).length} races, ${champs} different champions.`, action: { label: 'Explore the century', run: () => { this.notice = null; this.go('stories'); } } };
+  }
 }
 
 function defaultCond(): Conditions { return { cloud: 0.3, rain: 0, water: 0, vis: 10000, snow: false, hour: 14, month: 5, flagState: 'green', yellows: [] }; }

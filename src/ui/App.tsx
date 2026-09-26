@@ -33,9 +33,10 @@ function StartScreen({ c }: { c: Controller }) {
   const start = async (mode: 'watch' | 'explore') => {
     setBusy(true);
     const s = seed.trim() || randomSeed();
-    (c as any).exploreMode = mode === 'explore';
+    c.exploreMode = mode === 'explore';
     await c.newUniverse(s, { raceFormat: format, fatalities: fatal });
-    if (mode === 'explore') c.simulate({ kind: 'year', year: c.u!.meta.settings.endYear + 1 }, 'Generating a century of history');
+    // explore: the century is generated in a worker while the opening race plays here
+    if (mode === 'explore') c.generateInBackground({ kind: 'year', year: c.u!.meta.settings.endYear + 1 }, `Generating ${c.u!.meta.settings.startYear}–${c.u!.meta.settings.endYear}`);
   };
   const resume = async (id: string) => { setBusy(true); try { await c.openUniverse(await loadUniverse(id)); } catch (e: any) { setErr(e.message); setBusy(false); } };
   const onImport = async (f: File) => { try { const u = await importUniverse(await f.text()); setSaves(await listSaves()); setErr(null); await c.openUniverse(u); } catch (e: any) { setErr(e.message); } };
@@ -71,7 +72,7 @@ const DESTS: [Destination, string][] = [['live', 'Live'], ['season', 'Season'], 
 function Game({ c }: { c: Controller }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [settings, setSettings] = useState(false);
-  useEffect(() => { if (canvasRef.current) { c.attachCanvas(canvasRef.current); if (c.city && c.renderer && !c.renderer.city && c.live) (c as any).setupScene?.(); } }, [canvasRef.current]);
+  useEffect(() => { if (canvasRef.current) { c.attachCanvas(canvasRef.current); if (c.city && c.renderer && !c.renderer.city && c.live) c.refreshScene(); } }, [canvasRef.current]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'SELECT') return;
@@ -94,6 +95,7 @@ function Game({ c }: { c: Controller }) {
         <div class="brand"><span class="brand-mark" aria-hidden="true">SA</span><span class="brand-text">St Albans Racing</span></div>
         <nav class="nav" aria-label="Destinations">{DESTS.map(([d, l]) => <button key={d} aria-current={c.dest === d ? 'page' : undefined} onClick={() => c.go(d)}>{l}</button>)}</nav>
         <div class="spacer" />
+        {c.bgProgress && <div class="bgchip" role="status" aria-live="polite" title="Generating history in the background with the same engine"><span class="lbl">History</span><b>{c.bgProgress.year}</b><span class="mini" aria-hidden="true"><i style={{ width: `${Math.min(100, (c.bgProgress.done / Math.max(1, c.bgProgress.total)) * 100)}%` }} /></span><button class="link small" onClick={() => c.cancelSimulation()} aria-label="Stop generating history here">stop</button></div>}
         {u && <div class="datepill">{m ? <><b>{m.name}</b><br />{fmtDate(m.day)} · Round {m.round}</> : <b>{u.clock.year}</b>}</div>}
         <button class="iconbtn" aria-label="Settings" onClick={() => setSettings(true)}>⚙</button>
       </header>
@@ -106,6 +108,7 @@ function Game({ c }: { c: Controller }) {
         <div class="small muted">Same engine and rules as live racing, without the pictures. {c.progress.cancellable && 'You can stop safely between races.'}</div>
         {c.progress.cancellable && <div style={{ marginTop: 10 }}><button class="btn" onClick={() => c.cancelSimulation()}>Stop after this race</button></div>}
       </div>}
+      {c.notice && <div class="notice" role="status"><span>{c.notice.text}</span>{c.notice.action && <button class="btn primary" onClick={() => c.notice!.action!.run()}>{c.notice.action.label}</button>}<button class="btn ghost" aria-label="Dismiss" onClick={() => { c.notice = null; c.notify(true); }}>✕</button></div>}
       {c.message && <div class="toast" role="status" onClick={() => { c.message = null; c.notify(true); }}>{c.message}</div>}
       {settings && <Settings c={c} onClose={() => setSettings(false)} onExport={() => { const b = exportUniverse(c.u!); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `st-albans-${c.u!.meta.seed}-${c.u!.clock.year}.json`; a.click(); }} />}
     </div>

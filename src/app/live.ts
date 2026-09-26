@@ -4,7 +4,11 @@ import type { Universe, Meeting } from '../sim/types';
 import { getTrack, type Track } from '../sim/track';
 import { createQuali, createRace, stepRace, isOver, DT, type RaceState, type FeedItem } from '../sim/race/engine';
 import type { WeekendSetup } from '../sim/race/setup';
-import { beginMeeting, finishMeeting } from '../sim/world/season';
+import { beginMeeting, finishMeeting, hashRecord } from '../sim/world/season';
+import { classify } from '../sim/race/results';
+
+/** A replay re-runs a past weekend from its stored setup and checks the outcome against the record. */
+export interface ReplayInfo { expectHash?: string; result?: 'match' | 'mismatch' | 'unverified'; hash?: string }
 
 export type Stage = 'quali' | 'race' | 'done';
 export interface MomentFilter { minSig: number; kinds?: string[] }
@@ -25,6 +29,7 @@ export class LiveSession {
   onFeed?: (items: FeedItem[], st: RaceState) => void;
   onStage?: (stage: Stage) => void;
   skipping: { until: (st: RaceState, fresh: FeedItem[]) => boolean; budgetMs: number } | null = null;
+  replay: ReplayInfo | null = null;
 
   static begin(u: Universe, m: Meeting): LiveSession | null {
     const w = beginMeeting(u, m);
@@ -32,8 +37,8 @@ export class LiveSession {
     return new LiveSession(u, m, w.setup);
   }
 
-  constructor(u: Universe, m: Meeting, setup: WeekendSetup) {
-    this.u = u; this.meeting = m; this.setup = setup;
+  constructor(u: Universe, m: Meeting, setup: WeekendSetup, replay?: ReplayInfo) {
+    this.u = u; this.meeting = m; this.setup = setup; this.replay = replay ?? null;
     this.tr = getTrack(setup.layout.geometryId);
     this.quali = createQuali(setup, this.tr);
     const n = setup.entrants.length;
@@ -83,7 +88,13 @@ export class LiveSession {
 
   complete() {
     if (this.stage === 'done' || !this.race) return;
-    finishMeeting(this.u, this.meeting, this.setup, this.quali, this.race);
+    if (this.replay) {
+      // never touches the universe: classify with the same rules and compare with the stored hash
+      const race = this.race;
+      const cls = classify(race, this.setup, this.tr);
+      this.replay.hash = hashRecord(cls.rows.map((cr) => ({ driverId: this.setup.entrants[race.cars[cr.i].i].driverId, pos: cr.pos, laps: cr.laps, time: cr.time })));
+      this.replay.result = !this.replay.expectHash ? 'unverified' : this.replay.hash === this.replay.expectHash ? 'match' : 'mismatch';
+    } else finishMeeting(this.u, this.meeting, this.setup, this.quali, this.race);
     this.stage = 'done';
     this.skipping = null;
     this.onStage?.('done');

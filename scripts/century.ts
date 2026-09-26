@@ -60,8 +60,8 @@ let consec = 0, unexplained = 0; for (const s of seasons) for (let i = 2; i < s.
 checks.push(['No unexplained runs of three meetings on one layout', unexplained === 0, `${consec} runs, ${unexplained} unexplained`]);
 const layoutsPerSeason = seasons.filter((s) => s.meetings.length).map((s) => new Set(s.meetings.map((m) => m.geometryId)).size);
 checks.push(['Seasons use several layouts', layoutsPerSeason.every((n) => n >= 3), `min ${Math.min(...layoutsPerSeason)} max ${Math.max(...layoutsPerSeason)}`]);
-// records never awarded twice for one occasion
-let dup = 0; for (const r of Object.values(u.records)) { const keys = r.history.map((h) => `${h.meetingId}|${h.newHolders.join()}|${h.kind}`); dup += keys.length - new Set(keys).size; }
+// records never awarded twice for one occasion (one race, or one season for season-level records)
+let dup = 0; for (const r of Object.values(u.records)) { const keys = r.history.map((h) => `${h.year}|${h.meetingId ?? 'season'}|${h.newHolders.join()}|${h.kind}`); dup += keys.length - new Set(keys).size; }
 checks.push(['Record history has no duplicate awards', dup === 0, `${dup}`]);
 // events causality references valid
 const evIds = new Set(u.events.map((e) => e.id)); let badCause = 0; for (const e of u.events) for (const c of e.causes) if (!evIds.has(c)) badCause++;

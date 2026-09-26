@@ -7,7 +7,7 @@ export function RaceResult({ c, rec, compact }: { c: Controller; rec: RaceRecord
   const s = u.seasons[rec.year];
   const entry = (tid: string) => s?.entries.find((e) => e.teamId === tid);
   const winner = rec.results.find((r) => r.pos === 1);
-  const open = (id: string) => { (c as any).openPerson?.(id); };
+  const open = (id: string) => c.open({ kind: 'person', id });
   const key = rec.events.filter((e) => ['lead', 'sc', 'red', 'retire', 'contact', 'penalty', 'rain', 'injury'].includes(e.kind) && e.sig >= 0.6).slice(0, 10);
   return (
     <div>

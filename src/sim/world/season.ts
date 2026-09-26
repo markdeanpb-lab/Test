@@ -212,6 +212,11 @@ export function beginMeeting(u: Universe, m: Meeting): { setup: WeekendSetup } |
     e.drivers = t.drivers.slice(0, 2);
   }
   const setup = buildSetup(u, m);
+  if (setup.entrants.length < 6) {
+    m.status = 'cancelled'; m.cancelReason = `only ${setup.entrants.length} entries`;
+    addEvent(u, { day: m.day, type: 'meeting-cancelled', scope: 'meeting', title: `${m.name} cancelled: too few entries`, meetingId: m.id, severity: 0.5, facts: { entries: setup.entrants.length } });
+    return null;
+  }
   u.setups[m.id] = packSetup(setup);
   return { setup };
 }
