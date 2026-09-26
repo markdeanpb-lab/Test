@@ -1,0 +1,20 @@
+import { getTrack } from '../src/sim/track';
+import { createRace, createQuali, stepRace, isOver } from '../src/sim/race/engine';
+import { classify } from '../src/sim/race/results';
+import { syntheticSetup } from './race-harness';
+const geo = process.argv[2] ?? 'abbey-v1', year = +(process.argv[3] ?? 2020), fmt = (process.argv[4] ?? 'knockout') as any, seed = process.argv[5] ?? 'w1';
+const tr = getTrack(geo);
+const setup = syntheticSetup(geo, year, seed);
+setup.rules.qualiFormat = fmt;
+const t0 = performance.now();
+const q = createQuali(setup, tr);
+let n = 0; while (!isOver(q) && n < 2e6) { stepRace(q); n++; }
+const t1 = performance.now();
+console.log(`quali ${fmt}: ${(q.t / 60).toFixed(1)} min, ${n} steps, ${(t1 - t0).toFixed(0)} ms`);
+const grid = q.q!.gridOrder.map((k) => q.cars[k].i);
+console.log('grid:', grid.slice(0, 10).map((i, p) => `${p + 1}.${setup.entrants[i].name}(${Number.isFinite(q.q!.best[q.cars.findIndex(c => c.i === i)]) ? q.q!.best[q.cars.findIndex(c => c.i === i)].toFixed(2) : '-'}) pace${setup.entrants[i].d.pace}`).join(' '));
+const r = createRace(setup, tr, grid);
+while (!isOver(r)) stepRace(r);
+const res = classify(r, setup, tr);
+console.log(`race ${res.status} ${(r.t / 60).toFixed(1)} min, ${(performance.now() - t1).toFixed(0)} ms, overtakes ${r.overtakeCount}`);
+console.log('result:', res.rows.slice(0, 8).map((x) => `${x.pos}.${setup.entrants[r.cars[x.i].i].name}(g${x.grid})`).join(' '));
