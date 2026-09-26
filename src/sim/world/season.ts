@@ -160,6 +160,8 @@ export function carPaceIndex(c: { powerKW: number; massKg: number; mechGrip: num
 
 // ---------------------------------------------------------------------------- race weekend
 export function beginMeeting(u: Universe, m: Meeting): { setup: WeekendSetup } | null {
+  // a weekend already begun (saved or exported mid-race) resumes from its stored setup, so it is the same race
+  if (m.status === 'scheduled' && m.begun === m.day && u.setups[m.id] && !u.races[m.id]) return { setup: loadSetup(u, m.id)! };
   const year = m.year;
   const s = u.seasons[year];
   const rng = rngFor(u, 'season');
@@ -218,7 +220,9 @@ export function beginMeeting(u: Universe, m: Meeting): { setup: WeekendSetup } |
     return null;
   }
   u.setups[m.id] = packSetup(setup);
-  return { setup };
+  m.begun = m.day;
+  // live, headless and replayed weekends all run from the stored (packed) setup, so they are identical
+  return { setup: loadSetup(u, m.id)! };
 }
 
 export function rulesSnap(u: Universe, regs: RegSet, laps: number): WeekendSetup['rules'] {

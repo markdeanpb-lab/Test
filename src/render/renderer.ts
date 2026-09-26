@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { MapControls } from 'three/examples/jsm/controls/MapControls.js';
 import { buildCity, type CityData, type CityMeshes } from './city';
 import { dressTrack, type TrackDressing } from './trackMesh';
+import { buildStreetLife } from './life';
 import { buildCar, selectionRing, type CarLook } from './cars';
 import type { Track } from '../sim/track';
 import { Rng } from '../sim/rng';
@@ -23,6 +24,8 @@ export class Renderer {
   city: CityMeshes | null = null;
   track: Track | null = null;
   dress: TrackDressing | null = null;
+  life: THREE.Group | null = null;
+  private cityData: CityData | null = null;
   cars: THREE.Group[] = [];
   ring: THREE.Mesh | null = null;
   rain: THREE.LineSegments | null = null;
@@ -79,6 +82,7 @@ export class Renderer {
 
   loadCity(data: CityData, focus?: { x: number; z: number; r: number }) {
     if (this.city) this.scene.remove(this.city.group);
+    this.cityData = data;
     this.city = buildCity(data, this.quality, focus);
     this.scene.add(this.city.group);
   }
@@ -89,6 +93,9 @@ export class Renderer {
     this.track = tr;
     this.dress = dressTrack(tr, this.city.terrain, opts);
     this.scene.add(this.dress.group);
+    if (this.life) { this.scene.remove(this.life); disposeGroup(this.life); }
+    this.life = this.cityData ? buildStreetLife(this.cityData, this.city.terrain, tr, opts.year, opts.quality ?? this.quality) : null;
+    if (this.life) this.scene.add(this.life);
     this.fitOverview(true);
   }
 

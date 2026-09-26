@@ -7,7 +7,7 @@ import { meetingPreview } from '../narrative/preview';
 import { RaceResult } from './results';
 
 function ReplayBanner({ c }: { c: Controller }) {
-  const r = c.replaying; if (!r || c.dest !== 'live') return null;
+  const r = c.replaying; if (!r || c.dest !== 'live' || c.live?.stage === 'done') return null; // when done, the result panel carries the verdict
   return <div class="replay-banner" role="status"><b>Replay</b> · {r.label}{r.note && <div class="small">{r.note}</div>}<button class="btn" onClick={() => c.exitReplay()}>Back to live</button></div>;
 }
 

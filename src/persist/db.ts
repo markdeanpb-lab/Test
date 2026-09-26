@@ -32,17 +32,31 @@ export function summarise(u: Universe): SaveSummary {
   return { id: u.meta.id, name: u.meta.name, seed: u.meta.seed, savedAt: new Date().toISOString(), year: u.clock.year, phase: u.clock.phase, champion: ch ? `${ch.first} ${ch.last} (${last})` : undefined, seasons: years.length, engineVersion: u.meta.engineVersion, schemaVersion: u.meta.schemaVersion };
 }
 
+export interface Chunk { year: number; races: Record<string, any>; setups: Record<string, string> }
+
+/** Split a universe into its core (live state) and per-season archive chunks (race records and setups). */
+export function splitUniverse(u: Universe): { core: Universe; chunks: Chunk[] } {
+  const byYear = new Map<number, Chunk>();
+  const get = (y: number) => { if (!byYear.has(y)) byYear.set(y, { year: y, races: {}, setups: {} }); return byYear.get(y)!; };
+  for (const [id, r] of Object.entries(u.races)) get(r.year).races[id] = r;
+  for (const [id, s] of Object.entries(u.setups)) get(+id.slice(1, 5)).setups[id] = s;
+  return { core: { ...u, races: {}, setups: {} } as Universe, chunks: [...byYear.values()] };
+}
+/** Reassemble a universe from a core and its chunks (the inverse of splitUniverse). */
+export function joinUniverse(core: Universe, chunks: Chunk[]): Universe {
+  const u = { ...core, races: { ...core.races }, setups: { ...core.setups } } as Universe;
+  for (const c of chunks.slice().sort((a, b) => a.year - b.year)) { Object.assign(u.races, c.races); Object.assign(u.setups, c.setups); }
+  return u;
+}
+
 /** Save: core + per-season chunks. `years` limits which chunks are (re)written (default: all). */
 export async function saveUniverse(u: Universe, years?: number[]): Promise<void> {
   const db = await open();
-  const byYear = new Map<number, { races: Record<string, any>; setups: Record<string, string> }>();
-  for (const [id, r] of Object.entries(u.races)) { const y = r.year; if (!byYear.has(y)) byYear.set(y, { races: {}, setups: {} }); byYear.get(y)!.races[id] = r; }
-  for (const [id, s] of Object.entries(u.setups)) { const y = +id.slice(1, 5); if (!byYear.has(y)) byYear.set(y, { races: {}, setups: {} }); byYear.get(y)!.setups[id] = s; }
-  const core = { ...u, races: {}, setups: {} } as Universe;
+  const { core, chunks } = splitUniverse(u);
   core.meta = { ...u.meta, savedAt: new Date().toISOString() };
   await tx(db, ['universes', 'chunks'], 'readwrite', (t) => {
     t.objectStore('universes').put({ id: u.meta.id, summary: summarise(u), core });
-    for (const [y, c] of byYear) if (!years || years.includes(y)) t.objectStore('chunks').put({ uid: u.meta.id, year: y, ...c });
+    for (const c of chunks) if (!years || years.includes(c.year)) t.objectStore('chunks').put({ uid: u.meta.id, ...c });
   });
   db.close();
 }
@@ -64,10 +78,8 @@ export async function loadUniverse(id: string): Promise<Universe> {
   if (!row) throw new Error('Save not found');
   const chunks: any[] = await (await tx(db, ['chunks'], 'readonly', (t) => req(t.objectStore('chunks').getAll(IDBKeyRange.bound([id, -1e9], [id, 1e9])))));
   db.close();
-  const u = row.core as Universe;
-  check(u);
-  for (const c of chunks) { Object.assign(u.races, c.races); Object.assign(u.setups, c.setups); }
-  return u;
+  check(row.core);
+  return joinUniverse(row.core as Universe, chunks);
 }
 
 export async function deleteSave(id: string) {
@@ -81,7 +93,7 @@ export async function getPref<T>(key: string, dflt: T): Promise<T> {
 }
 export async function setPref(key: string, v: unknown) { try { const db = await open(); await tx(db, ['prefs'], 'readwrite', (t) => t.objectStore('prefs').put(v, key)); db.close(); } catch { /* preferences are optional */ } }
 
-function check(u: any) {
+export function check(u: any) {
   if (!u || typeof u !== 'object' || !u.meta || !u.clock || !u.people) throw new Error('This is not a St Albans Racing universe file.');
   if (u.meta.schemaVersion > SCHEMA_VERSION) throw new Error(`This save uses a newer format (schema ${u.meta.schemaVersion}); this build reads schema ${SCHEMA_VERSION}.`);
   if (u.meta.engineVersion !== ENGINE_VERSION) u.meta.engineNote = `Created with engine ${u.meta.engineVersion}; this build runs ${ENGINE_VERSION}. Results are kept as recorded; replays of older races are only guaranteed under their original engine.`;

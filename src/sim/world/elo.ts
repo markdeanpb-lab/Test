@@ -79,7 +79,9 @@ export function updateElo(u: Universe, rec: RaceRecord, qualiValid: boolean) {
     if (den <= 0) continue;
     const avgDev = num / den; // normalised: a crowded field does not multiply the update
     const p = u.people[a.id];
-    deltas.set(a.id, eloK(p.elo.rd) * avgDev * clamp(den / (parts.length - 1), 0.25, 1));
+    // evidence scale: a full race of comparisons counts 1; partial evidence (an early mechanical failure) counts
+    // in proportion, so a car breaking on lap 1 says almost nothing about its driver
+    deltas.set(a.id, eloK(p.elo.rd) * avgDev * clamp(den / (parts.length - 1), 0, 1));
     // the car absorbs the part of the result not explained within the team
     if (a.weight >= 0.5) carDelta.set(a.carKey, (carDelta.get(a.carKey) ?? 0) + ELO.carK * avgDev * 0.5);
   }

@@ -41,6 +41,7 @@ export interface CarState {
   led: number; finT: number | null;
   ret: null | { t: number; lap: number; reason: string; cat: 'mechanical' | 'driver' | 'contact' | 'other'; where: string; s: number };
   react: number; launch: number;
+  jump?: boolean; // anticipated the start (penalised at lights out)
   lastCornerI: number; lastHazardT: number;
   pos: number; overtakes: number; lostPos: number;
   gapAhead: number; gapLeader: number; interval: number;
@@ -184,6 +185,8 @@ export function createRace(setup: WeekendSetup, tr: Track, gridOrder: number[]):
     // Rare poor launch (stall / wheelspin)
     const car = st.cars[st.cars.length - 1];
     if (rng.chance(0.025 + (e.d.rookie ? 0.015 : 0) + (st.w.water > 0.3 ? 0.02 : 0))) { car.launch *= 0.45; car.react += rng.range(0.4, 2.5); }
+    // Rare jump start: impatient, undisciplined drivers occasionally move before the lights
+    else if (rng.chance(0.006 + n01(e.d.aggression) * 0.008 + (1 - n01(e.d.discipline)) * 0.006)) { car.react = rng.range(-0.3, 0.02); car.jump = true; }
   });
   st.order = st.cars.map((_, k) => k);
   attachCache(st, setup, tr);
@@ -402,6 +405,7 @@ export function stepRace(st: RaceState): void {
         for (const car of st.cars) { if (car.mode === 'grid') { car.mode = 'run'; car.startT = st.lightsT + car.react; } }
         st.startLap = 0;
         pushEvent(st, { t: st.t, lap: 1, kind: 'start', detail: st.w.water > 0.3 ? 'wet start' : '', sig: SIG.start });
+        st.cars.forEach((car, k) => { if (car.jump) { car.jump = false; penalise(st, c, k, 'jump start', 0.8); } });
       }
       return;
     }
@@ -913,18 +917,25 @@ function contact(st: RaceState, c: Cache, k: number, j: number, how: string) {
   const blameA = how === 'a-dive' ? 0.7 : 0.35;
   const guilty = rng.chance(blameA) ? k : j;
   const sevMax = Math.max(sevA, sevB);
-  if (setup.rules.penalties !== 'fines' && sevMax > 0.3 && rng.chance(0.55)) {
-    const g = st.cars[guilty];
-    if (!g.ret) {
-      const kind = setup.rules.penalties === 'full' && sevMax > 0.7 ? 'drive-through' : 'time';
-      const secs = kind === 'time' ? (sevMax > 0.6 ? 10 : 5) : 0;
-      g.pen.push({ kind, seconds: secs, reason: `causing a collision with ${setup.entrants[(guilty === k ? B : A).i].name}`, served: false });
-      if (kind === 'drive-through') g.pitReq = g.pitReq ?? 'drive-through';
-      pushEvent(st, { t: st.t + 20, lap: lapOf(st), kind: 'penalty', a: guilty, b: guilty === k ? j : k, detail: kind === 'time' ? `${secs}-second time penalty` : 'drive-through penalty', value: secs, sig: SIG.penalty });
-    }
-  } else if (setup.rules.penalties === 'fines' && sevMax > 0.5 && rng.chance(0.3)) {
-    pushEvent(st, { t: st.t + 20, lap: lapOf(st), kind: 'reprimand', a: guilty, detail: 'fined by the stewards after the collision', sig: 0.35 });
+  const reason = `causing a collision with ${setup.entrants[(guilty === k ? B : A).i].name}`;
+  if (setup.rules.penalties !== 'fines' && sevMax > 0.3 && rng.chance(0.55)) penalise(st, c, guilty, reason, sevMax, guilty === k ? j : k);
+  else if (setup.rules.penalties === 'fines' && sevMax > 0.5 && rng.chance(0.3)) penalise(st, c, guilty, reason, sevMax, guilty === k ? j : k);
+}
+
+/** Stewards' decision under the era's penalty regime: fines only, time penalties, or the full range. */
+function penalise(st: RaceState, c: Cache, k: number, reason: string, sev: number, other?: number) {
+  const setup = c.setup; const g = st.cars[k];
+  if (g.ret) return;
+  if (setup.rules.penalties === 'fines') {
+    g.pen.push({ kind: 'fine', seconds: 0, reason, served: true });
+    pushEvent(st, { t: st.t + 20, lap: lapOf(st), kind: 'reprimand', a: k, b: other, detail: `fined by the stewards for ${reason}`, sig: 0.35 });
+    return;
   }
+  const kind = setup.rules.penalties === 'full' && sev > 0.7 ? 'drive-through' : 'time';
+  const secs = kind === 'time' ? (sev > 0.6 ? 10 : 5) : 0;
+  g.pen.push({ kind, seconds: secs, reason, served: false });
+  if (kind === 'drive-through') g.pitReq = g.pitReq ?? 'drive-through';
+  pushEvent(st, { t: st.t + 20, lap: lapOf(st), kind: 'penalty', a: k, b: other, detail: `${kind === 'time' ? `${secs}-second time penalty` : 'drive-through penalty'} for ${reason}`, value: secs, sig: SIG.penalty });
 }
 
 function crash(st: RaceState, c: Cache, k: number, where: string, how: string, impact: number, cat: 'driver' | 'contact') {

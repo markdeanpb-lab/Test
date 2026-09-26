@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import type { Controller } from '../../app/controller';
 import type { StoryArc, Universe } from '../../sim/types';
 import { fmtDate } from '../common';
-import { yearOf } from '../../sim/dates';
+import { yearOf, dayOf } from '../../sim/dates';
 import { P, Tm, R, TimeCursor } from './shared';
 
 const TYPE_LABEL: Record<string, string> = { rivalry: 'Rivalry', 'title-fight': 'Title fight', dynasty: 'Dynasty', 'dynasty-decline': 'Decline', 'long-wait': 'The long wait', 'stalled-prospect': 'Unfulfilled promise', comeback: 'Comeback', revival: 'Revival', 'team-breakthrough': 'Breakthrough', family: 'Family', 'tech-gamble': 'Technical gamble', engineer: 'The engineer', 'wet-master': 'Rain master' };
@@ -13,8 +13,8 @@ export function storyAsOf(s: StoryArc, cut?: number) {
   const beats = s.beats.filter((b) => b.day <= cut);
   return { beats, state: beats.length === s.beats.length ? s.state : 'developing', visible: s.startDay <= cut && beats.length > 0, complete: beats.length === s.beats.length };
 }
-/** Titles can give away endings ("X's decade of dominance"), so spoiler-safe views use the neutral title. */
-export const storyTitle = (c: Controller, s: StoryArc) => (c.cutoff !== undefined || !c.prefs.spoilers ? s.spoilerTitle : s.title);
+/** Titles can give away endings ("X's decade of dominance"): while later beats are hidden, use the neutral title. */
+export const storyTitle = (c: Controller, s: StoryArc) => (c.cutoff !== undefined && !storyAsOf(s, c.cutoff).complete ? s.spoilerTitle : s.title);
 
 export function rankedStories(u: Universe, cut?: number) {
   const now = cut ?? u.clock.day;
@@ -76,16 +76,21 @@ export function StoryView({ c, id }: { c: Controller; id: string }) {
  */
 function Chapters({ c, ranked }: { c: Controller; ranked: ReturnType<typeof rankedStories> }) {
   const u = c.u!;
-  const years = Object.keys(u.seasons).map(Number).filter((y) => c.cutoff === undefined || y <= yearOf(c.cutoff));
-  if (years.length < 6 || ranked.length < 3) return null;
-  const decades = [...new Set(years.map((y) => Math.floor(y / 10) * 10))].sort((a, b) => a - b);
   const [open, setOpen] = useState<number | null>(null);
+  const allYears = Object.keys(u.seasons).map(Number).sort((a, b) => a - b);
+  const years = allYears.filter((y) => c.cutoff === undefined || y <= yearOf(c.cutoff));
+  const allDecades = [...new Set(allYears.map((y) => Math.floor(y / 10) * 10))];
+  if (allYears.length < 4) return null;
+  const decades = [...new Set(years.map((y) => Math.floor(y / 10) * 10))];
   const chapters = decades.map((d) => {
     const inDec = ranked.filter((x) => { const y = yearOf(x.k.beats[0]?.day ?? x.s.startDay); return y >= d && y < d + 10; }).sort((a, b) => b.s.significance - a.s.significance).slice(0, 3);
     const champs = years.filter((y) => y >= d && y < d + 10).map((y) => u.seasons[y]).filter((s) => s.championId && (s.status === 'complete' || s.status === 'interrupted') && s.meetings.every((m) => c.cutoff === undefined || m.day <= c.cutoff)).map((s) => s.championId!);
-    const key = inDec.flatMap((x) => x.k.beats).filter((b) => b.meetingId && u.races[b.meetingId]).sort((a, b) => (u.races[b.meetingId!].overtakes + u.races[b.meetingId!].leadChanges * 3) - (u.races[a.meetingId!].overtakes + u.races[a.meetingId!].leadChanges * 3))[0];
-    return { d, inDec, champs: [...new Set(champs)], key };
-  }).filter((ch) => ch.inDec.length || ch.champs.length);
+    const key = inDec.flatMap((x) => x.k.beats).filter((b) => b.meetingId && u.races[b.meetingId]).sort((a, b) => (u.races[b.meetingId!].overtakes + u.races[b.meetingId!].leadChanges * 3) - (u.races[a.meetingId!].overtakes + u.races[a.meetingId!].leadChanges * 3))[0]
+    const gp = Object.values(u.races).filter((r) => r.year >= d && r.year < d + 10 && (c.cutoff === undefined || r.day <= c.cutoff)).sort((a, b) => (b.leadChanges * 3 + b.overtakes) - (a.leadChanges * 3 + a.overtakes))[0];
+    return { d, inDec, champs: [...new Set(champs)], keyId: key?.meetingId ?? gp?.meetingId };
+  });
+  const nextDec = c.cutoff !== undefined ? allDecades.find((d) => d > Math.floor(yearOf(c.cutoff!) / 10) * 10) : undefined;
+  const lastYear = allYears[allYears.length - 1];
   return <div class="section"><h3>Chapters of history</h3>
     <p class="small muted">A guided route through the century: the strongest stories of each decade and a race worth watching. Replays are rebuilt from the stored setup and checked against the record.</p>
     {chapters.map((ch, i) => <div class="card chapter">
@@ -93,8 +98,9 @@ function Chapters({ c, ranked }: { c: Controller; ranked: ReturnType<typeof rank
       {open === ch.d && <>
         {ch.champs.length > 0 && <div class="small">Champions: {ch.champs.map((id, j) => <span>{j ? ', ' : ''}<P c={c} id={id} asOf={c.cutoff} /></span>)}</div>}
         {ch.inDec.map((x) => <div class="small" style={{ marginTop: 4 }}><button class="link" onClick={() => c.open({ kind: 'story', id: x.s.id })}>{storyTitle(c, x.s)}</button> — {x.s.premise}</div>)}
-        {ch.key?.meetingId && <div style={{ marginTop: 8 }}><button class="btn primary" onClick={() => c.replay(ch.key!.meetingId!)}>▶ Watch {u.races[ch.key.meetingId].name} {u.races[ch.key.meetingId].year}</button></div>}
+        {ch.keyId && <div style={{ marginTop: 8 }}><button class="btn primary" onClick={() => c.replay(ch.keyId!)}>▶ Watch {u.races[ch.keyId].name} {u.races[ch.keyId].year}</button></div>}
       </>}
     </div>)}
+    {nextDec !== undefined && <button class="btn primary" onClick={() => { c.cutoff = dayOf(Math.min(lastYear, nextDec + 9), 12, 31); setOpen(nextDec); c.notify(true); }}>Reveal the next chapter: the {nextDec}s →</button>}
   </div>;
 }

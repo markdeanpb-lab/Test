@@ -158,7 +158,8 @@ table.data tr:hover td { background: color-mix(in srgb, var(--panel-2) 60%, tran
 .news-item h4 { margin: 0 0 4px; font-size: 15px; }
 .news-item p { margin: 0; color: var(--ink-2); }
 .pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.returnlive { position: absolute; left: 50%; top: 62px; transform: translateX(-50%); z-index: 35; }
+.returnlive { position: absolute; left: 16px; top: 64px; z-index: 35; }
+@media (max-width: 800px) { .returnlive { top: auto; bottom: 86px; left: 50%; transform: translateX(-50%); box-shadow: var(--shadow); } }
 .paddock { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); width: min(620px, calc(100vw - 24px)); max-height: calc(100vh - 170px); overflow-y: auto; background: var(--panel); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 18px; z-index: 12; }
 .paddock h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -0.01em; }
 .reasons { margin: 8px 0 0; padding-left: 18px; }
@@ -214,3 +215,21 @@ table.data tr:hover td { background: color-mix(in srgb, var(--panel-2) 60%, tran
 .chapter { margin-bottom: 14px; }
 .chapter h3 { margin: 0 0 6px; }
 @media (max-width: 640px) { .bgchip .lbl { display: none; } .replay-banner { top: 56px; } }
+
+/* period look: grading of the 3D picture by the broadcast medium of the era being watched */
+.game.era-newsreel canvas.scene { filter: sepia(0.5) saturate(0.55) contrast(1.1) brightness(0.96); }
+.game.era-bwtv canvas.scene { filter: grayscale(0.82) contrast(1.12) brightness(1.02); }
+.game.era-colourtv canvas.scene { filter: saturate(1.12) sepia(0.12) contrast(1.04) hue-rotate(-4deg); }
+.game.era-newsreel .tower, .game.era-bwtv .tower { font-family: Georgia, 'Times New Roman', serif; letter-spacing: 0.01em; }
+@media (forced-colors: active) { .game canvas.scene { filter: none !important; } }
+.perfmeter { position: absolute; left: 12px; bottom: 12px; z-index: 44; font: 12px var(--mono); background: rgba(0,0,0,0.72); color: #fff; padding: 4px 8px; border-radius: 6px; pointer-events: none; }
+@media (max-width: 480px) {
+  .brand, .topbar .spacer, .datepill { display: none; }
+  .nav { margin-left: 0; flex: 1 1 auto; min-width: 0; justify-content: space-between; }
+  .topbar { gap: 4px; padding: 0 8px; }
+  .nav button { padding: 0 6px; font-size: 13.5px; }
+  .playbar { gap: 2px; padding: 4px; }
+  .playbar .btn { padding: 0 8px; font-size: 13px; }
+  .playbar .sep { display: none; }
+  .tower .rows { max-height: 38vh; }
+}

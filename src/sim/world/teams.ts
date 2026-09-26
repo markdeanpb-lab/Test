@@ -85,6 +85,7 @@ export function teamStrengthNow(u: Universe, t: Team): number {
 export function prizeShare(pos: number, n: number): number {
   // top teams take more; everyone who races receives something
   const w = (p: number) => 1 / (p + 3);
+  if (n <= 0) return 0; // no championship, no prize fund
   let tot = 0; for (let p = 1; p <= n; p++) tot += w(p);
   return w(pos) / tot;
 }
@@ -107,7 +108,8 @@ export function teamYearEnd(u: Universe, t: Team, rng: Rng, year: number, day: D
   const posIdx = season?.teamStandings.findIndex((r) => r.id === t.id) ?? -1;
   const pos = posIdx >= 0 ? posIdx + 1 : n;
   const pool = scale * 6;
-  const prize = pool * prizeShare(pos, n);
+  const raced = !!season && season.status !== 'cancelled' && season.meetings.some((m) => m.status === 'completed');
+  const prize = raced ? pool * prizeShare(pos, n) : 0;
   const sponsor = t.sponsors.filter((s) => s.fromYear <= year && s.untilYear >= year).reduce((a, s) => a + s.value, 0);
   const owner = t.ownerBacking * (1 + u.world.economy * 0.3);
   const wages = t.drivers.reduce((a, d) => a + (u.people[d]?.contract?.salary ?? 0), 0) + scale * (0.15 + t.engineering * 0.35 + t.crew * 0.1);

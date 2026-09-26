@@ -105,8 +105,8 @@ export class Commentator {
         case 'mistake': if (f.sig >= th + 0.05 && this.ok(`mis:${ea?.driverId}`, st.t, 60)) this.say(st, f.detail === 'locked up' ? `${a} locks up into ${f.where}${f.value ? ` and loses ${f.value.toFixed(1)}s` : ''}.` : f.detail === 'ran wide' ? `${a} runs wide at ${f.where}.` : `${a} ${f.detail} at ${f.where}.`, f.sig, 'incident', ids); break;
         case 'puncture': this.say(st, `${a} has a puncture${f.where ? ` near ${f.where}` : ''}.`, 0.6, 'incident', ids); break;
         case 'problem': if (f.sig >= th) this.say(st, `${a} appears to have a ${f.detail}.`, f.sig, 'incident', ids); break;
-        case 'penalty': this.say(st, `The stewards give ${a} a ${f.detail} for ${this.e(st, f.b) ? `the clash with ${b}` : 'the incident'}.`, 0.6, 'penalty', ids); break;
-        case 'reprimand': this.say(st, `${a} will be fined after the race — no sporting penalty under these rules.`, 0.4, 'penalty', ids); break;
+        case 'penalty': this.say(st, `The stewards give ${a} a ${f.detail ?? 'penalty'}.`, 0.6, 'penalty', ids); break;
+        case 'reprimand': this.say(st, `${a} is ${f.detail ?? 'fined by the stewards'} — a fine, but no sporting penalty under these rules.`, 0.4, 'penalty', ids); break;
         case 'sc': this.say(st, `Safety car: ${f.detail}. The field will close up.`, 0.85, 'flag', []); break;
         case 'scin': this.say(st, 'The safety car will come in at the end of this lap.', 0.6, 'flag', []); break;
         case 'restart': this.say(st, f.detail === 'standing restart after the red flag' ? 'We are going racing again: a standing restart.' : 'Green flag — racing resumes.', 0.7, 'flag', []); break;

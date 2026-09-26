@@ -82,14 +82,18 @@ function Game({ c }: { c: Controller }) {
       else if (e.key === 'a' || e.key === 'A') c.autoCamera();
       else if (e.key === 'o' || e.key === 'O') c.overview();
       else if (e.key === 'Escape') c.go('live');
+      else if (e.key === 'p' || e.key === 'P') { c.showPerf = !c.showPerf; c.notify(true); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
   const u = c.u;
   const m = c.live?.meeting;
+  // period look: the picture is graded like the medium of its day (newsreel, black-and-white TV, early colour)
+  const yr = m?.year ?? u?.clock.year ?? 2000;
+  const period = !c.prefs.periodLook ? '' : yr < 1950 ? 'era-newsreel' : yr < 1967 ? 'era-bwtv' : yr < 1990 ? 'era-colourtv' : '';
   return (
-    <div class="game">
+    <div class={`game ${period}`}>
       <canvas ref={canvasRef} class="scene" aria-label="Miniature St Albans with the race in progress" />
       <header class="topbar">
         <div class="brand"><span class="brand-mark" aria-hidden="true">SA</span><span class="brand-text">St Albans Racing</span></div>
@@ -108,9 +112,16 @@ function Game({ c }: { c: Controller }) {
         <div class="small muted">Same engine and rules as live racing, without the pictures. {c.progress.cancellable && 'You can stop safely between races.'}</div>
         {c.progress.cancellable && <div style={{ marginTop: 10 }}><button class="btn" onClick={() => c.cancelSimulation()}>Stop after this race</button></div>}
       </div>}
+      {c.showPerf && <PerfMeter c={c} />}
       {c.notice && <div class="notice" role="status"><span>{c.notice.text}</span>{c.notice.action && <button class="btn primary" onClick={() => c.notice!.action!.run()}>{c.notice.action.label}</button>}<button class="btn ghost" aria-label="Dismiss" onClick={() => { c.notice = null; c.notify(true); }}>✕</button></div>}
       {c.message && <div class="toast" role="status" onClick={() => { c.message = null; c.notify(true); }}>{c.message}</div>}
       {settings && <Settings c={c} onClose={() => setSettings(false)} onExport={() => { const b = exportUniverse(c.u!); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `st-albans-${c.u!.meta.seed}-${c.u!.clock.year}.json`; a.click(); }} />}
     </div>
   );
+}
+
+function PerfMeter({ c }: { c: Controller }) {
+  const p = c.perf();
+  if (!p) return null;
+  return <div class="perfmeter" role="status" aria-label="Performance">{p.fps} fps · p95 frame {p.p95FrameMs} ms · simulation {p.simMsPerFrame} ms/frame · {p.drawCalls} draw calls · {Math.round(p.triangles / 1000)}k triangles{p.heapMB ? ` · ${p.heapMB} MB heap` : ''}</div>;
 }

@@ -331,6 +331,7 @@ export interface Meeting {
   cancelReason?: string;
   causeEventIds: EventId[];
   postponedFrom?: Day;
+  begun?: Day; // day the weekend was begun (its setup is stored); lets a mid-weekend save resume the same race
 }
 
 // ------------------------------------------------------------------ race records (immutable history)

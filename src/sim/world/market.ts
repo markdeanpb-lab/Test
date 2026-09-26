@@ -35,7 +35,7 @@ function developJunior(p: Person, rng: Rng) { p.readiness = clamp(p.readiness + 
 /** Recent form as observable by paddock: points-per-start relative to the field (-1..1). */
 function recentResults(u: Universe, p: Person, year: number): number {
   const s = u.seasons[year];
-  if (!s) return 0;
+  if (!s || s.status === 'cancelled' || !s.driverStandings.length) return 0; // no racing: no evidence either way
   const row = s.driverStandings.find((r) => r.id === p.id);
   if (!row) return -0.5;
   const idx = s.driverStandings.indexOf(row);
@@ -104,9 +104,10 @@ export function offseasonMarket(u: Universe, rng: Rng, year: number, day: Day) {
       if (t.notes.includes(`dispute:${p.id}`)) sc -= 10;
       // family name opens doors (opportunity, not ability)
       if (p.family.parents.some((x) => u.people[x]?.reputation > 50)) sc += 2;
+      if (!Number.isFinite(sc)) sc = -1e9; // never let a bad number leave a seat empty
       if (sc > bestScore) { bestScore = sc; best = p; }
     }
-    if (!best) break;
+    if (!best) best = cands[0];
     sign(u, t, best, rng, year, day);
   }
   // 4) reserves for injuries: best unsigned drivers stay on standby

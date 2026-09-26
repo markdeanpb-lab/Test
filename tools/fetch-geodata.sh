@@ -2,7 +2,7 @@
 # Downloads the raw geographic inputs used by tools/build-map.ts.
 #  - OpenStreetMap data (ODbL) for central St Albans via the OSM API 0.6 /map endpoint, in small tiles.
 #  - AWS Terrain Tiles (Terrarium PNG encoding; SRTM-derived in this area) for elevation.
-# Raw files go to data-raw/ (git-ignored). The processed, bundled extract is public/data/stalbans.json.
+# Raw files go to data-raw/ (git-ignored). The processed, bundled extracts are public/data/stalbans-city.json, src/data/circuits.json and src/data/terrain.json.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=data-raw

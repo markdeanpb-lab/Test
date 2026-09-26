@@ -8,15 +8,16 @@ import { LiveSession } from './live';
 import { Director, type Shot } from './director';
 import { Commentator, type Line, type Density } from '../narrative/commentary';
 import { Renderer, type CarFrame, type Conditions } from '../render/renderer';
+import { RaceAudio } from '../render/audio';
 import type { CityData } from '../render/city';
 import { saveUniverse, getPref, setPref } from '../persist/db';
 import type { WorkerOut, Until } from '../worker/sim.worker';
 import type { FeedItem } from '../sim/race/engine';
-import { monthOf } from '../sim/dates';
+import { monthOf, dayOf } from '../sim/dates';
 
 export type Screen = 'start' | 'loading' | 'game';
 export type Destination = 'live' | 'season' | 'people' | 'history' | 'stories';
-export interface Prefs { quality: 'low' | 'medium' | 'high'; density: Density; spoilers: boolean; reducedMotion: boolean; volume: number; muted: boolean; pauseInPanels: boolean }
+export interface Prefs { quality: 'low' | 'medium' | 'high'; density: Density; spoilers: boolean; reducedMotion: boolean; volume: number; muted: boolean; pauseInPanels: boolean; periodLook: boolean }
 export type View =
   | { kind: 'person'; id: string; asOf?: number }
   | { kind: 'team'; id: string; asOf?: number }
@@ -27,6 +28,9 @@ export type View =
   | { kind: 'compare'; a: string; b: string };
 export interface Progress { label: string; done: number; total: number; year: number; cancellable: boolean }
 export interface Notice { text: string; action?: { label: string; run: () => void } }
+/** Where the player was in a live weekend; autosaves happen between weekends, so resuming re-runs the same
+ * weekend deterministically from its stored state and fast-forwards to this point. */
+interface ResumePoint { uid: string; meetingId: string; stage: 'quali' | 'race'; t: number }
 interface Suspended { live: LiveSession; director: Director | null; commentary: Commentator | null; follow: number | null; camManual: 'follow' | 'free' | null; wasPlaying: boolean }
 
 export class Controller {
@@ -41,8 +45,18 @@ export class Controller {
   progress: Progress | null = null;
   follow: number | null = null; // entrant index followed by the player (manual)
   camManual: 'follow' | 'free' | null = null;
-  prefs: Prefs = { quality: 'medium', density: 'normal', spoilers: true, reducedMotion: false, volume: 0.6, muted: true, pauseInPanels: false };
+  prefs: Prefs = { quality: 'medium', density: 'normal', spoilers: true, reducedMotion: false, volume: 0.6, muted: true, pauseInPanels: false, periodLook: true };
   message: string | null = null;
+  private messageAt = 0;
+  // performance measurement: frame times and simulation cost over the last 240 frames
+  private perfDt = new Float32Array(240); private perfSim = new Float32Array(240); private perfI = 0;
+  showPerf = false;
+  perf() {
+    const n = Math.min(this.perfI, 240); if (!n) return null;
+    const dts = Array.from(this.perfDt.subarray(0, n)).sort((a, b) => a - b), sims = Array.from(this.perfSim.subarray(0, n));
+    const info = this.renderer?.renderer.info;
+    return { fps: Math.round(1000 / dts[Math.floor(n / 2)]), p95FrameMs: +dts[Math.floor(n * 0.95)].toFixed(1), simMsPerFrame: +(sims.reduce((a, b) => a + b, 0) / n).toFixed(2), drawCalls: info?.render.calls ?? 0, triangles: info?.render.triangles ?? 0, heapMB: (performance as any).memory ? Math.round((performance as any).memory.usedJSHeapSize / 1048576) : null };
+  }
   notice: Notice | null = null;
   /** Spoiler-safe exploration: views show history as known on this day (undefined = everything). */
   cutoff: number | undefined = undefined;
@@ -51,6 +65,9 @@ export class Controller {
   /** Background generation (explore mode) runs while the player keeps watching. */
   bgProgress: Progress | null = null;
   exploreMode = false;
+  audio = new RaceAudio();
+  private resumePoint: ResumePoint | null = null;
+  private lastResumeSave = 0;
   private workerBackground = false;
   private listeners = new Set<() => void>();
   private lastNotify = 0;
@@ -69,8 +86,12 @@ export class Controller {
     this.prefs = { ...this.prefs, ...(await getPref<Partial<Prefs>>('prefs', {})) };
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) this.prefs.reducedMotion = true;
     if (!(await getPref('prefsSet', false))) this.prefs.quality = /Android|iPhone|Mobile/i.test(navigator.userAgent) ? 'low' : 'medium';
+    // sound stays off until the player turns it on; a saved "on" resumes at the first interaction (autoplay rules)
+    this.audio.enabled = !this.prefs.muted; this.audio.volume = this.prefs.volume;
+    const wake = () => { if (!this.prefs.muted) this.audio.setEnabled(true, this.prefs.volume); window.removeEventListener('pointerdown', wake); };
+    window.addEventListener('pointerdown', wake);
   }
-  savePrefs() { setPref('prefs', this.prefs); setPref('prefsSet', true); if (this.renderer) this.renderer.reducedMotion = this.prefs.reducedMotion; if (this.commentary) this.commentary.density = this.prefs.density; this.notify(true); }
+  savePrefs() { setPref('prefs', this.prefs); setPref('prefsSet', true); this.audio.setEnabled(!this.prefs.muted, this.prefs.volume); if (this.renderer) this.renderer.reducedMotion = this.prefs.reducedMotion; if (this.commentary) this.commentary.density = this.prefs.density; this.notify(true); }
 
   async ensureCity(): Promise<CityData> {
     if (this.city) return this.city;
@@ -102,6 +123,7 @@ export class Controller {
     this.screen = 'loading'; this.notify(true);
     await this.ensureCity();
     this.u = u;
+    this.resumePoint = await getPref<ResumePoint | null>('resume', null);
     this.advanceToMeeting();
     await this.enterGame();
   }
@@ -140,6 +162,18 @@ export class Controller {
       this.live = null; this.notify(true); return;
     }
     this.attachLive(live);
+    const rp = this.resumePoint;
+    if (rp && rp.uid === u.meta.id && rp.meetingId === m.id) { this.resumePoint = null; this.fastForward(rp.stage, rp.t); }
+  }
+
+  /** Advance the current weekend with the same engine to a stored point, without commentary or camera cuts. */
+  private fastForward(stage: 'quali' | 'race', t: number) {
+    const live = this.live!; const onFeed = live.onFeed; live.onFeed = undefined;
+    let guard = 0;
+    while ((live.stage as string) !== 'done' && (live.stage !== stage || live.st.t < t) && guard++ < 3_000_000) live.stepOnce();
+    live.onFeed = onFeed; live.feedSeen = live.st.feed.length;
+    this.message = `Resumed where you left off${live.stage === 'race' ? ` (lap ${Math.max(1, (live.st.cars[live.st.order[0]]?.lap ?? 0) + 1)})` : ''}.`;
+    this.notify(true);
   }
 
   /** Wire a live session (new weekend or replay) to the director, commentary and scene. */
@@ -150,7 +184,10 @@ export class Controller {
     this.commentary = new Commentator(u, live.setup);
     this.commentary.density = this.prefs.density;
     this.follow = null; this.camManual = null;
-    live.onFeed = (items, st) => { this.commentary!.onFeed(items, st); this.director!.onFeed(items, st); for (const f of this.feedListeners) f(items); };
+    live.onFeed = (items, st) => {
+      this.commentary!.onFeed(items, st); this.director!.onFeed(items, st); for (const f of this.feedListeners) f(items);
+      if (!live.busySkipping) for (const f of items) { if (f.kind === 'start' || f.kind === 'sc' || f.kind === 'red') this.audio.cue(f.kind); else if (f.kind === 'lead' && st.kind === 'race') this.audio.cue('overtake'); else if (f.kind === 'finish') this.audio.cue('finish'); }
+    };
     live.onStage = (stage) => { if (stage === 'race') this.setupCars(); if (stage === 'done') { this.follow = null; this.camManual = 'free'; if (this.director) this.director.auto = false; this.renderer?.setMode('overview'); if (!live.replay) this.afterMeeting(); } this.notify(true); };
     this.setupScene();
     this.notify(true);
@@ -228,12 +265,19 @@ export class Controller {
 
   private frame(dt: number) {
     const live = this.live, r = this.renderer;
+    // toasts clear themselves after a few seconds
+    const nowS = performance.now() / 1000;
+    if (this.message && !this.messageAt) this.messageAt = nowS;
+    else if (!this.message) this.messageAt = 0;
+    else if (nowS - this.messageAt > 6) { this.message = null; this.messageAt = 0; this.notify(true); }
     if (!r) return;
     if (!live) { r.frame([], 1, defaultCond(), 1); return; }
     const panelPause = this.prefs.pauseInPanels && this.dest !== 'live';
     const wasPlaying = live.playing;
     if (panelPause) live.playing = false;
+    const simT0 = performance.now();
     this.alpha = live.tick(dt);
+    const k = this.perfI++ % 240; this.perfDt[k] = dt * 1000; this.perfSim[k] = performance.now() - simT0;
     if (panelPause) live.playing = wasPlaying;
     const st = live.st;
     // camera: player's choice wins; otherwise the director
@@ -253,6 +297,15 @@ export class Controller {
     const hour = 14 + st.t / 3600;
     const cond: Conditions = { cloud: w.cloud, rain: w.rain, water: w.water, vis: w.vis, snow: w.snow, hour, month: monthOf(live.meeting.day), flagState: st.phase === 'red' ? 'red' : st.phase === 'sc' ? 'sc' : st.phase === 'fin' || st.phase === 'done' ? 'chequered' : 'green', yellows: st.yellows };
     r.frame(frames, this.alpha, cond, live.playing ? live.speed : 0);
+    if (this.audio.enabled) {
+      const k = this.follow !== null ? live.carOf(this.follow) : this.lastShot?.cars[0] ?? st.order[0];
+      const car = st.cars[k] ?? st.cars[0];
+      const near = r.mode === 'follow' ? 1 : r.mode === 'battle' ? 0.8 : r.mode === 'free' ? 0.5 : 0.25;
+      const u = this.u!;
+      this.audio.update({ playing: live.playing && !live.busySkipping && this.dest === 'live', speed: live.speed, carV: car && car.mode !== 'out' ? car.v : 0, near, crowd: (u.venues[live.meeting.venueId]?.popularity ?? 30) / 100, rain: w.rain, era: live.setup.entrants[0]?.vis.era ?? 'vintage' });
+    }
+    // remember the position within a live weekend (cheap: a few numbers), so a reload resumes it
+    if (!this.replaying && live.stage !== 'done' && now - this.lastResumeSave > 5) { this.lastResumeSave = now; setPref('resume', { uid: this.u!.meta.id, meetingId: live.meeting.id, stage: live.stage, t: live.st.t } as ResumePoint); }
     this.notify();
   }
 
@@ -343,9 +396,12 @@ export class Controller {
       this.replaying = { meetingId: old.meeting.id, label: `${old.meeting.name} ${old.meeting.year}`, note: 'This weekend is part of the history just generated; its result is checked against the record when it ends.', suspended: null };
     }
     try { await saveUniverse(nu); } catch (err) { this.message = `Save failed: ${err}`; }
-    const champs = new Set(Object.values(nu.seasons).map((s) => s.championId).filter(Boolean)).size;
     const years = Object.keys(nu.seasons).map(Number);
-    this.notice = { text: `History generated: ${Math.min(...years)}–${Math.max(...years)}, ${Object.keys(nu.races).length} races, ${champs} different champions.`, action: { label: 'Explore the century', run: () => { this.notice = null; this.go('stories'); } } };
+    const y0 = Math.min(...years), y1 = Math.max(...years);
+    // spoilers hidden (the default): the century is revealed one chapter (decade) at a time from the start
+    if (this.exploreMode && this.prefs.spoilers) this.cutoff = dayOf(Math.min(y1, Math.floor(y0 / 10) * 10 + 9), 12, 31);
+    const champs = new Set(Object.values(nu.seasons).map((s) => s.championId).filter(Boolean)).size;
+    this.notice = { text: this.cutoff !== undefined ? `History generated: ${y0}–${y1}, ${Object.keys(nu.races).length} races. Outcomes are hidden and revealed a chapter at a time.` : `History generated: ${y0}–${y1}, ${Object.keys(nu.races).length} races, ${champs} different champions.`, action: { label: 'Explore the century', run: () => { this.notice = null; this.go('stories'); } } };
   }
 }
 

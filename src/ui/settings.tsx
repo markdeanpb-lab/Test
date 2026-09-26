@@ -10,13 +10,14 @@ export function Settings({ c, onClose, onExport }: { c: Controller; onClose: () 
         <div class="section"><h3>Graphics</h3>
           <div class="pill-row" role="group" aria-label="Quality">{(['low', 'medium', 'high'] as const).map((q) => <button class="btn" aria-pressed={p.quality === q} onClick={() => set({ quality: q })}>{q[0].toUpperCase() + q.slice(1)}</button>)}</div>
           <p class="small muted">Quality changes take effect when the next circuit loads. Low is recommended for phones.</p>
+          <label><input type="checkbox" checked={p.periodLook} onChange={(e) => set({ periodLook: (e.target as HTMLInputElement).checked })} /> Period look (newsreel, black-and-white and early colour television grading by era)</label><br />
           <label><input type="checkbox" checked={p.reducedMotion} onChange={(e) => set({ reducedMotion: (e.target as HTMLInputElement).checked })} /> Reduce motion (slower camera, no crowd or flag animation)</label>
         </div>
         <div class="section"><h3>Commentary</h3>
           <div class="pill-row" role="group" aria-label="Commentary density">{(['low', 'normal', 'high'] as const).map((d) => <button class="btn" aria-pressed={p.density === d} onClick={() => set({ density: d })}>{d === 'low' ? 'Only big moments' : d === 'normal' ? 'Normal' : 'Detailed'}</button>)}</div>
         </div>
         <div class="section"><h3>Spoilers</h3>
-          <label><input type="checkbox" checked={p.spoilers} onChange={(e) => set({ spoilers: (e.target as HTMLInputElement).checked })} /> Hide future outcomes when exploring history</label>
+          <label><input type="checkbox" checked={p.spoilers} onChange={(e) => set({ spoilers: (e.target as HTMLInputElement).checked })} /> Hide future outcomes when exploring history (reveal the century a chapter at a time)</label>
         </div>
         <div class="section"><h3>Behaviour</h3>
           <label><input type="checkbox" checked={p.pauseInPanels} onChange={(e) => set({ pauseInPanels: (e.target as HTMLInputElement).checked })} /> Pause the race while browsing Season, People, History or Stories</label>
@@ -30,7 +31,7 @@ export function Settings({ c, onClose, onExport }: { c: Controller; onClose: () 
           <div class="pill-row"><button class="btn" onClick={onExport}>Export universe (.json)</button><button class="btn" onClick={() => location.reload()}>Back to title screen</button></div>
           <p class="small muted">The universe autosaves after every race. Exports can be imported on another device from the title screen.</p>
         </div>
-        <div class="section"><h3>Keyboard</h3><div class="small"><span class="kbd">Space</span> play/pause · <span class="kbd">1–4</span> speed · <span class="kbd">N</span> next moment · <span class="kbd">A</span> auto camera · <span class="kbd">O</span> overview · <span class="kbd">Esc</span> back to live</div></div>
+        <div class="section"><h3>Keyboard</h3><div class="small"><span class="kbd">Space</span> play/pause · <span class="kbd">1–4</span> speed · <span class="kbd">N</span> next moment · <span class="kbd">A</span> auto camera · <span class="kbd">O</span> overview · <span class="kbd">Esc</span> back to live · <span class="kbd">P</span> performance meter</div></div>
       </div>
     </div>
   );
