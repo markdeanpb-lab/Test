@@ -16,13 +16,19 @@ export class Director {
 
   constructor(private u: Universe, private setup: WeekendSetup) {}
 
+  /** The viewer's saved favourites get more airtime (drivers, or any car of a followed team). */
+  private fav(k: number, st: RaceState): boolean {
+    const e = this.setup.entrants[st.cars[k]?.i]; if (!e) return false;
+    return this.u.favourites.people.includes(e.driverId) || this.u.favourites.teams.includes(e.teamId);
+  }
+
   onFeed(items: FeedItem[], st: RaceState) {
     for (const f of items) {
       if (f.a === undefined) continue;
       const important = ['lead', 'contact', 'spin', 'retire', 'puncture', 'overtake', 'pit', 'qfastest'].includes(f.kind);
       if (!important) continue;
       const pos = st.cars[f.a]?.pos ?? 99;
-      let sig = f.sig + (pos <= 3 ? 0.2 : 0);
+      let sig = f.sig + (pos <= 3 ? 0.2 : 0) + (this.fav(f.a, st) ? 0.3 : 0);
       if (f.kind === 'pit' && pos > 3) sig -= 0.3;
       if (!this.incident || sig > this.incident.sig || performance.now() / 1000 - this.incident.t > 8) this.incident = { car: f.a, t: performance.now() / 1000, why: describe(f, this.setup, st), sig };
     }
@@ -51,10 +57,13 @@ export class Director {
         const riv = relBetween(this.u, ea.driverId, eb.driverId, 'rivalry'); if (riv) sc += riv.intensity * 0.3;
         if (ea.contender && eb.contender) sc += 0.3;
         if (ea.teamId === eb.teamId) sc += 0.1;
+        if (this.fav(ord[i], st) || this.fav(ord[i - 1], st)) sc += 0.35;
         const pos = i + 1;
         cands.push({ mode: 'battle', cars: [ord[i], ord[i - 1]], why: `Battle for P${i}: ${ea.name} chasing ${eb.name}${A.atk >= 0 ? ' — attacking now' : ''}`, score: sc, since: now });
         void pos;
       }
+      const favK = ord.find((k) => this.fav(k, st));
+      if (favK !== undefined) cands.push({ mode: 'follow', cars: [favK], why: `Following your favourite, ${this.setup.entrants[st.cars[favK].i].name} (P${ord.indexOf(favK) + 1})`, score: 0.55, since: now });
       const opening = st.phase === 'run' && (st.cars[ord[0]]?.lap ?? 0) < 1;
       if (ord.length) cands.push({ mode: opening ? 'battle' : 'follow', cars: opening ? ord.slice(0, 3) : [ord[0]], why: opening ? 'The opening lap: the leading group' : `Following the leader, ${this.setup.entrants[st.cars[ord[0]].i].name}`, score: opening ? 1.2 : 0.3, since: now });
       if (this.incident && now - this.incident.t < 6) cands.push({ mode: 'follow', cars: [this.incident.car], why: this.incident.why, score: 0.6 + this.incident.sig * 0.6, since: now });

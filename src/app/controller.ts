@@ -67,6 +67,7 @@ export class Controller {
   exploreMode = false;
   audio = new RaceAudio();
   private resumePoint: ResumePoint | null = null;
+  lastResume: { stage: string; t: number; s: number[] } | null = null;
   private lastResumeSave = 0;
   private workerBackground = false;
   private listeners = new Set<() => void>();
@@ -172,6 +173,7 @@ export class Controller {
     let guard = 0;
     while ((live.stage as string) !== 'done' && (live.stage !== stage || live.st.t < t) && guard++ < 3_000_000) live.stepOnce();
     live.onFeed = onFeed; live.feedSeen = live.st.feed.length;
+    this.lastResume = { stage: live.stage, t: live.st.t, s: Array.from(live.st.cars, (x) => x.s) }; // for verification
     this.message = `Resumed where you left off${live.stage === 'race' ? ` (lap ${Math.max(1, (live.st.cars[live.st.order[0]]?.lap ?? 0) + 1)})` : ''}.`;
     this.notify(true);
   }

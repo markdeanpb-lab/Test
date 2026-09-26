@@ -66,6 +66,7 @@ export function offseasonMarket(u: Universe, rng: Rng, year: number, day: Day) {
       // teams choose whether to renew (observable evidence + scouting)
       if (t && t.status === 'active' && renewWanted(u, t, p, rng, year)) { p.contract = { ...p.contract, fromYear: year, untilYear: year + rng.intRange(0, 2), salary: salaryFor(u, p, rng) }; continue; }
       if (t) t.drivers = t.drivers.filter((d) => d !== p.id);
+      for (const tt of Object.values(u.teams)) if ((tt as any).benched?.includes(p.id)) (tt as any).benched = (tt as any).benched.filter((x: string) => x !== p.id);
       p.teamId = undefined; p.contract = undefined; p.status = 'free';
     }
   }

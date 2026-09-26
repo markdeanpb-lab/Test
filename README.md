@@ -42,7 +42,7 @@ node scripts/e2e.mjs http://localhost:4173/ test-results            # browser fl
 node scripts/e2e.mjs http://localhost:4173/ test-results/mobile 390 844 --quick   # phone-sized pass
 ```
 
-What each check covers, and the results of the last run, are in [docs/DELIVERY_REPORT.md](docs/DELIVERY_REPORT.md).
+What each check covers, and the results of the last run, are in [docs/DELIVERY_REPORT.md](docs/DELIVERY_REPORT.md); screenshots are in [docs/screenshots/](docs/screenshots/).
 
 ## Project layout
 

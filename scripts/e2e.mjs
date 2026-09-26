@@ -89,13 +89,14 @@ if (!quick) {
   await page.evaluate(() => { const c = window.__ctrl; if (c.live.stage === 'quali') c.live.skipSession(); });
   await page.waitForFunction(() => window.__ctrl.live?.stage === 'race', null, { timeout: 120000 });
   await page.evaluate(() => window.__ctrl.advanceSim(300));
+  await page.evaluate(() => { window.__ctrl.live.playing = false; }); // hold the moment so the stored point is exactly this one
   const before = await page.evaluate(() => { const c = window.__ctrl; return { id: c.live.meeting.id, t: c.live.st.t, s: Array.from(c.live.st.cars, (x) => +x.s.toFixed(3)) }; });
   await page.waitForTimeout(6500);
   await page.reload();
   await page.waitForSelector('text=Continue');
   await page.click('.choice >> text=Continue');
   await page.waitForSelector('.tower', { timeout: 120000 });
-  results.resume = await page.evaluate((b) => { const c = window.__ctrl; return { sameMeeting: c.live.meeting.id === b.id, stage: c.live.stage, tBefore: Math.round(b.t), tAfter: Math.round(c.live.st.t), message: c.message }; }, before);
+  results.resume = await page.evaluate((b) => { const c = window.__ctrl; return { sameMeeting: c.live.meeting.id === b.id, stage: c.live.stage, tBefore: +b.t.toFixed(1), tResumed: +c.lastResume.t.toFixed(1), samePositions: JSON.stringify(c.lastResume.s.map((x) => +x.toFixed(3))) === JSON.stringify(b.s), message: c.message }; }, before);
   await shot('12-resumed');
   // a later era: simulate thirty years in the worker, then watch the next race
   const t1 = Date.now();

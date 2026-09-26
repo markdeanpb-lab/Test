@@ -15,6 +15,8 @@ export function storyAsOf(s: StoryArc, cut?: number) {
 }
 /** Titles can give away endings ("X's decade of dominance"): while later beats are hidden, use the neutral title. */
 export const storyTitle = (c: Controller, s: StoryArc) => (c.cutoff !== undefined && !storyAsOf(s, c.cutoff).complete ? s.spoilerTitle : s.title);
+/** The stored premise is rewritten as a story develops, so spoiler-safe views show its earliest known beat instead. */
+export const storyPremise = (c: Controller, s: StoryArc) => { const k = storyAsOf(s, c.cutoff); return k.complete ? s.premise : k.beats[0]?.summary ?? ''; };
 
 export function rankedStories(u: Universe, cut?: number) {
   const now = cut ?? u.clock.day;
@@ -40,7 +42,7 @@ export function StoriesHome({ c }: { c: Controller }) {
     <div class="grid2">{list.slice(0, n).map(({ s, k }) => <button class="card story-card link" style={{ textAlign: 'left' }} onClick={() => c.open({ kind: 'story', id: s.id })}>
       <div class="small muted">{TYPE_LABEL[s.type] ?? s.type} · {yearOf(s.startDay)}–{k.complete && (s.state === 'resolved' || s.state === 'dormant') ? yearOf(s.lastDay) : 'now'} · {k.state}</div>
       <b>{storyTitle(c, s)}</b>
-      <div class="small">{s.premise}</div>
+      <div class="small">{storyPremise(c, s)}</div>
     </button>)}</div>
     {list.length > n && <button class="btn" style={{ marginTop: 8 }} onClick={() => setN(n + 24)}>More stories</button>}
   </>;
@@ -57,14 +59,14 @@ export function StoryView({ c, id }: { c: Controller; id: string }) {
   return <>
     <div class="pill-row" style={{ marginBottom: 10 }}><span class="chip">{TYPE_LABEL[s.type] ?? s.type}</span><span class="chip">{reveal ? s.state : k.state}</span><span class="chip">significance {Math.round(s.significance * 100)}</span></div>
     <h3 style={{ marginTop: 0 }}>{reveal ? s.title : storyTitle(c, s)}</h3>
-    <p>{s.premise}</p>
+    <p>{reveal ? s.premise : storyPremise(c, s)}</p>
     {s.uncertainty && (reveal || k.complete) && <p class="small card"><b>What we don't know:</b> {s.uncertainty}</p>}
     <div class="section"><h3>How it unfolded</h3>
       <ol class="beats">{beats.map((b) => <li><div class="small muted">{fmtDate(b.day)}{b.meetingId && u.races[b.meetingId] ? <> · <R c={c} id={b.meetingId} /></> : ''}</div><div>{b.summary}</div>{Object.keys(b.facts).length > 0 && <div class="small muted">Evidence: {Object.entries(b.facts).filter(([, v]) => typeof v !== 'object').slice(0, 5).map(([kk, v]) => `${kk} ${typeof v === 'number' ? +v.toFixed(2) : v}`).join(' · ')}</div>}{b.eventIds.length > 0 && <div class="small muted">{b.eventIds.map((e) => u.events.find((x) => x.id === e)?.title).filter(Boolean).join('; ')}</div>}</li>)}</ol>
       {!k.complete && !reveal && <button class="btn" onClick={() => setReveal(true)}>Reveal what happened next (spoiler)</button>}
     </div>
     {keyRace?.meetingId && <div class="section"><button class="btn primary" onClick={() => c.open({ kind: 'race', id: keyRace.meetingId! })}>▶ Key race: {u.races[keyRace.meetingId].name} {u.races[keyRace.meetingId].year}</button></div>}
-    <div class="section small"><b>People:</b> {s.people.map((p, i) => <span>{i ? ', ' : ''}<P c={c} id={p} asOf={c.cutoff} /></span>)}{s.teams.length > 0 && <> · <b>Teams:</b> {s.teams.map((t, i) => <span>{i ? ', ' : ''}<Tm c={c} id={t} asOf={c.cutoff} /></span>)}</>}</div>
+    <div class="section small">{s.people.length > 0 && <><b>People:</b> {s.people.map((p, i) => <span>{i ? ', ' : ''}<P c={c} id={p} asOf={c.cutoff} /></span>)}</>}{s.people.length > 0 && s.teams.length > 0 && ' · '}{s.teams.length > 0 && <><b>Teams:</b> {s.teams.map((t, i) => <span>{i ? ', ' : ''}<Tm c={c} id={t} asOf={c.cutoff} /></span>)}</>}</div>
     {related.length > 0 && <div class="section"><h3>Related</h3>{related.map((x) => <div><button class="link" onClick={() => c.open({ kind: 'story', id: x.id })}>{storyTitle(c, x)}</button></div>)}</div>}
     <p class="small muted">Stories are detected from recorded results and events after the fact; they describe the simulation and never steer it.</p>
   </>;
@@ -83,7 +85,7 @@ function Chapters({ c, ranked }: { c: Controller; ranked: ReturnType<typeof rank
   if (allYears.length < 4) return null;
   const decades = [...new Set(years.map((y) => Math.floor(y / 10) * 10))];
   const chapters = decades.map((d) => {
-    const inDec = ranked.filter((x) => { const y = yearOf(x.k.beats[0]?.day ?? x.s.startDay); return y >= d && y < d + 10; }).sort((a, b) => b.s.significance - a.s.significance).slice(0, 3);
+    const inDec = ranked.filter((x) => { const y = yearOf(x.k.beats[0]?.day ?? x.s.startDay); return y >= d && y < d + 10; }).sort((a, b) => b.s.significance - a.s.significance).filter((x, i, arr) => arr.findIndex((y) => y.s.type === x.s.type) === i).slice(0, 3); // one story of each kind per chapter
     const champs = years.filter((y) => y >= d && y < d + 10).map((y) => u.seasons[y]).filter((s) => s.championId && (s.status === 'complete' || s.status === 'interrupted') && s.meetings.every((m) => c.cutoff === undefined || m.day <= c.cutoff)).map((s) => s.championId!);
     const key = inDec.flatMap((x) => x.k.beats).filter((b) => b.meetingId && u.races[b.meetingId]).sort((a, b) => (u.races[b.meetingId!].overtakes + u.races[b.meetingId!].leadChanges * 3) - (u.races[a.meetingId!].overtakes + u.races[a.meetingId!].leadChanges * 3))[0]
     const gp = Object.values(u.races).filter((r) => r.year >= d && r.year < d + 10 && (c.cutoff === undefined || r.day <= c.cutoff)).sort((a, b) => (b.leadChanges * 3 + b.overtakes) - (a.leadChanges * 3 + a.overtakes))[0];
@@ -97,7 +99,7 @@ function Chapters({ c, ranked }: { c: Controller; ranked: ReturnType<typeof rank
       <button class="link" aria-expanded={open === ch.d} onClick={() => setOpen(open === ch.d ? null : ch.d)} style={{ textAlign: 'left', width: '100%' }}><h3>Chapter {i + 1}: the {ch.d}s{ch.inDec[0] ? ` — ${storyTitle(c, ch.inDec[0].s)}` : ''}</h3></button>
       {open === ch.d && <>
         {ch.champs.length > 0 && <div class="small">Champions: {ch.champs.map((id, j) => <span>{j ? ', ' : ''}<P c={c} id={id} asOf={c.cutoff} /></span>)}</div>}
-        {ch.inDec.map((x) => <div class="small" style={{ marginTop: 4 }}><button class="link" onClick={() => c.open({ kind: 'story', id: x.s.id })}>{storyTitle(c, x.s)}</button> — {x.s.premise}</div>)}
+        {ch.inDec.map((x) => <div class="small" style={{ marginTop: 4 }}><button class="link" onClick={() => c.open({ kind: 'story', id: x.s.id })}>{storyTitle(c, x.s)}</button> — {storyPremise(c, x.s)}</div>)}
         {ch.keyId && <div style={{ marginTop: 8 }}><button class="btn primary" onClick={() => c.replay(ch.keyId!)}>▶ Watch {u.races[ch.keyId].name} {u.races[ch.keyId].year}</button></div>}
       </>}
     </div>)}

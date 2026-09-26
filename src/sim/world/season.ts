@@ -105,8 +105,12 @@ function newYear(u: Universe, year: number, day: Day) {
 function buildEntries(u: Universe, season: Season) {
   let no = 1;
   const taken = new Set<string>();
+  const seated = new Set<string>();
   for (const t of activeTeams(u).sort((a, b) => b.prestige - a.prestige)) {
     if (!t.carId) continue;
+    // a driver can hold only one seat (guards against any stale line-up)
+    t.drivers = t.drivers.filter((d) => !seated.has(d) && u.people[d]?.teamId === t.id);
+    t.drivers.forEach((d) => seated.add(d));
     season.entries.push({ teamId: t.id, name: t.name, code: t.code, carId: t.carId, drivers: t.drivers.slice(0, 2), nos: [no, no + 1], colours: { ...t.colours }, pattern: t.pattern });
     no += 2;
   }
@@ -205,6 +209,13 @@ export function beginMeeting(u: Universe, m: Meeting): { setup: WeekendSetup } |
     const benched: string[] = (t as any).benched ?? [];
     for (const d of benched.slice()) {
       const p = u.people[d];
+      // a benched driver who has since signed elsewhere (or been released) does not come back here
+      if (p.teamId !== t.id || p.contract?.teamId !== t.id) {
+        (t as any).benched = benched.filter((x) => x !== d);
+        const stand = t.drivers.find((x) => u.people[x].notes.includes(`stand-in for ${d}`));
+        if (stand) u.people[stand].notes = u.people[stand].notes.filter((n) => n !== `stand-in for ${d}`);
+        continue;
+      }
       if (p.status !== 'deceased' && !p.injuries.some((i) => i.returnDay > m.day) && p.health >= 0.55) {
         const stand = t.drivers.find((x) => u.people[x].notes.includes(`stand-in for ${d}`));
         if (stand) { const sp = u.people[stand]; t.drivers = t.drivers.map((x) => (x === stand ? d : x)); sp.teamId = undefined; sp.contract = undefined; sp.status = 'free'; sp.notes = sp.notes.filter((n) => n !== `stand-in for ${d}`); const r = sp.roles.find((x) => x.role === 'driver' && x.toDay === undefined); if (r) r.toDay = m.day; }

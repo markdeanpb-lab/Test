@@ -57,7 +57,7 @@ export function buildCity(data: CityData, quality: 'low' | 'medium' | 'high', fo
   const terrain = new Terrain(data.terrain);
   const b = data.bounds;
   // ---------------- terrain: 10 m grid coloured by land use
-  const step = quality === 'low' ? 20 : 10;
+  const step = quality === 'low' ? 24 : quality === 'medium' ? 14 : 10;
   const nx = Math.floor((b.x1 - b.x0) / step) + 1, nz = Math.floor((b.z1 - b.z0) / step) + 1;
   const pos = new Float32Array(nx * nz * 3), colors = new Float32Array(nx * nz * 3);
   // area bounding boxes for fast colouring (later areas drawn on top)
@@ -186,7 +186,7 @@ export function buildCity(data: CityData, quality: 'low' | 'medium' | 'high', fo
   const treePts: number[] = [];
   const trng = new Rng('cosmetic:trees');
   for (let i = 0; i < data.trees.length; i += 2) treePts.push(data.trees[i] / 10, data.trees[i + 1] / 10);
-  const density = quality === 'high' ? 1 : quality === 'medium' ? 0.55 : 0.2;
+  const density = quality === 'high' ? 1 : quality === 'medium' ? 0.45 : 0.2;
   for (const a of data.areas) {
     const kind = a[0];
     const per = kind === 2 ? 110 : kind === 0 ? 700 : kind === 4 ? 500 : kind === 12 ? 300 : kind === 11 ? 2600 : 0;
@@ -200,8 +200,9 @@ export function buildCity(data: CityData, quality: 'low' | 'medium' | 'high', fo
   if (treePts.length) {
     const canopy = new THREE.IcosahedronGeometry(1, 0);
     canopy.translate(0, 1.6, 0);
-    const trunk = new THREE.CylinderGeometry(0.12, 0.16, 1.2, 5); trunk.translate(0, 0.6, 0);
-    const merged = mergeSimple([canopy, trunk], [col('#5f8f4a'), col('#6b4f3a')]);
+    // triangle budget: a 20-face canopy, plus an open four-sided trunk except at low quality
+    const trunk = new THREE.CylinderGeometry(0.12, 0.16, 1.2, 4, 1, true); trunk.translate(0, 0.6, 0);
+    const merged = quality === 'low' ? mergeSimple([canopy], [col('#5f8f4a')]) : mergeSimple([canopy, trunk], [col('#5f8f4a'), col('#6b4f3a')]);
     const nT = treePts.length / 2;
     treeMesh = new THREE.InstancedMesh(merged, new THREE.MeshLambertMaterial({ vertexColors: true }), nT);
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();

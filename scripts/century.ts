@@ -30,6 +30,8 @@ checks.push(['Every calendar year present', ys.length === years && ys.every((y, 
 let bad = 0;
 const badRows: string[] = [];
 for (const s of seasons) { for (const row of s.driverStandings) { const pts = Object.values(u.races).filter((r) => r.year === s.year).flatMap((r) => r.results).filter((x) => x.driverId === row.id).reduce((a, x) => a + x.points, 0); if (Math.abs(pts - row.points) > 1e-6) { bad++; if (badRows.length < 5) badRows.push(`${s.year} ${row.id}: table ${row.points} vs races ${pts} (rows ${s.driverStandings.filter((x) => x.id === row.id).length}, meetings ${s.meetings.map((m) => m.status[0]).join('')})`); } } }
+let doubleSeats = 0; for (const s of seasons) { const all = s.entries.flatMap((e) => e.drivers); doubleSeats += all.length - new Set(all).size; }
+checks.push(['No driver holds two seats in a season', doubleSeats === 0, `${doubleSeats}`]);
 checks.push(['Standings equal the sum of race points', bad === 0, `${bad} mismatches${badRows.length ? ': ' + badRows.join('; ') : ''}`]);
 // careers cache equals rebuild from history
 const rb = rebuildCareers(u);

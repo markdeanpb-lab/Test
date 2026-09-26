@@ -214,7 +214,7 @@ export function createQuali(setup: WeekendSetup, tr: Track): RaceState {
     const car = st.cars[k];
     positionInPits(st, tr, car, idx);
     car.startT = 5 + idx * gap;
-    car.fuel = (setup.entrants[car.i].c.fuelPerKm * tr.length / 1000) * 3;
+    car.fuel = (setup.entrants[car.i].c.fuelPerKm * tr.length / 1000) * (st.q!.runLaps + 2.5); // out-lap, flying laps, in-lap and a margin
     car.tyre = setup.rules.compounds[setup.rules.compounds.length - 1];
     st.q!.flying[k] = st.q!.runLaps;
   });
@@ -265,7 +265,7 @@ function stepQualiLogic(st: RaceState, c: Cache) {
       const car = st.cars[k];
       positionInPits(st, tr, car, idx);
       car.startT = st.t + 30 + idx * 9; car.ret = null; car.inc = null; q.flying[k] = q.runLaps; idx++;
-      car.tyre = qualiTyre(st, c); car.wear = 0; car.fuel = (c.setup.entrants[car.i].c.fuelPerKm * tr.length / 1000) * 3; refreshProfile(st, c, k, true);
+      car.tyre = qualiTyre(st, c); car.wear = 0; car.fuel = (c.setup.entrants[car.i].c.fuelPerKm * tr.length / 1000) * (q.runLaps + 2.5); refreshProfile(st, c, k, true);
     }
     return;
   }
@@ -1246,7 +1246,7 @@ function qualiCross(st: RaceState, c: Cache, k: number) {
     }
   }
   car.clean = true;
-  if (q.flying[k] <= 0) car.pitReq = 'end';
+  if (q.flying[k] <= 0 || car.fuel < (c.setup.entrants[car.i].c.fuelPerKm * c.tr.length / 1000) * 1.2) car.pitReq = 'end';
   // quali: push on flying laps
   car.push = q.flying[k] > 0 ? 1.01 : 0.9;
   refreshProfile(st, c, k, true);
