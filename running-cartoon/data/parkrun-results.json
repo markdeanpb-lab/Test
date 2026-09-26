@@ -1,0 +1,1867 @@
+{
+ "source": "https://www.parkrun.org.uk/parkrunner/2425906/all/",
+ "fetched": "2026-09-26",
+ "athlete": "Mark DEAN (A2425906)",
+ "results": [
+  {
+   "event": "Norwich",
+   "date": "2016-05-14",
+   "runNumber": 300,
+   "position": 308,
+   "time": "26:21",
+   "seconds": 1581,
+   "ageGrade": 50.03,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2019-09-14",
+   "runNumber": 406,
+   "position": 183,
+   "time": "27:22",
+   "seconds": 1642,
+   "ageGrade": 47.14,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2019-09-21",
+   "runNumber": 407,
+   "position": 169,
+   "time": "24:56",
+   "seconds": 1496,
+   "ageGrade": 51.74,
+   "pb": true
+  },
+  {
+   "event": "St Albans",
+   "date": "2019-10-05",
+   "runNumber": 409,
+   "position": 232,
+   "time": "26:39",
+   "seconds": 1599,
+   "ageGrade": 48.41,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2019-10-12",
+   "runNumber": 410,
+   "position": 214,
+   "time": "28:11",
+   "seconds": 1691,
+   "ageGrade": 45.77,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2019-11-09",
+   "runNumber": 414,
+   "position": 257,
+   "time": "28:12",
+   "seconds": 1692,
+   "ageGrade": 45.74,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-09-18",
+   "runNumber": 515,
+   "position": 122,
+   "time": "25:25",
+   "seconds": 1525,
+   "ageGrade": 50.75,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-09-25",
+   "runNumber": 516,
+   "position": 160,
+   "time": "26:02",
+   "seconds": 1562,
+   "ageGrade": 49.55,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-10-02",
+   "runNumber": 517,
+   "position": 137,
+   "time": "24:51",
+   "seconds": 1491,
+   "ageGrade": 51.91,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-10-09",
+   "runNumber": 518,
+   "position": 116,
+   "time": "24:06",
+   "seconds": 1446,
+   "ageGrade": 53.53,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-10-23",
+   "runNumber": 520,
+   "position": 165,
+   "time": "24:43",
+   "seconds": 1483,
+   "ageGrade": 52.19,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-10-30",
+   "runNumber": 521,
+   "position": 108,
+   "time": "25:10",
+   "seconds": 1510,
+   "ageGrade": 51.26,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-11-06",
+   "runNumber": 522,
+   "position": 234,
+   "time": "25:50",
+   "seconds": 1550,
+   "ageGrade": 49.94,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-11-13",
+   "runNumber": 523,
+   "position": 125,
+   "time": "23:57",
+   "seconds": 1437,
+   "ageGrade": 53.86,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-11-20",
+   "runNumber": 524,
+   "position": 125,
+   "time": "24:32",
+   "seconds": 1472,
+   "ageGrade": 52.58,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-12-04",
+   "runNumber": 526,
+   "position": 113,
+   "time": "23:45",
+   "seconds": 1425,
+   "ageGrade": 54.32,
+   "pb": true
+  },
+  {
+   "event": "Grovelands",
+   "date": "2021-12-11",
+   "runNumber": 527,
+   "position": 46,
+   "time": "24:31",
+   "seconds": 1471,
+   "ageGrade": 52.62,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2021-12-18",
+   "runNumber": 528,
+   "position": 64,
+   "time": "23:24",
+   "seconds": 1404,
+   "ageGrade": 55.13,
+   "pb": true
+  },
+  {
+   "event": "Haverfordwest",
+   "date": "2021-12-25",
+   "runNumber": 148,
+   "position": 21,
+   "time": "25:36",
+   "seconds": 1536,
+   "ageGrade": 50.39,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-01-08",
+   "runNumber": 531,
+   "position": 149,
+   "time": "23:40",
+   "seconds": 1420,
+   "ageGrade": 54.51,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-01-15",
+   "runNumber": 532,
+   "position": 141,
+   "time": "23:43",
+   "seconds": 1423,
+   "ageGrade": 54.39,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-01-22",
+   "runNumber": 533,
+   "position": 98,
+   "time": "22:40",
+   "seconds": 1360,
+   "ageGrade": 56.91,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-01-29",
+   "runNumber": 534,
+   "position": 74,
+   "time": "22:11",
+   "seconds": 1331,
+   "ageGrade": 58.15,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-02-05",
+   "runNumber": 535,
+   "position": 92,
+   "time": "22:00",
+   "seconds": 1320,
+   "ageGrade": 58.64,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-02-19",
+   "runNumber": 537,
+   "position": 130,
+   "time": "22:26",
+   "seconds": 1346,
+   "ageGrade": 57.5,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-02-26",
+   "runNumber": 538,
+   "position": 72,
+   "time": "22:08",
+   "seconds": 1328,
+   "ageGrade": 58.28,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-03-05",
+   "runNumber": 539,
+   "position": 72,
+   "time": "22:15",
+   "seconds": 1335,
+   "ageGrade": 57.98,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-03-12",
+   "runNumber": 540,
+   "position": 109,
+   "time": "22:33",
+   "seconds": 1353,
+   "ageGrade": 57.21,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-03-19",
+   "runNumber": 541,
+   "position": 45,
+   "time": "21:53",
+   "seconds": 1313,
+   "ageGrade": 58.95,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-03-26",
+   "runNumber": 542,
+   "position": 38,
+   "time": "21:30",
+   "seconds": 1290,
+   "ageGrade": 60.0,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-04-09",
+   "runNumber": 543,
+   "position": 37,
+   "time": "21:51",
+   "seconds": 1311,
+   "ageGrade": 59.04,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-04-16",
+   "runNumber": 544,
+   "position": 24,
+   "time": "21:04",
+   "seconds": 1264,
+   "ageGrade": 61.23,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-04-23",
+   "runNumber": 545,
+   "position": 68,
+   "time": "21:48",
+   "seconds": 1308,
+   "ageGrade": 59.17,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-05-07",
+   "runNumber": 547,
+   "position": 193,
+   "time": "26:02",
+   "seconds": 1562,
+   "ageGrade": 49.55,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-05-21",
+   "runNumber": 549,
+   "position": 86,
+   "time": "24:05",
+   "seconds": 1445,
+   "ageGrade": 53.56,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-05-28",
+   "runNumber": 550,
+   "position": 46,
+   "time": "20:37",
+   "seconds": 1237,
+   "ageGrade": 62.57,
+   "pb": true
+  },
+  {
+   "event": "Chippenham",
+   "date": "2022-06-04",
+   "runNumber": 352,
+   "position": 16,
+   "time": "21:12",
+   "seconds": 1272,
+   "ageGrade": 60.85,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-06-11",
+   "runNumber": 552,
+   "position": 36,
+   "time": "21:16",
+   "seconds": 1276,
+   "ageGrade": 60.66,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2022-06-18",
+   "runNumber": 480,
+   "position": 23,
+   "time": "21:03",
+   "seconds": 1263,
+   "ageGrade": 61.28,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-06-25",
+   "runNumber": 554,
+   "position": 34,
+   "time": "21:03",
+   "seconds": 1263,
+   "ageGrade": 61.28,
+   "pb": false
+  },
+  {
+   "event": "Grovelands",
+   "date": "2022-07-02",
+   "runNumber": 554,
+   "position": 23,
+   "time": "21:31",
+   "seconds": 1291,
+   "ageGrade": 59.95,
+   "pb": true
+  },
+  {
+   "event": "Highbury Fields",
+   "date": "2022-07-16",
+   "runNumber": 489,
+   "position": 50,
+   "time": "21:12",
+   "seconds": 1272,
+   "ageGrade": 60.85,
+   "pb": false
+  },
+  {
+   "event": "Grovelands",
+   "date": "2022-07-23",
+   "runNumber": 557,
+   "position": 20,
+   "time": "21:15",
+   "seconds": 1275,
+   "ageGrade": 60.71,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-07-30",
+   "runNumber": 555,
+   "position": 26,
+   "time": "20:34",
+   "seconds": 1234,
+   "ageGrade": 62.72,
+   "pb": true
+  },
+  {
+   "event": "Grovelands",
+   "date": "2022-08-06",
+   "runNumber": 559,
+   "position": 15,
+   "time": "21:27",
+   "seconds": 1287,
+   "ageGrade": 60.14,
+   "pb": false
+  },
+  {
+   "event": "Highbury Fields",
+   "date": "2022-08-13",
+   "runNumber": 492,
+   "position": 40,
+   "time": "21:11",
+   "seconds": 1271,
+   "ageGrade": 60.9,
+   "pb": true
+  },
+  {
+   "event": "Highbury Fields",
+   "date": "2022-08-20",
+   "runNumber": 493,
+   "position": 247,
+   "time": "27:21",
+   "seconds": 1641,
+   "ageGrade": 47.17,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-08-27",
+   "runNumber": 556,
+   "position": 17,
+   "time": "20:15",
+   "seconds": 1215,
+   "ageGrade": 63.7,
+   "pb": true
+  },
+  {
+   "event": "Haverfordwest",
+   "date": "2022-09-03",
+   "runNumber": 182,
+   "position": 7,
+   "time": "22:12",
+   "seconds": 1332,
+   "ageGrade": 58.11,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-09-17",
+   "runNumber": 559,
+   "position": 43,
+   "time": "20:57",
+   "seconds": 1257,
+   "ageGrade": 61.58,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-09-24",
+   "runNumber": 560,
+   "position": 30,
+   "time": "21:01",
+   "seconds": 1261,
+   "ageGrade": 61.38,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-10-01",
+   "runNumber": 561,
+   "position": 52,
+   "time": "22:05",
+   "seconds": 1325,
+   "ageGrade": 58.42,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-10-08",
+   "runNumber": 562,
+   "position": 118,
+   "time": "23:30",
+   "seconds": 1410,
+   "ageGrade": 54.89,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-10-15",
+   "runNumber": 563,
+   "position": 41,
+   "time": "21:30",
+   "seconds": 1290,
+   "ageGrade": 60.0,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-10-22",
+   "runNumber": 564,
+   "position": 87,
+   "time": "22:26",
+   "seconds": 1346,
+   "ageGrade": 57.5,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-10-29",
+   "runNumber": 565,
+   "position": 126,
+   "time": "23:44",
+   "seconds": 1424,
+   "ageGrade": 54.35,
+   "pb": false
+  },
+  {
+   "event": "Donaupark",
+   "date": "2022-11-05",
+   "runNumber": 50,
+   "position": 9,
+   "time": "20:05",
+   "seconds": 1205,
+   "ageGrade": 64.23,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-11-12",
+   "runNumber": 567,
+   "position": 47,
+   "time": "20:53",
+   "seconds": 1253,
+   "ageGrade": 61.77,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-11-19",
+   "runNumber": 568,
+   "position": 35,
+   "time": "20:22",
+   "seconds": 1222,
+   "ageGrade": 63.34,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-11-26",
+   "runNumber": 569,
+   "position": 56,
+   "time": "21:14",
+   "seconds": 1274,
+   "ageGrade": 60.75,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-12-03",
+   "runNumber": 570,
+   "position": 57,
+   "time": "21:39",
+   "seconds": 1299,
+   "ageGrade": 59.58,
+   "pb": false
+  },
+  {
+   "event": "Haverfordwest",
+   "date": "2022-12-24",
+   "runNumber": 196,
+   "position": 8,
+   "time": "21:41",
+   "seconds": 1301,
+   "ageGrade": 59.49,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2022-12-31",
+   "runNumber": 574,
+   "position": 45,
+   "time": "21:53",
+   "seconds": 1313,
+   "ageGrade": 58.95,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-01-07",
+   "runNumber": 575,
+   "position": 72,
+   "time": "21:24",
+   "seconds": 1284,
+   "ageGrade": 60.28,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-01-14",
+   "runNumber": 576,
+   "position": 155,
+   "time": "24:42",
+   "seconds": 1482,
+   "ageGrade": 52.23,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-01-21",
+   "runNumber": 577,
+   "position": 338,
+   "time": "27:25",
+   "seconds": 1645,
+   "ageGrade": 47.05,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-01-28",
+   "runNumber": 578,
+   "position": 40,
+   "time": "20:21",
+   "seconds": 1221,
+   "ageGrade": 63.39,
+   "pb": false
+  },
+  {
+   "event": "Victoria Dock",
+   "date": "2023-02-18",
+   "runNumber": 162,
+   "position": 22,
+   "time": "20:00",
+   "seconds": 1200,
+   "ageGrade": 64.5,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-02-25",
+   "runNumber": 582,
+   "position": 69,
+   "time": "21:51",
+   "seconds": 1311,
+   "ageGrade": 59.04,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-03-04",
+   "runNumber": 583,
+   "position": 41,
+   "time": "20:46",
+   "seconds": 1246,
+   "ageGrade": 62.12,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-03-11",
+   "runNumber": 584,
+   "position": 26,
+   "time": "20:07",
+   "seconds": 1207,
+   "ageGrade": 64.13,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-03-18",
+   "runNumber": 585,
+   "position": 18,
+   "time": "19:25",
+   "seconds": 1165,
+   "ageGrade": 66.44,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-03-25",
+   "runNumber": 586,
+   "position": 16,
+   "time": "19:39",
+   "seconds": 1179,
+   "ageGrade": 65.65,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2023-04-01",
+   "runNumber": 23,
+   "position": 4,
+   "time": "19:32",
+   "seconds": 1172,
+   "ageGrade": 66.04,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2023-04-08",
+   "runNumber": 522,
+   "position": 9,
+   "time": "19:18",
+   "seconds": 1158,
+   "ageGrade": 66.84,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-04-22",
+   "runNumber": 588,
+   "position": 18,
+   "time": "20:06",
+   "seconds": 1206,
+   "ageGrade": 64.18,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-04-29",
+   "runNumber": 589,
+   "position": 21,
+   "time": "19:20",
+   "seconds": 1160,
+   "ageGrade": 66.72,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-05-27",
+   "runNumber": 593,
+   "position": 27,
+   "time": "19:42",
+   "seconds": 1182,
+   "ageGrade": 65.48,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-06-03",
+   "runNumber": 594,
+   "position": 109,
+   "time": "23:31",
+   "seconds": 1411,
+   "ageGrade": 54.85,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-06-10",
+   "runNumber": 595,
+   "position": 55,
+   "time": "21:18",
+   "seconds": 1278,
+   "ageGrade": 60.56,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-06-17",
+   "runNumber": 596,
+   "position": 19,
+   "time": "19:46",
+   "seconds": 1186,
+   "ageGrade": 65.26,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2023-06-24",
+   "runNumber": 533,
+   "position": 24,
+   "time": "19:50",
+   "seconds": 1190,
+   "ageGrade": 65.04,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2023-07-01",
+   "runNumber": 36,
+   "position": 10,
+   "time": "19:00",
+   "seconds": 1140,
+   "ageGrade": 67.89,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-07-15",
+   "runNumber": 597,
+   "position": 407,
+   "time": "33:15",
+   "seconds": 1995,
+   "ageGrade": 38.8,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-07-22",
+   "runNumber": 598,
+   "position": 165,
+   "time": "24:48",
+   "seconds": 1488,
+   "ageGrade": 52.02,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2023-07-29",
+   "runNumber": 40,
+   "position": 21,
+   "time": "20:31",
+   "seconds": 1231,
+   "ageGrade": 62.88,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2023-08-05",
+   "runNumber": 41,
+   "position": 6,
+   "time": "19:16",
+   "seconds": 1156,
+   "ageGrade": 66.96,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2023-08-12",
+   "runNumber": 42,
+   "position": 19,
+   "time": "21:10",
+   "seconds": 1270,
+   "ageGrade": 60.94,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-08-19",
+   "runNumber": 599,
+   "position": 66,
+   "time": "22:49",
+   "seconds": 1369,
+   "ageGrade": 56.54,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-08-26",
+   "runNumber": 600,
+   "position": 170,
+   "time": "25:33",
+   "seconds": 1533,
+   "ageGrade": 50.49,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-09-23",
+   "runNumber": 604,
+   "position": 293,
+   "time": "27:24",
+   "seconds": 1644,
+   "ageGrade": 47.08,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-09-30",
+   "runNumber": 605,
+   "position": 21,
+   "time": "19:53",
+   "seconds": 1193,
+   "ageGrade": 64.88,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-10-21",
+   "runNumber": 608,
+   "position": 15,
+   "time": "19:33",
+   "seconds": 1173,
+   "ageGrade": 65.98,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-10-28",
+   "runNumber": 609,
+   "position": 18,
+   "time": "19:25",
+   "seconds": 1165,
+   "ageGrade": 66.44,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-11-25",
+   "runNumber": 612,
+   "position": 26,
+   "time": "19:31",
+   "seconds": 1171,
+   "ageGrade": 66.1,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-12-02",
+   "runNumber": 613,
+   "position": 17,
+   "time": "19:21",
+   "seconds": 1161,
+   "ageGrade": 66.67,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-12-09",
+   "runNumber": 614,
+   "position": 11,
+   "time": "19:20",
+   "seconds": 1160,
+   "ageGrade": 66.72,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2023-12-16",
+   "runNumber": 615,
+   "position": 13,
+   "time": "19:18",
+   "seconds": 1158,
+   "ageGrade": 66.84,
+   "pb": true
+  },
+  {
+   "event": "Haverfordwest",
+   "date": "2023-12-23",
+   "runNumber": 249,
+   "position": 3,
+   "time": "20:34",
+   "seconds": 1234,
+   "ageGrade": 62.72,
+   "pb": true
+  },
+  {
+   "event": "Milford Waterfront",
+   "date": "2023-12-25",
+   "runNumber": 139,
+   "position": 2,
+   "time": "19:51",
+   "seconds": 1191,
+   "ageGrade": 64.99,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2023-12-30",
+   "runNumber": 63,
+   "position": 16,
+   "time": "19:36",
+   "seconds": 1176,
+   "ageGrade": 65.82,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2024-01-01",
+   "runNumber": 64,
+   "position": 40,
+   "time": "24:57",
+   "seconds": 1497,
+   "ageGrade": 51.7,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-01-20",
+   "runNumber": 621,
+   "position": 27,
+   "time": "19:24",
+   "seconds": 1164,
+   "ageGrade": 66.49,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-01-27",
+   "runNumber": 622,
+   "position": 668,
+   "time": "33:18",
+   "seconds": 1998,
+   "ageGrade": 38.74,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-02-03",
+   "runNumber": 623,
+   "position": 23,
+   "time": "19:48",
+   "seconds": 1188,
+   "ageGrade": 65.15,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-02-10",
+   "runNumber": 624,
+   "position": 26,
+   "time": "19:59",
+   "seconds": 1199,
+   "ageGrade": 64.55,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-02-17",
+   "runNumber": 625,
+   "position": 34,
+   "time": "19:32",
+   "seconds": 1172,
+   "ageGrade": 66.04,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-03-23",
+   "runNumber": 630,
+   "position": 675,
+   "time": "33:37",
+   "seconds": 2017,
+   "ageGrade": 38.37,
+   "pb": false
+  },
+  {
+   "event": "Oak Hill",
+   "date": "2024-03-30",
+   "runNumber": 592,
+   "position": 13,
+   "time": "20:27",
+   "seconds": 1227,
+   "ageGrade": 63.08,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2024-04-13",
+   "runNumber": 79,
+   "position": 134,
+   "time": "30:59",
+   "seconds": 1859,
+   "ageGrade": 41.64,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-05-04",
+   "runNumber": 636,
+   "position": 577,
+   "time": "33:52",
+   "seconds": 2032,
+   "ageGrade": 38.09,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-05-11",
+   "runNumber": 637,
+   "position": 22,
+   "time": "19:42",
+   "seconds": 1182,
+   "ageGrade": 65.48,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-06-15",
+   "runNumber": 642,
+   "position": 17,
+   "time": "19:16",
+   "seconds": 1156,
+   "ageGrade": 66.96,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-06-22",
+   "runNumber": 643,
+   "position": 621,
+   "time": "37:42",
+   "seconds": 2262,
+   "ageGrade": 34.22,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2024-06-29",
+   "runNumber": 90,
+   "position": 66,
+   "time": "24:51",
+   "seconds": 1491,
+   "ageGrade": 51.91,
+   "pb": false
+  },
+  {
+   "event": "Oak Hill",
+   "date": "2024-07-06",
+   "runNumber": 605,
+   "position": 5,
+   "time": "19:25",
+   "seconds": 1165,
+   "ageGrade": 66.44,
+   "pb": true
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2024-07-13",
+   "runNumber": 92,
+   "position": 230,
+   "time": "34:30",
+   "seconds": 2070,
+   "ageGrade": 37.39,
+   "pb": false
+  },
+  {
+   "event": "Oak Hill",
+   "date": "2024-07-20",
+   "runNumber": 606,
+   "position": 9,
+   "time": "19:14",
+   "seconds": 1154,
+   "ageGrade": 67.07,
+   "pb": true
+  },
+  {
+   "event": "Chippenham",
+   "date": "2024-07-27",
+   "runNumber": 460,
+   "position": 172,
+   "time": "34:17",
+   "seconds": 2057,
+   "ageGrade": 37.63,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2024-08-03",
+   "runNumber": 95,
+   "position": 5,
+   "time": "19:02",
+   "seconds": 1142,
+   "ageGrade": 67.78,
+   "pb": false
+  },
+  {
+   "event": "Ally Pally",
+   "date": "2024-08-10",
+   "runNumber": 555,
+   "position": 147,
+   "time": "27:28",
+   "seconds": 1648,
+   "ageGrade": 46.97,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-08-24",
+   "runNumber": 645,
+   "position": 123,
+   "time": "25:47",
+   "seconds": 1547,
+   "ageGrade": 50.03,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-09-07",
+   "runNumber": 647,
+   "position": 14,
+   "time": "18:52",
+   "seconds": 1132,
+   "ageGrade": 68.37,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-10-05",
+   "runNumber": 651,
+   "position": 17,
+   "time": "18:42",
+   "seconds": 1122,
+   "ageGrade": 68.98,
+   "pb": true
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-10-26",
+   "runNumber": 654,
+   "position": 702,
+   "time": "38:02",
+   "seconds": 2282,
+   "ageGrade": 33.92,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-11-23",
+   "runNumber": 658,
+   "position": 66,
+   "time": "22:14",
+   "seconds": 1334,
+   "ageGrade": 58.02,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-12-07",
+   "runNumber": 660,
+   "position": 130,
+   "time": "25:13",
+   "seconds": 1513,
+   "ageGrade": 51.16,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2024-12-21",
+   "runNumber": 662,
+   "position": 61,
+   "time": "21:52",
+   "seconds": 1312,
+   "ageGrade": 58.99,
+   "pb": false
+  },
+  {
+   "event": "Oak Hill",
+   "date": "2024-12-25",
+   "runNumber": 628,
+   "position": 87,
+   "time": "23:14",
+   "seconds": 1394,
+   "ageGrade": 55.52,
+   "pb": false
+  },
+  {
+   "event": "Oak Hill",
+   "date": "2024-12-28",
+   "runNumber": 629,
+   "position": 11,
+   "time": "19:48",
+   "seconds": 1188,
+   "ageGrade": 65.15,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2025-01-04",
+   "runNumber": 665,
+   "position": 774,
+   "time": "40:21",
+   "seconds": 2421,
+   "ageGrade": 31.97,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2025-01-25",
+   "runNumber": 668,
+   "position": 756,
+   "time": "36:08",
+   "seconds": 2168,
+   "ageGrade": 35.7,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2025-02-01",
+   "runNumber": 669,
+   "position": 34,
+   "time": "19:51",
+   "seconds": 1191,
+   "ageGrade": 64.99,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2025-02-08",
+   "runNumber": 670,
+   "position": 238,
+   "time": "25:33",
+   "seconds": 1533,
+   "ageGrade": 50.49,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2025-02-15",
+   "runNumber": 671,
+   "position": 26,
+   "time": "19:38",
+   "seconds": 1178,
+   "ageGrade": 65.7,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2025-02-22",
+   "runNumber": 672,
+   "position": 493,
+   "time": "29:01",
+   "seconds": 1741,
+   "ageGrade": 44.46,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2025-03-01",
+   "runNumber": 673,
+   "position": 22,
+   "time": "19:10",
+   "seconds": 1150,
+   "ageGrade": 67.3,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-03-15",
+   "runNumber": 621,
+   "position": 5,
+   "time": "19:08",
+   "seconds": 1148,
+   "ageGrade": 67.42,
+   "pb": true
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-03-22",
+   "runNumber": 622,
+   "position": 3,
+   "time": "19:34",
+   "seconds": 1174,
+   "ageGrade": 65.93,
+   "pb": false
+  },
+  {
+   "event": "Rickmansworth",
+   "date": "2025-03-29",
+   "runNumber": 352,
+   "position": 7,
+   "time": "18:28",
+   "seconds": 1108,
+   "ageGrade": 69.86,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-04-19",
+   "runNumber": 626,
+   "position": 12,
+   "time": "20:11",
+   "seconds": 1211,
+   "ageGrade": 63.91,
+   "pb": false
+  },
+  {
+   "event": "Finsbury Park",
+   "date": "2025-04-26",
+   "runNumber": 681,
+   "position": 14,
+   "time": "19:12",
+   "seconds": 1152,
+   "ageGrade": 67.19,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-05-03",
+   "runNumber": 628,
+   "position": 296,
+   "time": "30:32",
+   "seconds": 1832,
+   "ageGrade": 42.25,
+   "pb": false
+  },
+  {
+   "event": "Holyrood",
+   "date": "2025-05-10",
+   "runNumber": 133,
+   "position": 12,
+   "time": "19:26",
+   "seconds": 1166,
+   "ageGrade": 66.38,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-05-24",
+   "runNumber": 631,
+   "position": 53,
+   "time": "23:08",
+   "seconds": 1388,
+   "ageGrade": 55.76,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-05-31",
+   "runNumber": 632,
+   "position": 16,
+   "time": "19:59",
+   "seconds": 1199,
+   "ageGrade": 64.55,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-06-14",
+   "runNumber": 634,
+   "position": 9,
+   "time": "18:53",
+   "seconds": 1133,
+   "ageGrade": 68.31,
+   "pb": true
+  },
+  {
+   "event": "Jersey Farm",
+   "date": "2025-06-21",
+   "runNumber": 263,
+   "position": 43,
+   "time": "22:24",
+   "seconds": 1344,
+   "ageGrade": 57.59,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-07-05",
+   "runNumber": 637,
+   "position": 21,
+   "time": "20:30",
+   "seconds": 1230,
+   "ageGrade": 62.93,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-07-26",
+   "runNumber": 640,
+   "position": 106,
+   "time": "24:47",
+   "seconds": 1487,
+   "ageGrade": 52.05,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-08-02",
+   "runNumber": 641,
+   "position": 258,
+   "time": "28:52",
+   "seconds": 1732,
+   "ageGrade": 44.69,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-08-09",
+   "runNumber": 642,
+   "position": 261,
+   "time": "29:26",
+   "seconds": 1766,
+   "ageGrade": 43.83,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-08-16",
+   "runNumber": 643,
+   "position": 24,
+   "time": "20:37",
+   "seconds": 1237,
+   "ageGrade": 62.57,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-08-30",
+   "runNumber": 645,
+   "position": 71,
+   "time": "23:06",
+   "seconds": 1386,
+   "ageGrade": 55.84,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-09-13",
+   "runNumber": 646,
+   "position": 30,
+   "time": "22:08",
+   "seconds": 1328,
+   "ageGrade": 58.28,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-09-20",
+   "runNumber": 647,
+   "position": 29,
+   "time": "21:19",
+   "seconds": 1279,
+   "ageGrade": 60.52,
+   "pb": false
+  },
+  {
+   "event": "Cassiobury",
+   "date": "2025-09-27",
+   "runNumber": 492,
+   "position": 19,
+   "time": "19:48",
+   "seconds": 1188,
+   "ageGrade": 65.15,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-10-04",
+   "runNumber": 649,
+   "position": 16,
+   "time": "20:59",
+   "seconds": 1259,
+   "ageGrade": 61.48,
+   "pb": false
+  },
+  {
+   "event": "Jersey Farm",
+   "date": "2025-10-18",
+   "runNumber": 279,
+   "position": 8,
+   "time": "20:15",
+   "seconds": 1215,
+   "ageGrade": 63.7,
+   "pb": true
+  },
+  {
+   "event": "Cassiobury",
+   "date": "2025-10-25",
+   "runNumber": 496,
+   "position": 206,
+   "time": "26:28",
+   "seconds": 1588,
+   "ageGrade": 48.74,
+   "pb": false
+  },
+  {
+   "event": "Jersey Farm",
+   "date": "2025-11-08",
+   "runNumber": 282,
+   "position": 8,
+   "time": "20:01",
+   "seconds": 1201,
+   "ageGrade": 64.45,
+   "pb": true
+  },
+  {
+   "event": "Jersey Farm",
+   "date": "2025-11-15",
+   "runNumber": 283,
+   "position": 9,
+   "time": "20:46",
+   "seconds": 1246,
+   "ageGrade": 62.12,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-11-29",
+   "runNumber": 657,
+   "position": 3,
+   "time": "20:51",
+   "seconds": 1251,
+   "ageGrade": 61.95,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2025-12-06",
+   "runNumber": 658,
+   "position": 2,
+   "time": "20:28",
+   "seconds": 1228,
+   "ageGrade": 63.11,
+   "pb": false
+  },
+  {
+   "event": "Jersey Farm",
+   "date": "2025-12-13",
+   "runNumber": 287,
+   "position": 35,
+   "time": "23:00",
+   "seconds": 1380,
+   "ageGrade": 56.16,
+   "pb": false
+  },
+  {
+   "event": "Jersey Farm",
+   "date": "2025-12-20",
+   "runNumber": 288,
+   "position": 145,
+   "time": "29:05",
+   "seconds": 1745,
+   "ageGrade": 44.41,
+   "pb": false
+  },
+  {
+   "event": "Haverfordwest",
+   "date": "2025-12-25",
+   "runNumber": 353,
+   "position": 5,
+   "time": "19:44",
+   "seconds": 1184,
+   "ageGrade": 65.46,
+   "pb": true
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-01-03",
+   "runNumber": 663,
+   "position": 277,
+   "time": "29:52",
+   "seconds": 1792,
+   "ageGrade": 43.25,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-01-17",
+   "runNumber": 665,
+   "position": 139,
+   "time": "27:23",
+   "seconds": 1643,
+   "ageGrade": 47.17,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-02-07",
+   "runNumber": 668,
+   "position": 6,
+   "time": "21:57",
+   "seconds": 1317,
+   "ageGrade": 58.85,
+   "pb": false
+  },
+  {
+   "event": "Grovelands",
+   "date": "2026-02-28",
+   "runNumber": 749,
+   "position": 161,
+   "time": "29:18",
+   "seconds": 1758,
+   "ageGrade": 44.08,
+   "pb": false
+  },
+  {
+   "event": "Jersey Farm",
+   "date": "2026-03-07",
+   "runNumber": 297,
+   "position": 7,
+   "time": "19:57",
+   "seconds": 1197,
+   "ageGrade": 64.75,
+   "pb": true
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-04-04",
+   "runNumber": 673,
+   "position": 131,
+   "time": "26:35",
+   "seconds": 1595,
+   "ageGrade": 48.59,
+   "pb": false
+  },
+  {
+   "event": "Peel",
+   "date": "2026-04-18",
+   "runNumber": 222,
+   "position": 342,
+   "time": "29:10",
+   "seconds": 1750,
+   "ageGrade": 44.29,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-05-02",
+   "runNumber": 677,
+   "position": 244,
+   "time": "30:14",
+   "seconds": 1814,
+   "ageGrade": 42.72,
+   "pb": false
+  },
+  {
+   "event": "Futakotamagawa",
+   "date": "2026-05-16",
+   "runNumber": 312,
+   "position": 24,
+   "time": "19:50",
+   "seconds": 1190,
+   "ageGrade": 65.13,
+   "pb": false
+  },
+  {
+   "event": "Jersey Farm",
+   "date": "2026-05-30",
+   "runNumber": 309,
+   "position": 79,
+   "time": "25:05",
+   "seconds": 1505,
+   "ageGrade": 51.5,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-06-06",
+   "runNumber": 682,
+   "position": 43,
+   "time": "22:47",
+   "seconds": 1367,
+   "ageGrade": 56.69,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-06-13",
+   "runNumber": 683,
+   "position": 39,
+   "time": "22:32",
+   "seconds": 1352,
+   "ageGrade": 57.32,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-06-20",
+   "runNumber": 684,
+   "position": 16,
+   "time": "20:41",
+   "seconds": 1241,
+   "ageGrade": 62.45,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-06-27",
+   "runNumber": 685,
+   "position": 11,
+   "time": "20:58",
+   "seconds": 1258,
+   "ageGrade": 61.61,
+   "pb": false
+  },
+  {
+   "event": "Lordship Recreation Ground",
+   "date": "2026-08-08",
+   "runNumber": 204,
+   "position": 37,
+   "time": "21:05",
+   "seconds": 1265,
+   "ageGrade": 61.26,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-08-22",
+   "runNumber": 693,
+   "position": 15,
+   "time": "19:46",
+   "seconds": 1186,
+   "ageGrade": 65.35,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-08-29",
+   "runNumber": 694,
+   "position": 38,
+   "time": "23:13",
+   "seconds": 1393,
+   "ageGrade": 55.64,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-09-19",
+   "runNumber": 697,
+   "position": 12,
+   "time": "19:43",
+   "seconds": 1183,
+   "ageGrade": 65.51,
+   "pb": false
+  },
+  {
+   "event": "St Albans",
+   "date": "2026-09-26",
+   "runNumber": 698,
+   "position": 6,
+   "time": "18:43",
+   "seconds": 1123,
+   "ageGrade": 69.01,
+   "pb": true
+  }
+ ]
+}
