@@ -971,7 +971,7 @@ function hazards(st: RaceState, c: Cache, k: number) {
   const rng = c.rng, setup = c.setup, e = setup.entrants[car.i];
   // base hazard per hour of racing: early machinery far less reliable
   const era = setup.rules.year;
-  const eraHaz = era < 1935 ? 0.5 : era < 1955 ? 0.4 : era < 1975 ? 0.3 : era < 1995 ? 0.24 : era < 2010 ? 0.1 : 0.05;
+  const eraHaz = era < 1935 ? 0.3 : era < 1955 ? 0.26 : era < 1975 ? 0.2 : era < 1995 ? 0.14 : era < 2010 ? 0.08 : 0.05;
   const stress = 1 + (car.push - 1) * 6 + car.engWear * 1.5 + (st.w.air > 26 ? (st.w.air - 26) * 0.06 * (1 - e.c.cooling) : 0);
   const sympathy = 1.25 - e.d.mechSympathy / 200;
   const hazPerSec = (eraHaz * e.c.reliability * stress * sympathy) / 3600;

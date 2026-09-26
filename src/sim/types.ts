@@ -529,4 +529,8 @@ export interface Universe {
   cooldowns: Record<string, Day>;
   counters: Record<string, number>;
   favourites: { people: PersonId[]; teams: TeamId[] };
+  carElo: Record<CarId, number>;
+  // derived caches (always rebuildable from races/seasons; see world/stats.ts)
+  careers: Record<PersonId, any>;
+  teamCareers: Record<TeamId, any>;
 }
