@@ -226,13 +226,17 @@ export const CLAW: BossEncounter = {
   bossName: 'THE CLAW',
   bossSubtitle: 'FIVE FINGERS OF HIGHGATE',
   bossConcept:
-    'A mechanical hand buried under Highgate. Each finger is a real climb from the run: the only way to beat it is to go up every one.',
+    'A mechanical hand buried under Highgate. Its fingers are the five climbs of the run, all converging on Highgate village; the only way to beat it is to go up every one. (Strava segment on the run: "Highgate Claw", 10.28 km, +305 m.)',
+  // Climb order/positions from the GPS altitude profile; per-climb figures are
+  // this run's Strava segment efforts.
   phases: [
-    { name: "SWAIN'S LANE", fromKm: 0, toKm: 3, note: '' },
-    { name: 'HIGHGATE HILL', fromKm: 3, toKm: 8, note: '' },
-    { name: 'HIGHGATE WEST HILL', fromKm: 8, toKm: 12, note: '' },
-    { name: 'HORNSEY LANE', fromKm: 12, toKm: 15, note: '' },
-    { name: 'DARTMOUTH PARK HILL', fromKm: 15, toKm: 22.3, note: '' },
+    { name: 'APPROACH', fromKm: 0, toKm: 6.5, note: 'Parkland Walk up to Highgate, Fitzroy Park' },
+    { name: 'HIGHGATE WEST HILL', fromKm: 6.5, toKm: 8.0, note: '621 M +37 M 3:51' },
+    { name: "SWAIN'S LANE", fromKm: 8.6, toKm: 10.0, note: '856 M +60 M 5:33' },
+    { name: 'DARTMOUTH PARK HILL', fromKm: 10.6, toKm: 12.0, note: '474 M +35 M 3:11' },
+    { name: 'HIGHGATE HILL', fromKm: 12.6, toKm: 14.0, note: '920 M +64 M 5:57' },
+    { name: 'HORNSEY LANE', fromKm: 15.4, toKm: 16.8, note: '1105 M +34 M 6:36' },
+    { name: 'RETURN', fromKm: 16.8, toKm: 22.3, note: '' },
   ],
   result: 'CLAW RETRACTED',
 };
