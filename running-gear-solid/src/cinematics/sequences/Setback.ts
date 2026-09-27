@@ -80,12 +80,13 @@ export class Setback extends Sequence {
       ui.text('MEDICAL BAY', 28, 24, { scale: 3, color: COL.cyan });
       drawDataPanel(ui, 610, 60, 'SCAN RESULT', [
         ['SUBJECT', 'STRIDE'],
-        ['AREA', 'ANKLE'],
+        ['SYMPTOM', 'SORE ANKLES'],
         ['FINDING', 'STRESS REACTION'],
         ['STATUS', 'NO RUNNING'],
       ], t - XRAY - 0.8, { w: 320, color: COL.cyan });
       if (t > XRAY + 1.4 && blink(t, 0.3)) ui.text('! FAULT DETECTED', 770, 250, { scale: 2, color: COL.red, align: 'center' });
       drawCaption(ui, ["DR. LACTATE: BONE DOESN'T NEGOTIATE, STRIDE."], t - (XRAY + 2.0), CANCEL - XRAY - 2.1);
+      ui.text('LOG 24.02.2025: "LAST TIME I FOLLOWED A TRAINING PLAN I GOT A STRESS REACTION."', 28, 500, { scale: 1, color: COL.greenDim, alpha: ramp(t, XRAY + 1.2, XRAY + 1.5) });
     }
     if (t >= CANCEL && t < GYM) {
       drawStamp(ui, 'MISSION CANCELLED', t - CANCEL - 0.1, GYM - CANCEL, COL.red, 330, 6);
