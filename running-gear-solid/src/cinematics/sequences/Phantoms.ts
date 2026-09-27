@@ -72,8 +72,8 @@ export class Phantom1 extends RaceSequence {
   }
 
   drawUI(ui: UI, t: number) {
-    drawBossTitle(ui, { name: 'PHANTOM 1:30', label: 'ENCOUNTER 01', subtitle: 'HACKNEY HALF MARATHON // ' + this.enc.date, info: [`STRAVA: "${this.enc.stravaDescription!.toUpperCase()}"`] }, t - 0.5, 2.1);
-    if (t >= 2.6 && t < 8.2) {
+    drawBossTitle(ui, { name: 'PHANTOM 1:30', label: 'ENCOUNTER 01', subtitle: 'HACKNEY HALF MARATHON // ' + this.enc.date, info: ['"AN AMBITIOUS ATTEMPT AT 1:30..."'] }, t - 0.3, 2.9);
+    if (t >= 3.1 && t < 8.2) {
       const km = this.kmAt(t);
       const s = raceAt(this.enc, km);
       const d = phantomDelta(this.enc, km);
@@ -152,7 +152,7 @@ export class Phantom2 extends RaceSequence {
     this.group.add(this.watch);
     // giant digits across the street: "4:13"
     ['4', '1', '3'].forEach((ch, i) => {
-      const d = sevenSeg(2.2, 0.8, 0x7aff8a, 0x0a200e);
+      const d = sevenSeg(2.2, 0.8, 0x38c050, 0x0a200e);
       d.set(ch);
       d.group.position.set((i === 0 ? -4 : i === 1 ? 1.2 : 4.4), 3.2, 0);
       this.digitRow.add(d.group);
@@ -163,11 +163,12 @@ export class Phantom2 extends RaceSequence {
       c.position.set(-1.6, y, 0);
       this.digitRow.add(c);
     }
+    this.digitRow.scale.setScalar(1.7);
     this.group.add(this.digitRow);
 
     // camera
-    this.shot(0, 2.4, cam(0.3, 2.2, 1.6, 0, 0.3, 0, 50), cam(0.05, 1.0, 0.35, 0, 0.3, 0.05, 30), 'power2.in'); // push into the watch
-    this.shot(2.4, 0.8, cam(0, 3.2, -6, 0, 3.2, 6, 70), cam(0, 3.0, -1, 0, 3.0, 10, 80), 'power3.in', (t, c) => this.followRunner(t, c));
+    this.shot(0, 2.4, cam(0.9, 2.6, 2.2, 0, 1.3, 0, 50), cam(0.05, 2.0, 0.3, 0, 1.3, 0.02, 30), 'power2.in', (t, c) => this.followRunner(t, c)); // push into the watch
+    this.shot(2.4, 0.8, cam(0, 2.4, -5, 0, 5.2, 14, 70), cam(0, 5.0, 11.5, 0, 5.4, 16, 88), 'power3.in', (t, c) => this.followRunner(t, c));
     this.shot(3.2, 2.8, cam(-3.2, 1.2, 4.5, 0, 1.4, -2, 52), cam(-2.4, 1.3, 4.2, 0, 1.5, -3, 50), 'sine.inOut', (t, c) => this.followRunner(t, c));
     this.shot(F0, 3.0, cam(1.3, 1.7, 2.6, 0, 1.3, -6, 56), cam(1.0, 1.6, 2.2, 0, 1.3, -7, 58), 'sine.inOut', (t, c) => this.followRunner(t, c));
     this.shot(9, 3.0, cam(-6, 1.5, 1, 0, 1.3, 1, 44), cam(-6, 1.5, 3, 0, 1.3, 2.5, 44), 'none', (t, c) => this.followRunner(t, c));
@@ -178,7 +179,7 @@ export class Phantom2 extends RaceSequence {
   }
 
   update(t: number, fx: FX) {
-    applyLighting({ fog: 0x0a0c14, fogNear: 12, fogFar: 110, lightDir: [0.3, -1, 0.2], light: 0x5a6a9a, lightI: 0.45, sky: 0x2a2a4a, ground: 0x181820, ambient: 0x10101a });
+    applyLighting({ fog: 0x0a0c14, fogNear: 12, fogFar: 110, lightDir: [0.3, -1, 0.2], light: 0x6a7aaa, lightI: 0.6, sky: 0x3a3a5a, ground: 0x202028, ambient: 0x18182a });
     const km = t < F0 ? 0 : this.kmAt(t);
     const inWatch = t < 2.4;
     this.watch.visible = inWatch;
@@ -188,10 +189,10 @@ export class Phantom2 extends RaceSequence {
     const f = this.frameAt(this.runnerS(t));
     for (let i = 0; i < 3; i++) {
       const p = this.frameAt(this.runnerS(t) + (i - 0.5) * 22).pos;
-      setPointLight(i, p.add(new THREE.Vector3(0, 5, 0)), 0xb0d0ff, 24, 0.9);
+      setPointLight(i, p.add(new THREE.Vector3(0, 5, 0)), 0xb0d0ff, 26, 1.2);
     }
     if (inWatch) {
-      this.watch.position.set(f.pos.x, 0, f.pos.z);
+      this.watch.position.set(f.pos.x, f.pos.y + 1.0, f.pos.z);
       this.watch.rotation.y = f.yaw;
     }
     // digits planted across the road ahead

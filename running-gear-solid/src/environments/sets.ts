@@ -154,6 +154,12 @@ export function corridor(route: Route, o: CorridorOpts) {
         }
         const h = o.style === 'terrace' ? 7 + r() * 2.5 : 10 + r() * 22;
         const w = o.style === 'terrace' ? 8 : 10 + r() * 6;
+        // courses that loop back on themselves: keep every other stretch of road clear
+        const cx = base.x + side.x * sgn * 4.5, cz = base.z + side.z * sgn * 4.5;
+        const clear = [[0, 0], [w / 2, -4.5], [-w / 2, -4.5], [w / 2, 4.5], [-w / 2, 4.5]].every(
+          ([a, b]) => route.nearest(cx + dir.x * a + side.x * sgn * b, cz + dir.z * a + side.z * sgn * b).dist > W / 2 + 1.5,
+        );
+        if (!clear) continue;
         const bg = new THREE.BoxGeometry(w, h, 9);
         const uv = bg.attributes.uv as THREE.BufferAttribute;
         const n = bg.attributes.normal as THREE.BufferAttribute;
@@ -176,6 +182,8 @@ export function corridor(route: Route, o: CorridorOpts) {
       }
       if (o.crowd && r() < 0.8) {
         for (const sgn of [-1, 1]) {
+          const cp = pos.clone().addScaledVector(side, sgn * (W / 2 + 1.6));
+          if (route.nearest(cp.x, cp.z).dist < W / 2 + 0.4) continue;
           const cr = crowd(6, 7, 1.2, Math.floor(s * 7 + sgn));
           cr.position.copy(pos).addScaledVector(side, sgn * (W / 2 + 1.6));
           cr.rotation.y = Math.atan2(dir.x, dir.z) + Math.PI / 2;

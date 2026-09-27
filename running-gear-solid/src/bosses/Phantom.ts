@@ -28,9 +28,14 @@ export class Phantom {
     const pole = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.4, 0.03), glow(0x9ffff4, 0.8));
     pole.position.set(0, 1.9, -0.18);
     this.flag.add(pole);
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.42), ps1({ map: signTexture('1:30', '#0a1a18', '#8ffff0', 32, 20, 1), unlit: true, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
-    sign.position.set(0.36, 2.4, -0.18);
-    this.flag.add(sign);
+    // two single-sided faces so the pace reads correctly from both directions
+    const signMat = ps1({ map: signTexture('1:30', '#0a1a18', '#8ffff0', 32, 20, 1), unlit: true, transparent: true, opacity: 0.9 });
+    for (const back of [false, true]) {
+      const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.42), signMat);
+      sign.position.set(0.36, 2.4, back ? -0.19 : -0.17);
+      if (back) sign.rotation.y = Math.PI;
+      this.flag.add(sign);
+    }
     this.body.torso.add(this.flag);
     this.flag.position.y = -0.96;
   }

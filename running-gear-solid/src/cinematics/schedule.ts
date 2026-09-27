@@ -39,7 +39,7 @@ const ORDER: [SeqId, number][] = [
   ['hingeBrief', 7],
   ['hinge', 22],
   ['doubleZero', 27],
-  ['phantom1', 10],
+  ['phantom1', 12],
   ['richmondBrief', 6],
   ['furnace', 29],
   ['claw', 17],
