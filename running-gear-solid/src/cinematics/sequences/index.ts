@@ -7,6 +7,8 @@ import { Training } from './Training';
 import { HingeBrief, RichmondBrief, Shingles } from './Codecs';
 import { HingeSeq } from './Hinge';
 import { ClawSeq } from './Claw';
+import { Setback } from './Setback';
+import { Comeback } from './Comeback';
 import { DoubleZero } from './DoubleZero';
 import { Phantom1, Phantom2 } from './Phantoms';
 import { FurnaceSeq } from './Furnace';
@@ -26,8 +28,8 @@ export const SEQUENCES: Record<SeqId, Ctor> = {
   claw: ClawSeq,
   shingles: Shingles,
   phantom2: Phantom2,
-  setback: Placeholder,
-  comeback: Placeholder,
+  setback: Setback,
+  comeback: Comeback,
   wallBuild: Placeholder,
   wall: Placeholder,
   aftermath: Placeholder,
