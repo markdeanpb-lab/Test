@@ -9,6 +9,7 @@ import { HingeSeq } from './Hinge';
 import { ClawSeq } from './Claw';
 import { Setback } from './Setback';
 import { Comeback } from './Comeback';
+import { WallBuild } from './WallBuild';
 import { DoubleZero } from './DoubleZero';
 import { Phantom1, Phantom2 } from './Phantoms';
 import { FurnaceSeq } from './Furnace';
@@ -30,7 +31,7 @@ export const SEQUENCES: Record<SeqId, Ctor> = {
   phantom2: Phantom2,
   setback: Setback,
   comeback: Comeback,
-  wallBuild: Placeholder,
+  wallBuild: WallBuild,
   wall: Placeholder,
   aftermath: Placeholder,
   records: Placeholder,
