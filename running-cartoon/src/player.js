@@ -1,4 +1,4 @@
-// Page player: draws CARTOON frames to a canvas, plays the chiptune live, and offers play/pause,
+// Page player: draws the film's frames to a canvas, plays the score live, and offers play/pause,
 // scrubbing, chapters, mute and fullscreen. `?render` turns it into a frame/audio source for
 // tools/render-video.mjs instead.
 'use strict';
@@ -8,10 +8,11 @@
   const g = canvas.getContext('2d');
   canvas.width = W; canvas.height = H;
   const img = g.createImageData(W, H);
-  const bytes = new Uint8ClampedArray(PX.buf.buffer);
+  const bytes = new Uint8ClampedArray(PX.main.buf.buffer);
   const blit = () => { img.data.set(bytes); g.putImageData(img, 0, 0); };
-  const events = AUDIO.buildEvents(CARTOON.timeline).filter((e) => e.v > 0.001);
-  const dur = CARTOON.duration;
+  const events = AUDIO.buildEvents(STORY.cues, STORY.ambs, STORY.duration).filter((e) => e.v > 0.001);
+  const dur = STORY.duration;
+  const chapterAt = (t) => { let i = 0; STORY.chapters.forEach((c, k) => { if (c.start <= t + 1e-6) i = k; }); return i; };
   const params = new URLSearchParams(location.search);
 
   // ---------- render mode (used by the video exporter) ----------
@@ -24,11 +25,11 @@
     };
     let audioBytes = null;
     window.RENDER = {
-      duration: dur, W, H,
+      duration: dur, W, H, shots: STORY.shots.map((s) => [s.start, s.d]),
       frames(start, count, fps) {
         const out = new Uint8Array(W * H * 4 * count);
         for (let k = 0; k < count; k++) {
-          CARTOON.renderAt((start + k) / fps);
+          FILM.render((start + k) / fps);
           out.set(bytes, k * W * H * 4);
         }
         blit();
@@ -53,7 +54,7 @@
       },
       audioChunk(i, size) { return b64(audioBytes.subarray(i * size, (i + 1) * size)); },
     };
-    CARTOON.renderAt(+(params.get('t') || 0));
+    FILM.render(+(params.get('t') || 0));
     blit();
     return;
   }
@@ -67,7 +68,7 @@
   try { muted = localStorage.getItem('longrun-muted') === '1'; } catch (e) { /* storage blocked */ }
   const player = AUDIO.LivePlayer(events);
 
-  CARTOON.SCENES.forEach((s, i) => {
+  STORY.chapters.forEach((s, i) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.innerHTML = `<span>${fmtT(s.start)}</span>${s.name}`;
@@ -132,13 +133,14 @@
       last = now;
       if (t >= dur) { t = dur - 0.01; pause(); }
     }
-    const i = CARTOON.renderAt(t);
+    FILM.render(t);
     blit();
+    const i = chapterAt(t);
     if (document.activeElement !== seek) seek.value = String(t);
     timeEl.textContent = `${fmtT(t)} / ${fmtT(dur)}`;
     if (i !== lastScene) {
-      chap.textContent = CARTOON.SCENES[i].name;
-      CARTOON.SCENES.forEach((s, k) => s.btn.classList.toggle('on', k === i));
+      chap.textContent = STORY.chapters[i].name;
+      STORY.chapters.forEach((s, k) => s.btn.classList.toggle('on', k === i));
       lastScene = i;
     }
     requestAnimationFrame(frame);

@@ -59,39 +59,41 @@
 
 <div class="wrap">
   <header>
-    <p class="eyebrow">A PIXEL CARTOON · 2016 – 2026</p>
+    <p class="eyebrow">A PIXEL FILM · 2016 – 2026</p>
     <h1>THE LONG RUN</h1>
-    <p class="lede">Mark Dean's running career as a retro video game: from a 26:21 first parkrun in Norwich to this morning's 18:43 course PB at St Albans, with every race, blooper and injury in between. Built from his Strava log and parkrun results.</p>
+    <p class="lede">A 7:45 alarm in a Norwich student room, one sentence from a stranger in Eaton Park, and the ten years it took to understand it. Mark Dean's running life as a short pixel-art film, told from his Strava log and parkrun results.</p>
     <ul class="stats">
       <li><b>1,230</b> runs</li><li><b>9,199</b> km</li><li><b>186</b> parkruns at <b>19</b> events</li><li>parkrun PB <b>18:28</b></li><li>marathon <b>3:20:03</b></li>
     </ul>
   </header>
 
   <div id="stage">
-    <canvas id="screen" width="320" height="180" aria-label="The Long Run cartoon"></canvas>
+    <canvas id="screen" width="480" height="270" aria-label="The Long Run, a pixel-art film"></canvas>
     <button id="bigplay" type="button">▶ PLAY WITH SOUND</button>
   </div>
 
   <div class="controls">
     <button class="ctl" id="play" type="button" aria-label="Play">▶</button>
-    <input id="seek" type="range" min="0" max="263" step="0.01" value="0" aria-label="Position in the cartoon">
+    <input id="seek" type="range" min="0" max="400" step="0.01" value="0" aria-label="Position in the film">
     <span id="time">0:00 / 0:00</span>
     <button class="ctl" id="mute" type="button" aria-label="Mute">🔊</button>
     <button class="ctl" id="fs" type="button" aria-label="Full screen">⛶</button>
   </div>
-  <div class="now"><span id="chapter">Title</span><span class="keys">SPACE PLAY · ← → 5S · M MUTE · F FULL SCREEN</span></div>
+  <div class="now"><span id="chapter">Dawn</span><span class="keys">SPACE PLAY · ← → 5S · M MUTE · F FULL SCREEN</span></div>
 
   <section>
     <h2>CHAPTERS</h2>
     <div class="chapters" id="chapters"></div>
   </section>
 
-  <p class="note">Every time, place and quote comes from Mark's own records: 1,230 Strava runs logged between 14 May 2020 and 26 Sep 2026, and the 186 results on his <a href="https://www.parkrun.org.uk/parkrunner/2425906/" target="_blank" rel="noopener">parkrun profile</a>. The pixels, animation and chiptune are all drawn by code in the page.</p>
+  <p class="note">Every time, place and quote comes from Mark's own records: 1,230 Strava runs logged between 14 May 2020 and 26 Sep 2026, and the 186 results on his <a href="https://www.parkrun.org.uk/parkrunner/2425906/" target="_blank" rel="noopener">parkrun profile</a>. The pixels, animation and score are all made by code in the page.</p>
 </div>
 
 <script src="data/career.js"></script>
 <script src="src/engine.js"></script>
 <script src="src/audio.js"></script>
-<script src="src/kit.js"></script>
-<script src="src/scenes.js"></script>
+<script src="src/art.js"></script>
+<script src="src/world.js"></script>
+<script src="src/film.js"></script>
+<script src="src/story.js"></script>
 <script src="src/player.js"></script>

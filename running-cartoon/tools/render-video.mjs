@@ -1,9 +1,10 @@
-// Renders the cartoon to an MP4 (1080p, 30 fps, chiptune audio) by stepping the page frame by frame in
+// Renders the film to an MP4 (1080p, 30 fps, with the score) by stepping the page frame by frame in
 // headless Chromium and piping the raw pixels to ffmpeg.
 //
 //   node tools/render-video.mjs                       -> output/the-long-run.mp4
-//   node tools/render-video.mjs --out my.mp4 --fps 30 --scale 6 --crf 24
-//   node tools/render-video.mjs --sheet 3,20,41 --out sheet.png   (contact sheet of stills, for checking)
+//   node tools/render-video.mjs --out my.mp4 --fps 30 --scale 4 --crf 24
+//   node tools/render-video.mjs --sheet 3,20,41 --out sheet.png   (contact sheet of stills at those seconds)
+//   node tools/render-video.mjs --sheet shots:10-21 --at 0.6      (one still per shot, 60% of the way in)
 //
 // Needs Playwright (playwright or playwright-core) with Chromium, and an ffmpeg with libx264 + aac:
 // set FFMPEG=/path/to/ffmpeg if it is not on PATH (`pip install imageio-ffmpeg` ships one).
@@ -17,7 +18,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : def; };
 const fps = Number(arg('fps', 30));
-const scale = Number(arg('scale', 6));
+const scale = Number(arg('scale', 4));
 const crf = String(arg('crf', 24));
 const sheet = arg('sheet', null);
 const out = path.resolve(arg('out', path.join(root, sheet ? 'output/sheet.png' : 'output/the-long-run.mp4')));
@@ -51,10 +52,16 @@ function run(args, input) {
 const write = (stream, buf) => new Promise((res) => { if (stream.write(buf)) res(); else stream.once('drain', res); });
 
 if (sheet) {
-  const times = sheet.split(',').map(Number);
-  const cols = Math.min(4, times.length), rows = Math.ceil(times.length / cols);
+  let times = sheet.split(',').map(Number);
+  const m = /^shots:(\d+)-(\d+)$/.exec(sheet);
+  if (m) {
+    const at = Number(arg('at', 0.6));
+    const shots = await page.evaluate(() => RENDER.shots);
+    times = shots.slice(Number(m[1]), Number(m[2]) + 1).map(([start, d]) => start + d * at);
+  }
+  const cols = Math.min(3, times.length), rows = Math.ceil(times.length / cols);
   const job = run(['-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', '1', '-i', 'pipe:0',
-    '-vf', `scale=${W * 2}:${H * 2}:flags=neighbor,tile=${cols}x${rows}:padding=4:color=white`, '-frames:v', '1', out]);
+    '-vf', `tile=${cols}x${rows}:padding=4:color=white`, '-frames:v', '1', out]);
   for (const t of times) {
     const b64 = await page.evaluate(([t]) => RENDER.frames(t * 1000, 1, 1000), [t]);
     await write(job.p.stdin, Buffer.from(b64, 'base64'));
