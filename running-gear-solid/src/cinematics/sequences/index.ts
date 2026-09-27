@@ -2,7 +2,6 @@ import type { SeqId, SeqSlot } from '../schedule';
 import type { FilmHost, Sequence } from '../Sequence';
 import { ColdOpen } from './ColdOpen';
 import { Title } from './Title';
-import { Placeholder } from './Placeholder';
 import { Training } from './Training';
 import { HingeBrief, RichmondBrief, Shingles } from './Codecs';
 import { HingeSeq } from './Hinge';

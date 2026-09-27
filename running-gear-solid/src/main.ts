@@ -9,6 +9,8 @@ declare global {
       duration: number;
       fps: number;
       renderFrame: (t: number) => string;
+      /** RGB bytes of the last rendered 960x540 frame (bottom-up rows), base64 */
+      pixels: () => string;
       error?: string;
     };
   }
@@ -19,7 +21,7 @@ const params = new URLSearchParams(location.search);
 const renderMode = params.has('render');
 if (renderMode) document.body.classList.add('render');
 
-window.RGS = { ready: false, duration: DURATION, fps: FPS, renderFrame: () => '' };
+window.RGS = { ready: false, duration: DURATION, fps: FPS, renderFrame: () => '', pixels: () => '' };
 
 function fit() {
   if (renderMode) {
@@ -38,6 +40,22 @@ fit();
 try {
   const film = new Film(canvas);
   window.RGS.renderFrame = (t: number) => film.renderFrame(t);
+  // Fast frame readback for the offline renderer (called right after renderFrame).
+  const gl = canvas.getContext('webgl2') as WebGL2RenderingContext;
+  const rgba = new Uint8Array(canvas.width * canvas.height * 4);
+  const rgb = new Uint8Array(canvas.width * canvas.height * 3);
+  window.RGS.pixels = () => {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+    for (let i = 0, j = 0; i < rgba.length; i += 4, j += 3) {
+      rgb[j] = rgba[i];
+      rgb[j + 1] = rgba[i + 1];
+      rgb[j + 2] = rgba[i + 2];
+    }
+    let s = '';
+    for (let i = 0; i < rgb.length; i += 0x8000) s += String.fromCharCode.apply(null, rgb.subarray(i, i + 0x8000) as unknown as number[]);
+    return btoa(s);
+  };
   window.RGS.ready = true;
 
   if (!renderMode) {
