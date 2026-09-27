@@ -7,7 +7,7 @@ One line holds it together. A stranger in Eaton Park tells a gasping first-timer
 ## Watch it
 
 - `output/the-long-run.mp4`: the rendered film (1920×1080, 30 fps, with sound).
-- `output/the-long-run-720p.mp4`: a smaller copy for sharing.
+- `output/the-long-run-small.mp4`: the same at a lower bitrate (29 MB), for sending by message or email.
 - `output/the-long-run.html`: the same film as one self-contained page with play/pause, scrubbing, chapters and the live score. Open it in any browser.
 - `index.html`: the development version of that page (loads the files in `src/` and `data/`).
 

@@ -2,7 +2,7 @@
 // headless Chromium and piping the raw pixels to ffmpeg.
 //
 //   node tools/render-video.mjs                       -> output/the-long-run.mp4
-//   node tools/render-video.mjs --out my.mp4 --fps 30 --scale 4 --crf 24
+//   node tools/render-video.mjs --out my.mp4 --fps 30 --scale 4 --crf 24 --abr 192k
 //   node tools/render-video.mjs --sheet 3,20,41 --out sheet.png   (contact sheet of stills at those seconds)
 //   node tools/render-video.mjs --sheet shots:10-21 --at 0.6      (one still per shot, 60% of the way in)
 //
@@ -20,6 +20,7 @@ const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return
 const fps = Number(arg('fps', 30));
 const scale = Number(arg('scale', 4));
 const crf = String(arg('crf', 24));
+const abr = String(arg('abr', '192k'));
 const sheet = arg('sheet', null);
 const out = path.resolve(arg('out', path.join(root, sheet ? 'output/sheet.png' : 'output/the-long-run.mp4')));
 
@@ -88,7 +89,7 @@ const total = Math.ceil(duration * fps);
 fs.mkdirSync(path.dirname(out), { recursive: true });
 const job = run(['-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', String(fps), '-i', 'pipe:0', '-i', wav,
   '-vf', `scale=${W * scale}:${H * scale}:flags=neighbor`, '-c:v', 'libx264', '-preset', 'slow', '-crf', crf, '-tune', 'animation',
-  '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out]);
+  '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', abr, '-movflags', '+faststart', '-shortest', out]);
 const batch = 30;
 const t0 = Date.now();
 for (let f = 0; f < total; f += batch) {
