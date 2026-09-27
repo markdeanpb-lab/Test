@@ -11,6 +11,9 @@ import { Setback } from './Setback';
 import { Comeback } from './Comeback';
 import { WallBuild } from './WallBuild';
 import { WallSeq } from './Wall';
+import { Aftermath } from './Aftermath';
+import { Records } from './Records';
+import { Next } from './Next';
 import { DoubleZero } from './DoubleZero';
 import { Phantom1, Phantom2 } from './Phantoms';
 import { FurnaceSeq } from './Furnace';
@@ -34,7 +37,7 @@ export const SEQUENCES: Record<SeqId, Ctor> = {
   comeback: Comeback,
   wallBuild: WallBuild,
   wall: WallSeq,
-  aftermath: Placeholder,
-  records: Placeholder,
-  next: Placeholder,
+  aftermath: Aftermath,
+  records: Records,
+  next: Next,
 };
