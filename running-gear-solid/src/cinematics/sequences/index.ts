@@ -8,6 +8,7 @@ import { HingeBrief, RichmondBrief, Shingles } from './Codecs';
 import { HingeSeq } from './Hinge';
 import { DoubleZero } from './DoubleZero';
 import { Phantom1, Phantom2 } from './Phantoms';
+import { FurnaceSeq } from './Furnace';
 
 type Ctor = new (host: FilmHost, slot: SeqSlot) => Sequence;
 
@@ -20,7 +21,7 @@ export const SEQUENCES: Record<SeqId, Ctor> = {
   doubleZero: DoubleZero,
   phantom1: Phantom1,
   richmondBrief: RichmondBrief,
-  furnace: Placeholder,
+  furnace: FurnaceSeq,
   claw: Placeholder,
   shingles: Shingles,
   phantom2: Phantom2,

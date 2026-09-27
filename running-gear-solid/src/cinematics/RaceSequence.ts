@@ -37,6 +37,11 @@ export abstract class RaceSequence extends Sequence {
   }
 
   /** arc-length positions the cameras will visit (for set dressing) */
+  /** arc length at race kilometre km */
+  sAtKm(km: number) {
+    return (km / this.enc.distanceKm) * this.route.total;
+  }
+
   anchorCentres(span = 60) {
     return this.anchors.map((a) => (a.km / this.enc.distanceKm) * this.route.total + span / 2);
   }
@@ -49,7 +54,11 @@ export abstract class RaceSequence extends Sequence {
 
   /** transform a camera expressed in the runner's local frame into world space */
   followRunner(t: number, c: Cam, lateral = 0, absTarget = false) {
-    const f = this.frameAt(this.runnerS(t));
+    this.followFrame(this.frameAt(this.runnerS(t)), c, lateral, absTarget);
+  }
+
+  /** same as followRunner, but relative to a fixed point on the course */
+  followFrame(f: { pos: THREE.Vector3; yaw: number }, c: Cam, lateral = 0, absTarget = false) {
     const cs = Math.cos(f.yaw), sn = Math.sin(f.yaw);
     const rot = (x: number, z: number): [number, number] => [x * cs + z * sn, -x * sn + z * cs];
     const [cx, cz] = rot(c.x + lateral, c.z);
