@@ -15,6 +15,24 @@ npm run render    # render every chapter to output/parts/, synthesise audio, ass
 Output: 1920×1080, 24 fps, H.264 + AAC. With SwiftShader and no GPU, frames take about 0.85 s each; the whole film
 renders in about 7–8 hours with 2 workers.
 
+## The bosses
+
+Each boss is a physical machine in the scene, driven by the real race data (`src/rm/film/bosses/`):
+
+| Boss | Race | What it is |
+|---|---|---|
+| THE HARE | four races, 2022–2026 | a greyhound-track lure on a boom arm, always a little too fast |
+| HINGE | Hackney Half 2022 | a colossal rusted knee on two hydraulic legs; lamps follow the knee (controlled, grind, seize) and turn green when it holds |
+| DOUBLE ZERO | Victoria Dock 20:00, Finsbury 19:25 | a dockside sentinel with a race-clock head and turbine arms; stops dead on 20:00, then shatters on 19:25 |
+| FORTY | Battersea 10K 39:35 | a portcullis finish gantry that drops towards 40:00 |
+| NINETEEN | Lordship 19:00 | the sentinel again, with a new number on its face |
+| PHANTOM 1:30 | Hackney 2023 / 2024, Chippenham 2026 | a cyan wireframe pacer carrying a 1:30 pace-group sign, on exact 1:30:00 pace |
+| FURNACE | Richmond Marathon 2023 | a blast-furnace barge pacing the course on the Thames |
+| THE CLAW | Highgate hills 2023 | one mechanical finger per climb, tearing out of the verge |
+| HAIRLINE | stress reaction 2024 | the crack you can't fight |
+| EIGHTEEN | Striders Festive 5K 18:19 | a pacing drone locked on 18:00 that he never catches |
+| THE WALL | Manchester Marathon 2026 | the final boss in four stages, on the real splits |
+
 The story bible (threads, boss tiers, chapter beats, sources) is in [`docs/STORY.md`](docs/STORY.md). The v1 critique
 that drove the remaster is in [`docs/V1_REVIEW.md`](docs/V1_REVIEW.md).
 

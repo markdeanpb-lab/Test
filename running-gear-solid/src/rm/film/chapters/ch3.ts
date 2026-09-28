@@ -18,6 +18,7 @@ import { pbrArrayWall } from './walls';
 import { Scene } from '../core';
 import { Furnace } from '../bosses/Furnace';
 import { Gate } from '../bosses/Gate';
+import { Sentinel } from '../bosses/Sentinel';
 import { Finger, clawMaterials } from '../bosses/Claw';
 import { waterSide, aimAt, mmss } from '../bosses/place';
 
@@ -204,6 +205,7 @@ export function ch3(): Scene[] {
 
   // --- NINETEEN: Lordship 01.07.2023, 19:00 exactly (the Double Zero echo)
   const lord = RunProfile.fromGpsProfile(lordshipJ as any, 1140);
+  let sent19: Sentinel;
   scenes.push(
     new RaceScene({
       id: 'c3-lordship',
@@ -212,13 +214,26 @@ export function ch3(): Scene[] {
       sky: SKY.hot,
       halfWidth: 2,
       field: { count: 110, pack: 4, seed: 33 },
-      build: (race) => {
+      build: async (race) => {
         funnel(race, race.course.length, 20);
+        // the clock sentinel is back, a new number on its face: the Double Zero echo
+        sent19 = await Sentinel.create();
+        const f = race.place(race.course.length + 40, 10);
+        sent19.root.position.set(f.x, race.arena.heightAt(f.x, f.z), f.z);
+        sent19.root.rotation.y = Math.atan2(-f.dx - f.dz * 0.5, -f.dz + f.dx * 0.5);
+        sent19.root.scale.setScalar(0.8);
+        race.extras.add(sent19.root);
       },
-      shots: [{ dur: 11, T: 1130, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, cam2: { dist: 8 } }],
+      shots: [
+        { dur: 7, T: 1118, rate: 0.8, cam: { mode: 'follow', dist: 6, h: 1.3, ang: 10, look: 2.5, ahead: 8, fov: 50 }, cam2: { dist: 5 } },
+        { dur: 11, T: 1137, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, cam2: { dist: 8 } },
+      ],
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
+        sent19.update(i.t, { wind: 0.2, text: mmss(Math.min(i.T, 1140)), look: i.pos, flicker: 0 });
+        if (i.shot === 0) aimAt(race.stage!.camera, sent19.root.position.clone().add(new THREE.Vector3(0, 18, 0)), 0.35);
         eventTag(h, { name: 'LORDSHIP REC PARKRUN', date: '01.07.2023', t: i.t });
+        bossPlate(h, { name: 'NINETEEN', sub: 'MINI BOSS', frac: i.finished ? 1 : 1 - clamp01(i.d / lord.distance) * 0.9, alpha: env(i.t, 0.5, 16, 0.5, 0.5) });
         targetBlock(h, { target: 1139, label: 'NEXT TARGET: SUB 19', projection: i.finished ? undefined : lord.projection(i.T), result: i.finished ? 1140 : undefined });
         raceClock(h, { T: Math.min(i.T, 1140), d: Math.min(i.d, lord.distance) });
         if (i.finished) {
@@ -226,10 +241,9 @@ export function ch3(): Scene[] {
           stamp(h, '19:00', { alpha: smooth(0.2, 0.7, u), size: 180, col: COL.red });
           h.text('EXACTLY. AGAIN.', 960, 700, { font: 'head', size: 60, weight: 700, color: COL.white, align: 'center', alpha: smooth(1.2, 1.8, u), tracking: 14, shadow: true });
         }
-        fades(ctx.r.grade, i.t, 11, 0.5, 1);
-        void race;
+        fades(ctx.r.grade, i.t, 18, 0.5, 1);
       },
-      cues: [{ t: 0, kind: 'amb-park', dur: 11 }, { t: 5, kind: 'fail-big' }],
+      cues: [{ t: 0, kind: 'amb-park', dur: 18 }, { t: 0.4, kind: 'boss-intro' }, { t: 13, kind: 'fail-big' }],
     }),
   );
 
