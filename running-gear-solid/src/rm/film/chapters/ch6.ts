@@ -169,7 +169,7 @@ export function ch6(): Scene[] {
       sky: SKY.morning,
       halfWidth: 3,
       field: { count: 120, pack: 4, seed: 64 },
-      shots: [{ dur: 8, T: 3000, cam: { mode: 'follow', dist: 3.6, h: 1.0, ang: 90, look: 1.2 }, cam2: { ang: 120 } }],
+      shots: [{ dur: 8, T: 3000, cam: { mode: 'follow', dist: 5.5, h: 1.7, ang: 70, look: 1.1, fov: 36 }, cam2: { ang: 110 } }],
       pose: () => ({ lean: 0.12, fatigue: 0.4 }),
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
@@ -224,7 +224,7 @@ export function ch6(): Scene[] {
       },
       shots: [
         { dur: 5, T: 200, cam: { mode: 'follow', dist: 22, h: 9, ang: 140, look: 1 }, cam2: { dist: 18 } },
-        { dur: 5, T: 700, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: 95 } },
+        { dur: 5, T: 700, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: -95 } },
         { dur: 10, T: 1090, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.6, ang: 172, look: 1.6 }, cam2: { dist: 8 } },
       ],
       pose: (i) => ({ fatigue: clamp01((i.d - 3000) / 2000) * 0.5 }),
