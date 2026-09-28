@@ -22,7 +22,7 @@ export const SKY: Record<string, AtmosSpec> = {
   sunset: { hdri: 'belfast_sunset_puresky', sun: 2.2, sunColor: 0xffae70, env: 0.8, fog: 0.003, fogColor: 0xc0a090 },
   night: { hdri: 'qwantani_night_puresky', sun: 0.15, sunColor: 0x8fa8ff, env: 0.35, fog: 0.01, fogColor: 0x10141c },
   storm: { hdri: 'wasteland_clouds_puresky', sun: 1.2, env: 0.75, fog: 0.0016, fogColor: 0x7d848a, bgIntensity: 0.65 },
-  winter: { hdri: 'winter_sky', sun: 1.6, sunColor: 0xffe0c0, env: 0.9, fog: 0.004, fogColor: 0xaab4c0 },
+  winter: { hdri: 'winter_sky', sun: 1.4, sunColor: 0xffe0c0, env: 0.75, fog: 0.0018, fogColor: 0x8f98a4, bgIntensity: 0.55 },
 };
 
 /** constant-pace profile (standing, walking, easy runs with no stream data) */
@@ -130,4 +130,106 @@ export function textCard(id: string, lines: { t: number; text: string; y?: numbe
     },
     cues: o.cues ?? lines.map((l) => ({ t: l.t, kind: 'type' })),
   });
+}
+
+/**
+ * Lane-1 path around the OSM athletics track nearest to (x,z): the track polygon pulled in
+ * towards its centre by `inset` metres, repeated for `laps` laps, starting at the point
+ * nearest to `start` (x,z) and running anticlockwise (as UK track races do).
+ */
+export function trackPath(areas: { k: string; p: number[] }[], x: number, z: number, laps: number, inset = 1.5) {
+  let best: number[] | null = null, bd = Infinity;
+  for (const a of areas) {
+    if (a.k !== 'track') continue;
+    let cx = 0, cz = 0;
+    for (let i = 0; i < a.p.length; i += 2) {
+      cx += a.p[i];
+      cz += a.p[i + 1];
+    }
+    cx /= a.p.length / 2;
+    cz /= a.p.length / 2;
+    const d = Math.hypot(cx - x, cz - z);
+    if (d < bd) {
+      bd = d;
+      best = a.p;
+    }
+  }
+  if (!best) return [];
+  const p = best;
+  let cx = 0, cz = 0;
+  const n = p.length / 2;
+  for (let i = 0; i < n; i++) {
+    cx += p[i * 2];
+    cz += p[i * 2 + 1];
+  }
+  cx /= n;
+  cz /= n;
+  const pts: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const px = p[i * 2], pz = p[i * 2 + 1];
+    const r = Math.hypot(px - cx, pz - cz);
+    const k = Math.max(0, (r - inset) / r);
+    pts.push([cx + (px - cx) * k, cz + (pz - cz) * k]);
+  }
+  // orientation: anticlockwise seen from above (x east, z south => signed area < 0 in x,z)
+  let area = 0;
+  for (let i = 0; i < n; i++) {
+    const [ax, az] = pts[i], [bx, bz] = pts[(i + 1) % n];
+    area += ax * bz - bx * az;
+  }
+  if (area > 0) pts.reverse();
+  // resample evenly (~1 m) then repeat
+  const ring: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const [ax, az] = pts[i], [bx, bz] = pts[(i + 1) % n];
+    const l = Math.hypot(bx - ax, bz - az), m = Math.max(1, Math.round(l));
+    for (let k = 0; k < m; k++) ring.push([ax + ((bx - ax) * k) / m, az + ((bz - az) * k) / m]);
+  }
+  let s0 = 0, sd = Infinity;
+  ring.forEach(([rx, rz], i) => {
+    const d = Math.hypot(rx - x, rz - z);
+    if (d < sd) {
+      sd = d;
+      s0 = i;
+    }
+  });
+  const out: number[] = [];
+  const total = Math.round(ring.length * laps);
+  for (let i = 0; i <= total; i++) {
+    const [rx, rz] = ring[(s0 + i) % ring.length];
+    out.push(rx, rz);
+  }
+  return out;
+}
+
+/** mission list card: objectives with status */
+export function missionList(id: string, items: { name: string; status: 'COMPLETE' | 'OPEN' | 'INCOMPLETE' | 'CANCELLED'; note?: string }[], dur: number, title = 'MISSION STATUS', chapter?: string) {
+  return new Card({
+    id,
+    chapter,
+    dur,
+    draw: (t, h) => {
+      const a = env(t, 0, dur, 0.6, 1);
+      grid(h, a * 0.6);
+      h.text(title, 300, 200, { font: 'mono', size: 28, color: COL.uiDim, alpha: a, tracking: 10 });
+      h.line(300, 225, 1620, 225, COL.uiFaint, 1, a);
+      items.forEach((it, i) => {
+        const t0 = 0.7 + i * 0.55;
+        const ai = a * smooth(t0, t0 + 0.4, t);
+        const y = 320 + i * 86;
+        const col = it.status === 'COMPLETE' ? COL.green : it.status === 'OPEN' ? COL.amber : COL.red;
+        h.text(it.name, 300, y, { font: 'head', size: 54, weight: 700, color: COL.white, alpha: ai, tracking: 4 });
+        h.text(it.status, 1620, y, { font: 'mono', size: 36, color: col, align: 'right', alpha: ai, tracking: 6, glow: it.status === 'OPEN' ? 10 : 0 });
+        if (it.note) h.text(it.note, 1180, y, { font: 'mono', size: 26, color: COL.uiDim, align: 'right', alpha: ai, tracking: 2 });
+      });
+    },
+    cues: items.map((_, i) => ({ t: 0.7 + i * 0.55, kind: 'tick' })),
+  });
+}
+
+/** lat/lon -> arena-local metres (same equirectangular projection as tools/geo/build-arena.ts) */
+export function llToLocal(origin: [number, number], lat: number, lon: number): [number, number] {
+  const DEG = Math.PI / 180, R = 6378137;
+  const k = Math.cos(origin[0] * DEG) * DEG * R;
+  return [(lon - origin[1]) * k, -(lat - origin[0]) * DEG * R];
 }

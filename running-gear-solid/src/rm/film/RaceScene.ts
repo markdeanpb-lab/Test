@@ -87,6 +87,8 @@ export interface RaceOpts {
   lane?: number;
   /** course arc (m) where race distance 0 sits (for scenes that start part-way round) */
   s0?: number;
+  /** explicit course points (local metres, flat x,z) instead of an arena course */
+  path?: (race: RaceScene) => number[];
   /** hide STRIDE (prop-only shots) */
   hideRunner?: boolean;
   /** override ground height along the course (bridges): arc -> y or null */
@@ -150,7 +152,7 @@ export class RaceScene extends Scene {
     this.runner = runner;
     this.crowd = crowd;
     const c = arena.data.j.courses[o.course ?? 0];
-    this.course = new Polyline(o.rawGps ? c.gps : c.p);
+    this.course = new Polyline(o.path ? o.path(this) : o.rawGps ? c.gps : c.p);
     this.scale = o.profile.synthetic ? 1 : this.course.length / o.profile.distance;
     stage.scene.add(arena.group, runner.root, this.extras);
     if (crowd) stage.scene.add(crowd.group);
