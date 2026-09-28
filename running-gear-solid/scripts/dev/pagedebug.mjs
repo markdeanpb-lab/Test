@@ -1,0 +1,12 @@
+import { chromium } from 'playwright-core';
+import { startServer } from '../lib/browser.mjs';
+const { server, url } = await startServer();
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
+const p = await b.newPage();
+p.on('console', m => console.log('console', m.type(), m.text().slice(0,300)));
+p.on('pageerror', e => console.log('pageerror', String(e).slice(0,500)));
+p.on('requestfailed', r => console.log('failed', r.url()));
+await p.goto(url + process.argv[2]);
+await p.waitForTimeout(60000);
+console.log(await p.evaluate(() => JSON.stringify(window.RGS && { ready: window.RGS.ready, error: window.RGS.error })));
+await b.close(); await server.close();
