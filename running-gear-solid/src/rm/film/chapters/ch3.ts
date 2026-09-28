@@ -17,8 +17,9 @@ import { Ghost, HoloText } from '../fx';
 import { pbrArrayWall } from './walls';
 import { Scene } from '../core';
 import { Furnace } from '../bosses/Furnace';
+import { Gate } from '../bosses/Gate';
 import { Finger, clawMaterials } from '../bosses/Claw';
-import { waterSide, aimAt } from '../bosses/place';
+import { waterSide, aimAt, mmss } from '../bosses/place';
 
 const HALF = 21097.5;
 
@@ -41,7 +42,7 @@ export function ch3(): Scene[] {
 
   // --- FORTY (mini): Battersea 10K, 15.04.2023, 39:35
   const bat = RunProfile.fromGpsProfile(batterseaJ as any, 2375);
-  let h40: HoloText;
+  let gate40: Gate;
   scenes.push(
     new RaceScene({
       id: 'c3-forty',
@@ -51,23 +52,25 @@ export function ch3(): Scene[] {
       sky: SKY.morning,
       halfWidth: 3,
       field: { count: 160, pack: 6, kmin: 0.8, kmax: 1.1, seed: 31 },
-      build: (race) => {
-        h40 = new HoloText('40:00', 18, { col: '#ff4436' });
-        const f = race.place(race.course.length - 60, 0);
-        h40.group.position.set(f.x, f.y + 10, f.z);
-        race.extras.add(h40.group);
-        arch(race, race.course.length, 'FINISH', 9);
+      build: async (race) => {
+        gate40 = await Gate.create(2 * 3 + 0.6);
+        const f = race.place(race.course.length, 0);
+        gate40.root.position.set(f.x, f.y, f.z);
+        gate40.root.rotation.y = Math.atan2(f.dx, f.dz);
+        race.extras.add(gate40.root);
       },
       shots: [
         { dur: 6, T: 300, cam: { mode: 'follow', dist: 30, h: 14, ang: 150, look: 1 }, cam2: { dist: 24 } },
         { dur: 5, T: 1300, cam: { mode: 'follow', dist: 4.5, h: 1.5, ang: 15, look: 1.3, ahead: 10 } },
-        { dur: 12, T: 2360, rate: 0.45, cam: { mode: 'follow', dist: 6, h: 1.6, ang: 172, look: 2 }, cam2: { dist: 8.5 } },
+        // the gate: from ahead, the clock counting and the grille coming down; he goes under at 39:35
+        { dur: 7, T: 2352, rate: 0.9, cam: { mode: 'follow', dist: 7, h: 2.0, ang: 8, look: 3.5, ahead: 40, fov: 30 }, cam2: { dist: 6, fov: 34 }, tag: 'gate' },
+        { dur: 12, T: 2373, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.7, ang: 12, look: 2.2, ahead: 4, fov: 46 }, cam2: { dist: 5 }, tag: 'under' },
       ],
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
-        h40.group.lookAt(race.stage!.camera.position);
-        h40.intensity(1, i.t, i.d > 9000 ? 0.5 : 0);
-        h40.shatter(i.finished ? clamp01((i.T - bat.finish) / 2) : 0);
+        const fin = bat.finish;
+        const drop = i.T < fin ? 0.62 * smooth(fin - 26, fin, i.T) : 0.62 + 0.38 * smooth(fin + 0.8, fin + 2.2, i.T);
+        gate40.update(i.t, { drop, text: mmss(i.T), slam: smooth(fin + 2.1, fin + 3.2, i.T) });
         if (i.shot === 0) {
           ctx.r.grade.fade = 1 - smooth(0, 1, i.shotT);
           eventTag(h, { name: 'BATTERSEA PARK 10K', date: '15.04.2023', t: i.shotT });
@@ -76,10 +79,10 @@ export function ch3(): Scene[] {
         bossPlate(h, { name: 'FORTY', sub: 'MINI BOSS', frac: 1 - i.d / bat.distance, alpha: i.finished ? 1 - smooth(0, 1, i.T - bat.finish) : 1 });
         targetBlock(h, { target: 2399, projection: i.finished ? undefined : bat.projection(i.T), result: i.finished ? 2375 : undefined });
         raceClock(h, { T: Math.min(i.T, bat.finish), d: Math.min(i.d, bat.distance) });
-        if (i.shot === 2 && i.finished) stamp(h, 'SUB 40', { alpha: smooth(1.2, 2, i.T - bat.finish), col: COL.green, sub: 'COMPLETE  -  39:35', size: 130 });
-        if (i.shot === 2) fades(ctx.r.grade, i.shotT, 12, 0.01, 1);
+        if (i.tag === 'under' && i.finished) stamp(h, 'SUB 40', { alpha: smooth(2.5, 3.2, i.T - bat.finish), col: COL.green, sub: 'COMPLETE  -  39:35', size: 130 });
+        if (i.tag === 'under') fades(ctx.r.grade, i.shotT, 12, 0.01, 1);
       },
-      cues: [{ t: 0, kind: 'amb-crowd', dur: 23, level: 0.4 }, { t: 0, kind: 'music', id: 'boss-mini', dur: 16 }, { t: 15, kind: 'shatter' }, { t: 16, kind: 'win' }],
+      cues: [{ t: 0, kind: 'amb-crowd', dur: 30, level: 0.4 }, { t: 0, kind: 'music', id: 'boss-mini', dur: 22 }, { t: 11, kind: 'alert' }, { t: 26.2, kind: 'wall-rise' }, { t: 27, kind: 'win' }],
     }),
   );
 
