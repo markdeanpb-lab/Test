@@ -49,7 +49,9 @@ export function prologue(): Scene[] {
       g.gain = [1.04, 0.98, 0.9];
       if (i.shot === 0) g.fade = 1 - smooth(0, 2.5, i.shotT);
       if (i.shot === 2) {
-        g.fade = 0.55; // dim the picture behind the watch inset
+        g.fade = 0.62; // dim and defocus the picture behind the watch inset
+        g.dof = 0.03;
+        g.focus = 0.25;
         watchInset(ctx.hud, { main: '3:00:00', top: 'TARGET', sub: 'MARATHON', alpha: smooth(0, 0.4, i.shotT) * (1 - smooth(3.5, 4, i.shotT)), progress: 0 });
       }
       if (i.shot === 3) g.fade = smooth(3.8, 5, i.shotT);
@@ -80,25 +82,27 @@ export function prologue(): Scene[] {
     profile: manchesterProfile(),
     sky: { ...SKY.dawn, fog: 0.006 },
     halfWidth: 5.5,
-    lane: 0.6,
-    field: { count: 320, kmin: 0.75, kmax: 1.25, seed: 19 },
+    lane: 0.9,
+    field: { count: 200, kmin: 0.75, kmax: 1.25, seed: 19 },
     spectators: [{ s0: -60, s1: 20, density: 0.7 }],
     build: (race) => {
       arch(race, 0, 'START', 13);
     },
     shots: [
-      // low at the start line: feet, then the surge
-      { dur: 3.6, T: -1.2, rate: 1, cam: { mode: 'follow', dist: 3.0, h: 0.35, ang: 150, look: 0.5, fov: 44, shake: 0.6 }, cam2: { dist: 1.6, h: 0.3 } },
+      // in front of STRIDE: stillness, the gun, then black under the roar (the surge is heard, not seen)
+      { dur: 3.6, T: -2.4, rate: 1, cam: { mode: 'follow', dist: 3.2, h: 1.1, ang: 170, look: 1.15, fov: 30, shake: 0.5 }, cam2: { dist: 2.9, h: 1.05 } },
     ],
     onFrame: (race, i, ctx) => {
       const g = ctx.r.grade;
+      g.dof = 0.012;
+      g.focus = ctx.r.camera.position.distanceTo(i.pos);
       g.letterbox = 1;
       g.saturation = 0.8;
       g.flash = Math.max(0, 1 - Math.abs(i.T) / 0.12) * 0.9;
-      if (i.t > 3.1) g.fade = 1;
+      if (i.T > 0.001) g.fade = 1; // hard cut on the frame after the flash
       void race;
     },
-    cues: [{ t: 1.2, kind: 'gun' }, { t: 1.2, kind: 'crowd-roar', dur: 1.9 }],
+    cues: [{ t: 2.4, kind: 'gun' }, { t: 2.4, kind: 'crowd-roar', dur: 1.9 }],
   });
 
   const title = new Card({

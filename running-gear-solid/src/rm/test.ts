@@ -30,7 +30,7 @@ async function main() {
   if (off.includes('bar')) arena.barriers.group.visible = false;
   if (off.includes('flatground')) arena.ground.group.children.forEach((m) => ((m as THREE.Mesh).material = new THREE.MeshStandardMaterial({ color: 0x556644 })));
   if (off.includes('post')) { r.bloom.enabled = false; r.composer.passes.forEach((p, i) => { if (i > 0 && i < r.composer.passes.length - 1) p.enabled = false; }); }
-  const runner = await Runner.create();
+  const runner = await Runner.create(undefined, P.get('model') ?? 'runner.glb');
   scene.add(runner.root);
   const course = arena.courses[num('c', 0)];
   const speed = num('v', 3.9);

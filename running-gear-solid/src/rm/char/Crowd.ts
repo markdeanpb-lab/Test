@@ -62,7 +62,7 @@ export class Crowd {
   }
 
   static async create() {
-    const g = await loadGLTF('/assets/char/crowd.glb');
+    const g = await loadGLTF('/assets/char/' + (new URLSearchParams(location.search).get('crowd') ?? 'crowd') + '.glb');
     return new Crowd(g.scene);
   }
 
