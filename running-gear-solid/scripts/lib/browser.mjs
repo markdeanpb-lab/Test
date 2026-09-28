@@ -22,7 +22,7 @@ function findChromium() {
 }
 
 export async function startServer() {
-  const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 0, host: '127.0.0.1' } });
+  const server = await createServer({ root: ROOT, logLevel: 'error', server: { port: 0, host: '127.0.0.1', hmr: false, watch: null } });
   await server.listen();
   const addr = server.httpServer.address();
   return { server, url: `http://127.0.0.1:${addr.port}/` };

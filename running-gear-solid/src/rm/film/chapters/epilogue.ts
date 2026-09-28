@@ -185,6 +185,30 @@ export function epilogue(): Scene[] {
       cues: [{ t: 0, kind: 'amb-park', dur: 18, level: 0.5 }, { t: 5, kind: 'music', id: 'end', dur: 13 }],
     }),
   );
+  scenes.push(
+    new Card({
+      id: 'e9-credits',
+      dur: 9,
+      draw: (t, h) => {
+        const a = env(t, 0, 9, 0.8, 1);
+        const L = [
+          ['A TRUE STORY', 'Every time, distance, split and quote is from the Strava record. Dialogue is fiction.'],
+          ['COURSES', 'Strava GPS, map-matched to OpenStreetMap'],
+          ['MAP DATA', '(c) OpenStreetMap contributors, ODbL'],
+          ['ELEVATION', 'AWS Terrain Tiles (Mapzen / SRTM)'],
+          ['CHARACTERS & ANIMATION', 'Quaternius Universal Base Characters & Animation Library (CC0)'],
+          ['TEXTURES, SKIES, TREES, PROPS', 'Poly Haven (CC0)'],
+          ['TYPE', 'Rajdhani, Share Tech Mono (SIL Open Font License)'],
+          ['MUSIC & SOUND', 'Synthesised from scratch for this film'],
+        ];
+        h.text('RUNNING GEAR SOLID: REMASTERED', 960, 250, { font: 'head', size: 44, weight: 700, color: COL.white, align: 'center', alpha: a, tracking: 10 });
+        L.forEach(([k, v], i) => {
+          h.text(k, 900, 360 + i * 70, { font: 'mono', size: 22, color: COL.uiDim, align: 'right', alpha: a, tracking: 4 });
+          h.text(v, 930, 360 + i * 70, { font: 'body', size: 30, weight: 500, color: COL.white, alpha: a, maxWidth: 900 });
+        });
+      },
+    }),
+  );
   void crack;
   void steady;
   return scenes;
