@@ -16,6 +16,7 @@ import { raceClock, targetBlock, stamp, bossPlate, eventTag, splitPop } from '..
 import { funnel, flag, arch, archBridge, kmBoard } from '../dressing';
 import { Ghost, HoloText, Streaks } from '../fx';
 import { prop, shoesProp, binProp, WatchFace } from '../props';
+import { Lure } from '../bosses/Lure';
 import { Scene, Ctx } from '../core';
 import { Sentinel } from '../bosses/Sentinel';
 import { Hinge } from '../bosses/Hinge';
@@ -125,9 +126,9 @@ export function ch2(): Scene[] {
   );
 
   // --- THE HARE (mini boss): 23.04.2022, 21:48 "Went off too fast"
-  let hare: Ghost;
+  let hare: Lure;
   const hareProf = RunProfile.fromRuns('hare-2148');
-  const hareD = (T: number) => hareProf.distAt(T) * 1.08 + 3 + Math.max(0, T - 60) * 0.35;
+  const hareD = (T: number) => hareProf.distAt(T) + 7 + Math.max(0, T - 60) * 0.12 + Math.max(0, T - 230) * 0.9;
   scenes.push(
     new RaceScene({
       id: 'c2-hare',
@@ -138,14 +139,15 @@ export function ch2(): Scene[] {
       field: { count: 170, pack: 4, kmin: 0.72, kmax: 1.15, seed: 22 },
       build: async (race) => {
         parkrunDressing(race);
-        hare = await Ghost.create(0xf4f8ff, false, 0.3);
+        hare = await Lure.create();
+        hare.rig(-1, (race.o.halfWidth ?? 2.5) + 0.2);
         hare.prepare(hareD, -5, 400);
         race.extras.add(hare.runner.root);
       },
       shots: [
         { dur: 4, T: -3, cam: { mode: 'follow', dist: 6, h: 1.8, ang: 160, look: 1.1 }, grade: { letterbox: 1 } },
-        { dur: 5, T: 25, cam: { mode: 'follow', dist: 5, h: 1.7, ang: 8, look: 1.3, ahead: 3 } },
-        { dur: 5, T: 150, cam: { mode: 'follow', dist: 4, h: 1.0, ang: 70, look: 1.1, ahead: 2 } },
+        { dur: 5, T: 25, cam: { mode: 'follow', dist: 5, h: 2.2, ang: 8, look: 1.9, ahead: 6 } },
+        { dur: 5, T: 150, cam: { mode: 'follow', dist: 6, h: 1.4, ang: 60, look: 1.8, ahead: 8, fov: 46 } },
         { dur: 5, T: 255, cam: { mode: 'follow', dist: 6, h: 2.2, ang: 15, look: 1.2, ahead: 6 } },
         { dur: 5, T: 900, cam: { mode: 'follow', dist: 3.2, h: 1.4, ang: 150, look: 1.4 } },
         { dur: 7, T: 1300, rate: 0.8, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 170 } },
@@ -381,8 +383,8 @@ export function ch2(): Scene[] {
 
   // --- THE HARE returns: Royal Parks Half 09.10.2022, 1:39:57
   const rp = RunProfile.fromGpsProfile(rpJ as any, 5997);
-  let hare2: Ghost;
-  const hare2D = (T: number) => rp.distAt(T) + Math.min(60, T * 0.03) - Math.max(0, T - 3000) * 0.05;
+  let hare2: Lure;
+  const hare2D = (T: number) => rp.distAt(T) + 8 + Math.min(10, T * 0.004) + Math.max(0, T - 3000) * 0.05;
   scenes.push(
     new RaceScene({
       id: 'c2-royalparks',
@@ -392,7 +394,8 @@ export function ch2(): Scene[] {
       halfWidth: 4,
       field: { count: 240, pack: 6, kmin: 0.85, kmax: 1.15, seed: 26 },
       build: async (race) => {
-        hare2 = await Ghost.create(0xf4f8ff, false, 0.3);
+        hare2 = await Lure.create();
+        hare2.rig(-1, (race.o.halfWidth ?? 2.5) + 0.2);
         hare2.prepare(hare2D, 0, 6000);
         race.extras.add(hare2.runner.root);
       },

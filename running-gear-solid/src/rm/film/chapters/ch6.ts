@@ -12,6 +12,7 @@ import { COL, env, smooth, clamp01 } from '../../hud/Hud';
 import { raceClock, targetBlock, stamp, bossPlate, eventTag } from '../../hud/widgets';
 import { funnel, flag, arch } from '../dressing';
 import { Ghost, HoloText } from '../fx';
+import { Lure } from '../bosses/Lure';
 import { Scene } from '../core';
 
 export function ch6(): Scene[] {
@@ -19,8 +20,8 @@ export function ch6(): Scene[] {
 
   // --- comeback parkrun 21.12.2024: the Hare, one more time
   const cb = RunProfile.fromRuns('comeback-2140');
-  let hare: Ghost;
-  const hareD = (T: number) => cb.distAt(T) * 1.07 + 2 + Math.max(0, T - 40) * 0.3;
+  let hare: Lure;
+  const hareD = (T: number) => cb.distAt(T) + 7 + Math.max(0, T - 40) * 0.08 + Math.max(0, T - 300) * 0.6;
   scenes.push(
     new RaceScene({
       id: 'c6-comeback',
@@ -33,7 +34,8 @@ export function ch6(): Scene[] {
       build: async (race) => {
         funnel(race, race.course.length, 30);
         flag(race, 0, -3.2, '#5c2a86', 'START');
-        hare = await Ghost.create(0xf4f8ff, false, 0.3);
+        hare = await Lure.create();
+        hare.rig(-1, (race.o.halfWidth ?? 2.5) + 0.2);
         hare.prepare(hareD, -3, 500);
         race.extras.add(hare.runner.root);
       },

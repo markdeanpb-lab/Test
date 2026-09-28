@@ -13,6 +13,7 @@ import { COL, env, smooth, clamp01 } from '../../hud/Hud';
 import { raceClock, bossPlate, eventTag, watchInset, splitPop } from '../../hud/widgets';
 import { arch } from '../dressing';
 import { Ghost } from '../fx';
+import { Lure } from '../bosses/Lure';
 import { Scene } from '../core';
 
 export function ch7(): Scene[] {
@@ -36,8 +37,8 @@ export function ch7(): Scene[] {
 
   // --- THE HARE at Bath, 15.03.2026 (1:28:08): "Dreadful - big blow up after 10k"
   const bath = RunProfile.fromGpsProfile(bathJ as any, 5288);
-  let hare: Ghost;
-  const hareD = (T: number) => bath.distAt(T) + 3 + Math.max(0, T - 2300) * 0.3;
+  let hare: Lure;
+  const hareD = (T: number) => bath.distAt(T) + 11 + Math.max(0, T - 2300) * 0.3;
   scenes.push(
     new RaceScene({
       id: 'c7-bath',
@@ -47,7 +48,8 @@ export function ch7(): Scene[] {
       halfWidth: 4,
       field: { count: 220, pack: 6, kmin: 0.85, kmax: 1.15, seed: 71 },
       build: async (race) => {
-        hare = await Ghost.create(0xf4f8ff, false, 0.3);
+        hare = await Lure.create();
+        hare.rig(-1, (race.o.halfWidth ?? 2.5) + 0.2);
         hare.prepare(hareD, 1500, 5300);
         race.extras.add(hare.runner.root);
       },
