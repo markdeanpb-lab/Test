@@ -17,6 +17,7 @@ import { Ghost, HoloText } from '../fx';
 import { pbrArrayWall } from './walls';
 import { Scene } from '../core';
 import { Furnace } from '../bosses/Furnace';
+import { Finger, clawMaterials } from '../bosses/Claw';
 import { waterSide, aimAt } from '../bosses/place';
 
 const HALF = 21097.5;
@@ -381,6 +382,7 @@ export function ch3(): Scene[] {
   // --- THE CLAW: Highgate hill repeats 26.11.2023
   const claw = RunProfile.fromSplits(CLAW.splits, CLAW.distanceKm, CLAW.timeSec);
   const fingers = CLAW.phases.filter((p) => p.note && p.name !== 'APPROACH');
+  let clawFingers: Finger[] = [], clawRing: Finger[] = [];
   scenes.push(
     new RaceScene({
       id: 'c3-claw',
@@ -388,16 +390,58 @@ export function ch3(): Scene[] {
       profile: claw,
       sky: SKY.winter,
       halfWidth: 1.8,
+      build: async (race) => {
+        const mats = await clawMaterials();
+        const k = claw.distance / race.course.length;
+        clawFingers = fingers.map((f, n) => {
+          const fg = new Finger(mats);
+          // the socket sits on the verge where he will be two seconds into the shot, curling over the road
+          const T0 = claw.timeAt(((f.fromKm + f.toKm) / 2) * 1000);
+          const s = claw.distAt(T0 + 5) / k + 12;
+          const side = n % 2 ? -1 : 1;
+          const p = race.place(s, side * 9);
+          fg.root.position.set(p.x, race.arena.heightAt(p.x, p.z), p.z);
+          fg.root.rotation.y = Math.atan2(side * p.dz, -side * p.dx); // +z (curl direction) towards the road
+          race.extras.add(fg.root);
+          return fg;
+        });
+        // the finale: all five fingers ring him and draw back into the ground
+        const endS = claw.distAt(claw.finish - 5 + 2) / k;
+        const pe = race.place(endS, 0);
+        clawRing = fingers.map((_, n) => {
+          const fg = new Finger(mats);
+          const a = (n / 5) * Math.PI * 2 + 0.3;
+          const x = pe.x + Math.cos(a) * 13, z = pe.z + Math.sin(a) * 13;
+          fg.root.position.set(x, race.arena.heightAt(x, z), z);
+          fg.root.rotation.y = Math.atan2(pe.x - x, pe.z - z);
+          race.extras.add(fg.root);
+          return fg;
+        });
+      },
       shots: fingers.map((f, k) => ({
-        dur: 4.2,
+        dur: 5.5,
         T: claw.timeAt(((f.fromKm + f.toKm) / 2) * 1000),
-        cam: k % 2 ? { mode: 'follow' as const, dist: 3.5, h: 0.6, ang: k === 3 ? -105 : 105, look: 1.2, fov: 44 } : { mode: 'follow' as const, dist: 4.5, h: 2.4, ang: 20, look: 0.8, ahead: 6 },
+        cam: { mode: 'follow' as const, dist: 7, h: 1.1, ang: k % 2 ? 22 : -22, look: 1.6, fov: 54 },
+        cam2: { dist: 6 },
         tag: f.name,
-      })).concat([{ dur: 7, T: claw.finish - 5, cam: { mode: 'follow', dist: 7, h: 2, ang: 160, look: 1.2 }, tag: 'done' } as any]),
+      })).concat([{ dur: 8, T: claw.finish - 5, rate: 0.6, cam: { mode: 'follow', dist: 26, h: 24, ang: 160, look: 1.2, fov: 40 }, cam2: { dist: 30, h: 30 }, tag: 'done' } as any]),
       pose: (i) => ({ lean: i.tag && i.tag !== 'done' ? 0.12 : 0, fatigue: i.tag === 'done' ? 0.6 : 0.3 }),
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
         eventTag(h, { name: 'THE CLAW  -  HIGHGATE', date: '26.11.2023', t: i.t });
+        clawFingers.forEach((fg, n) => {
+          const active = i.shot === n;
+          const u = active ? i.shotT : 0;
+          fg.update(i.t, active ? smooth(0, 1.6, u) : 0, active ? smooth(1.4, 3.4, u) * 0.9 : 0, 'active');
+        });
+        clawRing.forEach((fg) => {
+          const done = i.tag === 'done';
+          fg.update(i.t, done ? 1 - smooth(1.2, 5.5, i.shotT) : 0, done ? 0.55 : 0, 'done');
+        });
+        if (i.tag && i.tag !== 'done') {
+          const fg = clawFingers[i.shot];
+          aimAt(race.stage!.camera, fg.root.position.clone().add(new THREE.Vector3(0, 8, 0)), 0.2 + 0.3 * smooth(0.3, 2.5, i.shotT));
+        }
         // five fingers: each climb lights as it is conquered
         fingers.forEach((f, k) => {
           const done = i.d / 1000 >= f.toKm;
@@ -420,7 +464,7 @@ export function ch3(): Scene[] {
         if (i.shot === 0) ctx.r.grade.fade = 1 - smooth(0, 0.8, i.shotT);
         void race;
       },
-      cues: [{ t: 0, kind: 'music', id: 'claw', dur: 28 }, ...fingers.map((_, k) => ({ t: k * 4.2 + 0.2, kind: 'number-hit' }))],
+      cues: [{ t: 0, kind: 'music', id: 'claw', dur: 36 }, ...fingers.map((_, k) => ({ t: k * 5.5 + 0.2, kind: 'wall-rise' })), { t: 5 * 5.5 + 1.5, kind: 'win' }],
     }),
   );
 
