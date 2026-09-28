@@ -304,12 +304,18 @@ export class RaceScene extends Scene {
         const over = tr - this.o.profile.finish;
         d = over > 0 ? L + over * 1.2 : this.o.profile.distAt(tr) + (r.k === 1 ? Math.sin(T * 0.05 + r.seed) * 6 : 0);
         if (over > 0) {
-          if (over > 30) continue;
+          if (over > 14) continue;
           walkers.add(r);
         }
       }
       const startPen = T <= 0 || d <= 0;
       let lane = r.lane + (r.k === 1 ? Math.sin(T * 0.07 + r.seed) * 0.25 : Math.sin(T * 0.07 + r.seed) * 0.6);
+      if (walkers.has(r)) {
+        // finishers step out of the running line towards the funnel edges, clearing the view up the finish
+        const over = (r.k === 1 ? T : T * r.k) - this.o.profile.finish;
+        const edge = Math.sign(r.lane || hash(r.seed, 9) - 0.5) * ((this.o.halfWidth ?? 2.5) - 0.45);
+        lane += (edge - lane) * Math.min(1, over / 4);
+      }
       if (startPen) {
         // standing in the pen behind the line: shoulder to shoulder, 0.62 m apart
         const idx = this.field.indexOf(r);

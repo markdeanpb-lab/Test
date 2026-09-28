@@ -1,6 +1,7 @@
 // CHAPTER 4 - THE PHANTOM (2024)
 // Winter, shingles, doubt, the night before, and the Phantom 1:30 beaten at Hackney (1:29:01).
 // Then everything it unlocked, and the next line: Valencia.
+import * as THREE from 'three';
 import { RaceScene } from '../RaceScene';
 import { RunProfile } from '../profile';
 import { PHANTOM_2024 } from '../../../data/activities';
@@ -101,6 +102,7 @@ export function ch4(): Scene[] {
   const phD = phantomDist(ph2.distance);
   let phantom: Ghost;
   const lead = (T: number) => ph2.distAt(T) / (ph2.distance / 5400) - T; // seconds ahead of 1:30 pace
+  let startArch: THREE.Object3D, finishArch: THREE.Object3D;
   scenes.push(
     new RaceScene({
       id: 'c4-phantom2',
@@ -109,10 +111,12 @@ export function ch4(): Scene[] {
       sky: SKY.morning,
       halfWidth: 4,
       field: { count: 260, pack: 8, kmin: 0.85, kmax: 1.2, seed: 41 },
-      spectators: [{ s0: -40, s1: 50, density: 0.7 }, { s0: 21100, s1: 21400, density: 0.9 }, { s0: 13000, s1: 13200, density: 0.5 }],
+      // start and finish share the same ground: the start arch only exists for the opening shot, and the
+      // start-pen barriers are left out so nothing cuts across the finish straight
+      spectators: [{ s0: 21100, s1: 21400, density: 0.9 }, { s0: 13000, s1: 13200, density: 0.5 }],
       build: async (race) => {
-        arch(race, 0, 'HACKNEY HALF', 11);
-        arch(race, race.course.length, 'FINISH', 11);
+        startArch = arch(race, 0, 'HACKNEY HALF', 11);
+        finishArch = arch(race, race.course.length, 'FINISH', 13);
         phantom = await Ghost.create(0x5ff3ff, true, 0.16);
         phantom.prepare(phD, -2, 5600);
         race.extras.add(phantom.runner.root);
@@ -124,11 +128,13 @@ export function ch4(): Scene[] {
         { dur: 6, T: 4500, cam: { mode: 'follow', dist: 9, h: 2.2, ang: 185, look: 1.1, fov: 30 }, tag: 'behind' },
         { dur: 6, T: 5250, cam: { mode: 'follow', dist: 4.2, h: 1.5, ang: 15, look: 1.4, ahead: 30 } },
         // the finish is held
-        { dur: 16, T: 5336, rate: 0.35, cam: { mode: 'follow', dist: 7, h: 1.5, ang: 176, look: 1.6, fov: 32 }, cam2: { dist: 10 }, tag: 'line' },
-        { dur: 9, T: 5360, rate: 0.2, cam: { mode: 'follow', dist: 4, h: 1.6, ang: 150, look: 1.4 }, tag: 'after' },
+        { dur: 16, T: 5336, rate: 0.35, cam: { mode: 'follow', dist: 5.5, h: 1.8, ang: 10, look: 1.7, ahead: 14, fov: 36 }, cam2: { dist: 7.5, h: 2.2 }, tag: 'line' },
+        { dur: 9, T: 5360, rate: 0.2, cam: { mode: 'follow', dist: 4.4, h: 1.6, ang: 150, look: 1.4, side: 1.1 }, tag: 'after' },
       ],
       pose: (i) => ({ fatigue: clamp01((i.d - 16000) / 5000) * 0.4 }),
       onFrame: (race, i, ctx) => {
+        startArch.visible = i.shot === 0;
+        finishArch.visible = i.shot > 0;
         const h = ctx.hud, g = ctx.r.grade;
         const pd = phD(i.T);
         phantom.opacity = i.T > 0 && pd < ph2.distance && i.tag !== 'after' ? 0.18 : 0;
@@ -203,7 +209,7 @@ export function ch4(): Scene[] {
       },
       shots: [
         { dur: 5, T: 2500, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: 92 } },
-        { dur: 9, T: 5045, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, cam2: { dist: 8 } },
+        { dur: 9, T: 5045, rate: 0.5, cam: { mode: 'follow', dist: 9, h: 1.6, ang: 162, fov: 28 }, cam2: { dist: 11 } },
       ],
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
