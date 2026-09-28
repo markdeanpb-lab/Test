@@ -24,6 +24,8 @@ export const TEXTURES = [
   'grass_path_2', 'forest_leaves_02', 'brown_mud_leaves_01', 'rocky_trail', 'gravel_road', 'brick_wall_02', 'brick_wall_08',
   'brick_4', 'white_stucco', 'painted_brick', 'concrete_wall_003', 'roof_slates_02', 'grey_roof_tiles', 'container_side',
   'corrugated_iron', 'bark_brown_02', 'plastered_wall_02', 'cobblestone_floor_08',
+  // boss machinery
+  'rusty_metal_02', 'rusty_metal_04', 'metal_plate', 'rust_coarse_01', 'green_metal_rust', 'blue_metal_plate', 'metal_grate_rusty',
 ];
 export const MODELS = [
   'island_tree_01', 'island_tree_02', 'island_tree_03', 'tree_small_02', 'shrub_01', 'shrub_02', 'shrub_03', 'shrub_04',

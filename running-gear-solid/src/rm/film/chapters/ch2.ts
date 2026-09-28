@@ -17,6 +17,8 @@ import { funnel, flag, arch, archBridge, kmBoard } from '../dressing';
 import { Ghost, HoloText, Streaks } from '../fx';
 import { prop, shoesProp, binProp, WatchFace } from '../props';
 import { Scene, Ctx } from '../core';
+import { Sentinel } from '../bosses/Sentinel';
+import { waterSide, faceCourse, mmss } from '../bosses/place';
 
 const parkrunDressing = (race: RaceScene) => {
   funnel(race, race.course.length, 30);
@@ -456,7 +458,8 @@ export function ch2(): Scene[] {
 
   // --- DOUBLE ZERO round 1: Royal Victoria Dock 18.02.2023, 20:00 exactly, wind
   const dz1 = RunProfile.fromSplits(DOUBLE_ZERO_R1.splits, DOUBLE_ZERO_R1.distanceKm, 1200);
-  let wind: Streaks, holo1: HoloText;
+  let wind: Streaks, holo1: HoloText, sent1: Sentinel;
+  const sentHead1 = new THREE.Vector3();
   scenes.push(
     boardCard('c2-board-dz', { dur: 6, op: 'ROYAL VICTORIA DOCK', objective: 'BOSS', target: '20:00', size: 0.8, route: 'victoria-dock', sub: 'DOUBLE ZERO  -  THE MINUTE THAT WOULD NOT BREAK', status: 'WIND WARNING', statusCol: COL.red }),
     new RaceScene({
@@ -466,31 +469,56 @@ export function ch2(): Scene[] {
       sky: SKY.storm,
       halfWidth: 3,
       field: { count: 140, pack: 5, kmin: 0.75, kmax: 1.12, seed: 28 },
-      build: (race) => {
+      build: async (race) => {
         wind = new Streaks({ n: 2600, vel: [16, -0.4, 5], len: 0.08, opacity: 0.22, color: 0xdfe6ea });
         holo1 = new HoloText('20:00', 22, { col: '#ff4436' });
-        const f = race.place(race.course.length * 0.5, 0);
-        holo1.group.position.set(f.x, f.y + 14, f.z);
+        holo1.group.visible = false;
         race.extras.add(wind.lines, holo1.group);
         funnel(race, race.course.length, 20);
+        // the sentinel stands in the dock beside the course, a third of the way round
+        sent1 = await Sentinel.create();
+        const sS = race.course.length * 0.34;
+        const side = waterSide(race, sS, 26);
+        const f = race.place(sS, side * 26);
+        sent1.root.position.set(f.x, race.arena.heightAt(f.x, f.z) - 1.5, f.z);
+        // three-quarters towards the oncoming field
+        sent1.root.rotation.y = Math.atan2(side * f.dz * 0.8 - f.dx, -side * f.dx * 0.8 - f.dz);
+        race.extras.add(sent1.root);
+        sentHead1.set(f.x, f.y + 26, f.z);
+        // reveal: the field runs beneath it; later a low shot up at its clock
+        const sh = race.o.shots;
+        const k = dz1.distance / race.course.length;
+        sh[0].T = dz1.timeAt((sS - 70) * k);
+        sh[0].cam = { mode: 'follow', dist: 7, h: 1.1, ang: 12, look: 1.6, fov: 38, target: [sentHead1.x, sentHead1.y - 6, sentHead1.z], targetMix: 0.25, shake: 0.3 };
+        sh[0].cam2 = { dist: 6, targetMix: 0.75 };
+        sh[3].T = dz1.timeAt((sS - 25) * k);
+        sh[3].cam = { mode: 'fixed', at: { s: (sS - 22) * k, off: -side * 3.5, h: 0.9 }, fov: 44, target: [sentHead1.x, sentHead1.y - 9, sentHead1.z], shake: 0.3 };
+        sh[3].cam2 = { fov: 40, target: [sentHead1.x, sentHead1.y - 4, sentHead1.z] };
+        sh[3].grade = { exposure: 0.7 };
+        // after the line: its face, frozen on 20:00
+        const fc = new THREE.Vector3(f.x, 0, f.z).add(new THREE.Vector3(Math.sin(sent1.root.rotation.y), 0, Math.cos(sent1.root.rotation.y)).multiplyScalar(16));
+        sh[5].cam = { mode: 'fixed', at: [fc.x, sentHead1.y - 3, fc.z], fov: 34, target: [sentHead1.x, sentHead1.y - 0.4, sentHead1.z], shake: 0.15 };
+        sh[5].cam2 = { fov: 30 };
       },
       shots: [
-        { dur: 5, T: 100, cam: { mode: 'follow', dist: 30, h: 12, ang: 140, look: 2, fov: 40 }, cam2: { dist: 24 } },
+        { dur: 7, T: 100, cam: { mode: 'follow', dist: 30, h: 12, ang: 140, look: 2, fov: 40 }, cam2: { dist: 24 } },
         { dur: 5, T: 260, cam: { mode: 'follow', dist: 4, h: 1.5, ang: 12, look: 1.3, ahead: 20 } },
         { dur: 5, T: 560, cam: { mode: 'follow', dist: 3.2, h: 0.9, ang: 95 } },
         { dur: 5, T: 900, cam: { mode: 'follow', dist: 4, h: 1.4, ang: -125, look: 1.4 } },
         { dur: 12, T: 1188, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.6, ang: 175, look: 1.6 }, cam2: { dist: 9 } },
+        { dur: 5, T: 1206, rate: 0.3, cam: { mode: 'follow' }, tag: 'face' },
       ],
       pose: (i) => ({ lean: i.d > 1000 ? 0.08 : 0, fatigue: i.d > 2000 ? 0.3 : 0 }),
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
         wind.update(race.stage!.camera.position, i.t);
-        holo1.group.lookAt(race.stage!.camera.position);
-        holo1.intensity(0.9, i.t, 0.1);
+        // its head is the race clock: it counts with him and stops dead on 20:00
+        const shown = Math.min(i.T, 1200);
+        sent1.update(i.t, { wind: 1, text: mmss(Math.max(0, shown)), look: i.pos, flicker: i.finished ? (Math.sin(i.t * 9) > 0 ? 0.4 : 0) : 0 });
         if (i.shot === 0) eventTag(h, { name: 'ROYAL VICTORIA DOCK', date: '18.02.2023', t: i.shotT });
-        bossPlate(h, { name: 'DOUBLE ZERO', sub: 'ROUND 1', frac: 1 - i.d / 5010, alpha: env(i.t, 1, 20, 0.5, 0.5) });
-        targetBlock(h, { target: 1199, projection: i.finished ? undefined : dz1.projection(i.T), result: i.finished ? 1200 : undefined });
-        if (i.shot >= 1) raceClock(h, { T: Math.min(i.T, 1200), d: Math.min(i.d, 5010) });
+        if (i.tag !== 'face') bossPlate(h, { name: 'DOUBLE ZERO', sub: 'ROUND 1', frac: 1 - i.d / 5010, alpha: env(i.t, 1, 20, 0.5, 0.5) });
+        if (i.tag !== 'face') targetBlock(h, { target: 1199, projection: i.finished ? undefined : dz1.projection(i.T), result: i.finished ? 1200 : undefined });
+        if (i.shot >= 1 && i.tag !== 'face') raceClock(h, { T: Math.min(i.T, 1200), d: Math.min(i.d, 5010) });
         if (i.shot >= 1 && i.shot < 4) kmSplits(h, race, i);
         if (i.shot === 4 && i.finished) {
           const u = i.T - 1200;
@@ -499,9 +527,10 @@ export function ch2(): Scene[] {
           h.text('EXACTLY.', 960, 760, { font: 'head', size: 64, weight: 700, color: COL.red, align: 'center', alpha: smooth(2.3, 2.8, u), tracking: 16, shadow: true });
           h.text('LOG: "CLOSE TO SUB 20 BUT AFFECTED MASSIVELY BY THE WIND"', 960, 900, { font: 'mono', size: 26, color: COL.uiDim, align: 'center', alpha: smooth(3.5, 4, u), tracking: 2, shadow: true });
         }
-        if (i.shot === 4) fades(ctx.r.grade, i.shotT, 12, 0.01, 1.2);
+        if (i.shot === 4) fades(ctx.r.grade, i.shotT, 12, 0.01, 0.6);
+        if (i.tag === 'face') fades(ctx.r.grade, i.shotT, 5, 0.4, 1.2);
       },
-      cues: [{ t: 0, kind: 'wind', dur: 32 }, { t: 0, kind: 'music', id: 'boss', dur: 22 }, { t: 22, kind: 'silence', dur: 2 }, { t: 23.5, kind: 'fail-big' }],
+      cues: [{ t: 0, kind: 'wind', dur: 37 }, { t: 0.6, kind: 'boss-intro' }, { t: 0, kind: 'music', id: 'boss', dur: 22 }, { t: 22, kind: 'silence', dur: 2 }, { t: 23.5, kind: 'fail-big' }],
     }),
   );
 
@@ -534,7 +563,8 @@ export function ch2(): Scene[] {
 
   // --- DOUBLE ZERO round 2: Finsbury 18.03.2023, 19:25. The payoff.
   const dz2 = RunProfile.fromStream(fins as any, 1165);
-  let holo2: HoloText;
+  let holo2: HoloText, sent2: Sentinel;
+  const sentHead2 = new THREE.Vector3();
   scenes.push(
     new CodecScene({
       id: 'c2-codec-dz2',
@@ -555,12 +585,24 @@ export function ch2(): Scene[] {
       lane: 0.3,
       field: { count: 200, pack: 6, packSpread: 16, kmin: 0.72, kmax: 1.08, seed: 30 },
       spectators: [{ s0: -25, s1: 8, density: 0.4 }, { s0: 4960, s1: 5230, density: 0.25, sides: [1] }],
-      build: (race) => {
+      build: async (race) => {
         parkrunDressing(race);
         holo2 = new HoloText('20:00', 20, { col: '#ff4436' });
-        const f = race.place(race.course.length, 0);
-        holo2.group.position.set(f.x + f.dx * 30, f.y + 11, f.z + f.dz * 30);
+        holo2.group.visible = false;
         race.extras.add(holo2.group);
+        // round two: the sentinel waits past the finish, on the grass
+        sent2 = await Sentinel.create();
+        const L = race.course.length;
+        const f = race.place(L + 46, 14);
+        sent2.root.position.set(f.x, race.arena.heightAt(f.x, f.z), f.z);
+        sent2.root.rotation.y = Math.atan2(-f.dx - f.dz * 0.6, -f.dz + f.dx * 0.6);
+        race.extras.add(sent2.root);
+        sentHead2.set(f.x, f.y + 27, f.z);
+        const sh = race.o.shots;
+        const d = sh.findIndex((x) => x.tag === 'defeat');
+        const q = race.place(L + 9, -2.5);
+        sh[d].cam = { mode: 'fixed', at: [q.x, q.y + 1.9, q.z], fov: 40, target: [sentHead2.x, sentHead2.y - 9, sentHead2.z], shake: 0.2 };
+        sh[d].cam2 = { fov: 46, target: [sentHead2.x, sentHead2.y - 14, sentHead2.z] };
         for (let k = 1; k <= 4; k++) kmBoard(race, (k * 1000 * race.course.length) / dz2.distance, String(k));
       },
       shots: [
@@ -575,6 +617,8 @@ export function ch2(): Scene[] {
         { dur: 5, T: 1126, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: 100, look: 1.2 }, tag: 'run-in' },
         { dur: 5, T: 1146, cam: { mode: 'follow', dist: 4, h: 1.5, ang: 15, look: 1.4, ahead: 20 }, tag: 'run-in' },
         { dur: 16, T: 1160.5, rate: 0.4, cam: { mode: 'follow', dist: 7, h: 1.5, ang: 178, look: 1.5, fov: 32 }, cam2: { dist: 10, fov: 30 }, tag: 'line' },
+        // the clock boss breaks: 19:25 on its face, the digits blow out, it folds at the knees
+        { dur: 7, T: 1167, rate: 0.5, cam: { mode: 'follow' }, tag: 'defeat' },
         { dur: 8, T: 1175, rate: 0.2, cam: { mode: 'follow', dist: 4, h: 1.7, ang: 150, look: 1.4 }, tag: 'after' },
       ],
       pose: (i) => ({ fatigue: i.d > 4200 ? 0.35 : 0, lean: i.tag === 'line' ? 0.06 : 0 }),
@@ -582,13 +626,20 @@ export function ch2(): Scene[] {
         const h = ctx.hud, g = ctx.r.grade;
         const proj = dz2.projection(i.T);
         const fin = i.T - dz2.finish;
-        holo2.group.lookAt(race.stage!.camera.position);
-        // the clock boss: steady red, flickers as the projection drops under, shatters at the line
+        // the clock boss counts with him; it flickers once the projection drops under 20:00; it breaks at the line
         const under = proj < 1199.5 ? 1 : 0;
-        holo2.intensity(1, i.t, under * clamp01((i.d - 4000) / 900) * 0.7);
-        holo2.shatter(i.finished ? clamp01(fin / 2.4) : 0);
+        const dT = i.tag === 'defeat' ? i.shotT : 0;
+        sent2.update(i.t, {
+          wind: 0.25,
+          text: mmss(Math.min(i.T, dz2.finish)),
+          col: i.finished ? '#ff3a20' : undefined,
+          look: i.pos,
+          flicker: under * clamp01((i.d - 4000) / 900) * 0.8,
+          shatter: i.tag === 'defeat' ? smooth(0.6, 2.6, dT) : i.tag === 'after' ? 1 : 0,
+          kneel: i.tag === 'defeat' ? smooth(1.8, 6, dT) : i.tag === 'after' ? 1 : 0,
+        });
         if (i.shot === 0) eventTag(h, { name: 'FINSBURY PARK', date: '18.03.2023', t: i.shotT });
-        if (i.shot >= 1 && i.tag !== 'after') {
+        if (i.shot >= 1 && i.tag !== 'after' && i.tag !== 'defeat') {
           bossPlate(h, { name: 'DOUBLE ZERO', sub: 'ROUND 2', frac: 1 - clamp01(i.d / dz2.distance), alpha: i.finished ? 1 - smooth(0, 1, fin) : 1 });
           targetBlock(h, { target: 1199, projection: i.finished ? undefined : proj, result: i.finished ? 1165 : undefined });
           raceClock(h, { T: Math.min(i.T, dz2.finish), d: Math.min(i.d, dz2.distance) });
@@ -598,6 +649,12 @@ export function ch2(): Scene[] {
           g.saturation = 0.9 - 0.3 * smooth(0, 2, fin);
           g.vignette = 0.5;
         }
+        if (i.tag === 'defeat') {
+          g.saturation = 0.75;
+          g.exposure = 0.72;
+          g.contrast = 1.15;
+          bossPlate(h, { name: 'DOUBLE ZERO', sub: 'DEFEATED', frac: 0, alpha: smooth(2.5, 3.5, i.shotT) });
+        }
         if (i.tag === 'after') {
           const a = smooth(0.5, 2, i.shotT);
           stamp(h, 'SUB 20', { alpha: a, size: 170, col: COL.green, y: 520, sub: 'COMPLETE' });
@@ -606,12 +663,13 @@ export function ch2(): Scene[] {
         }
       },
       cues: [
-        { t: 0, kind: 'amb-park', dur: 68 },
+        { t: 0, kind: 'amb-park', dur: 76 },
         { t: 6, kind: 'music', id: 'dz2', dur: 43 },
-        { t: 49, kind: 'silence', dur: 16 },
-        { t: 49, kind: 'heartbeat', dur: 16 },
-        { t: 59, kind: 'shatter' },
-        { t: 65, kind: 'music', id: 'complete', dur: 8 },
+        { t: 49, kind: 'silence', dur: 12 },
+        { t: 49, kind: 'heartbeat', dur: 12 },
+        { t: 61.3, kind: 'shatter' },
+        { t: 62.5, kind: 'wall-rise' },
+        { t: 68, kind: 'music', id: 'complete', dur: 8 },
       ],
     }),
   );

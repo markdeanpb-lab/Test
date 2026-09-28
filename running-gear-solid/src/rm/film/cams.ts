@@ -24,6 +24,10 @@ export interface CamSpec {
   roll?: number;
   /** min clearance above ground */
   clear?: number;
+  /** look at this world point instead of the subject (boss reveals); mixes with the subject by targetMix */
+  target?: [number, number, number];
+  /** 0 = look at subject, 1 = look at target */
+  targetMix?: number;
 }
 
 export interface Subject {
@@ -31,7 +35,7 @@ export interface Subject {
   dir: { dx: number; dz: number }; // heading (unit, xz)
 }
 
-const NUM: (keyof CamSpec)[] = ['dist', 'h', 'ang', 'look', 'ahead', 'side', 'fov', 'shake', 'roll'];
+const NUM: (keyof CamSpec)[] = ['dist', 'h', 'ang', 'look', 'ahead', 'side', 'fov', 'shake', 'roll', 'targetMix'];
 
 export function mixSpec(a: CamSpec, b: Partial<CamSpec> | undefined, u: number): CamSpec {
   if (!b) return a;
@@ -40,11 +44,12 @@ export function mixSpec(a: CamSpec, b: Partial<CamSpec> | undefined, u: number):
     const va = a[k] as number | undefined, vb = b[k] as number | undefined;
     if (vb !== undefined) (o as any)[k] = lerp(va ?? DEF[k as keyof typeof DEF] ?? 0, vb, u);
   }
+  if (b.target && a.target) o.target = [lerp(a.target[0], b.target[0], u), lerp(a.target[1], b.target[1], u), lerp(a.target[2], b.target[2], u)];
   if (b.at && a.at && Array.isArray(a.at) && Array.isArray(b.at)) o.at = [lerp(a.at[0], b.at[0], u), lerp(a.at[1], b.at[1], u), lerp(a.at[2], b.at[2], u)];
   else if (b.at && a.at && !Array.isArray(a.at) && !Array.isArray(b.at)) o.at = { s: lerp(a.at.s, b.at.s, u), off: lerp(a.at.off, b.at.off, u), h: lerp(a.at.h, b.at.h, u) };
   return o;
 }
-const DEF = { dist: 4, h: 1.5, ang: 0, look: 1.1, ahead: 0, side: 0, fov: 40, shake: 0.4, roll: 0 };
+const DEF = { dist: 4, h: 1.5, ang: 0, look: 1.1, ahead: 0, side: 0, fov: 40, shake: 0.4, roll: 0, targetMix: 1 };
 
 export function applyCam(
   cam: THREE.PerspectiveCamera,
@@ -89,8 +94,14 @@ export function applyCam(
   }
   cam.position.set(px, py, pz);
   const ahead = c.ahead ?? 0, side = c.side ?? 0;
-  const lx = p.x + dx * ahead + rx * side, lz = p.z + dz * ahead + rz * side;
-  const ly = p.y + (c.look ?? DEF.look);
+  let lx = p.x + dx * ahead + rx * side, lz = p.z + dz * ahead + rz * side;
+  let ly = p.y + (c.look ?? DEF.look);
+  if (c.target) {
+    const m = c.targetMix ?? 1;
+    lx += (c.target[0] - lx) * m;
+    ly += (c.target[1] - ly) * m;
+    lz += (c.target[2] - lz) * m;
+  }
   cam.up.set(0, 1, 0);
   cam.lookAt(lx + noise1(t * 0.7, 4) * s * 0.6, ly + noise1(t * 0.6, 5) * s * 0.5, lz + noise1(t * 0.75, 6) * s * 0.6);
   if (c.roll) cam.rotateZ((c.roll * Math.PI) / 180);
