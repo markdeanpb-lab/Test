@@ -251,15 +251,25 @@ export class Renderer {
       };
       return () => (p.render = orig);
     });
-    // shadow map timing: render once with autoUpdate, measure difference
+    this.gl.info.autoReset = false;
+    this.gl.info.reset();
     const t0 = performance.now();
     this.render(time);
     sync();
     out.total = Math.round(performance.now() - t0);
-    wrap.forEach((f) => f());
     const i = this.gl.info.render;
     out.calls = i.calls;
     out.tris = i.triangles;
+    // same frame without the shadow-map update: the difference is the shadow pass
+    const au = this.gl.shadowMap.autoUpdate;
+    this.gl.shadowMap.autoUpdate = false;
+    const t1 = performance.now();
+    this.render(time);
+    sync();
+    out.noShadow = Math.round(performance.now() - t1);
+    this.gl.shadowMap.autoUpdate = au;
+    this.gl.info.autoReset = true;
+    wrap.forEach((f) => f());
     return out;
   }
 

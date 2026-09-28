@@ -51,7 +51,8 @@ export class Atmos {
   constructor() {
     const s = this.sun;
     s.castShadow = true;
-    s.shadow.mapSize.set(2048, 2048);
+    const sm = Number(new URLSearchParams(location.search).get('shadow') ?? 2048);
+    s.shadow.mapSize.set(sm, sm);
     s.shadow.bias = -0.0002;
     s.shadow.normalBias = 0.03;
     s.shadow.radius = 2;

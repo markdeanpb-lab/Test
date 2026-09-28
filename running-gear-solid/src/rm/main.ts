@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 // RUNNING GEAR SOLID: REMASTERED - entry. Exposes window.RGS for the offline renderer.
 import { Renderer } from './engine/Renderer';
 import { Hud, loadFonts } from './hud/Hud';
@@ -27,6 +28,62 @@ async function main() {
     pixels: () => r.pixels(),
     cues: () => film.cues(),
     chapters: () => film.chapters(),
+    /** dev: heaviest meshes of the current scene (triangles x instances) */
+    stats: () => {
+      const rows: [string, number, number, boolean, boolean][] = [];
+      r.scene.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (!m.isMesh || !m.visible) return;
+        const g = m.geometry;
+        const tri = (g.index ? g.index.count : g.attributes.position.count) / 3;
+        const n = (m as THREE.InstancedMesh).isInstancedMesh ? (m as THREE.InstancedMesh).count : 1;
+        rows.push([m.name || m.parent?.name || m.type, Math.round(tri), n, m.castShadow, m.frustumCulled]);
+      });
+      return rows.sort((a, b) => b[1] * b[2] - a[1] * a[2]).slice(0, 25);
+    },
+    /** dev: frame time with each top-level scene child hidden in turn */
+    ablate: async (T: number, path: number[] = []) => {
+      await renderFrame(T);
+      const ctx3 = r.gl.getContext();
+      const px = new Uint8Array(4);
+      const time = () => {
+        const a = performance.now();
+        r.render(T);
+        ctx3.readPixels(0, 0, 1, 1, ctx3.RGBA, ctx3.UNSIGNED_BYTE, px);
+        return Math.round(performance.now() - a);
+      };
+      const time2 = () => (time(), time());
+      const out: Record<string, number> = { all: time2() };
+      let root: THREE.Object3D = r.scene;
+      for (const k of path) root = root.children.filter((o) => o.visible)[k];
+      const kids = root.children.filter((o) => o.visible);
+      kids.forEach((o, i) => {
+        o.visible = false;
+        let tri = 0;
+        o.traverse((m) => {
+          const g = (m as THREE.Mesh).geometry;
+          if ((m as THREE.Mesh).isMesh && g) tri += ((g.index ? g.index.count : g.attributes.position.count) / 3) * ((m as THREE.InstancedMesh).count ?? 1);
+        });
+        out[`${i}:${o.name || o.type}:${(tri / 1000).toFixed(0)}k`] = time2();
+        o.visible = true;
+      });
+      // variants: no shadows; ground with a plain material
+      r.gl.shadowMap.autoUpdate = false;
+      out.noShadowUpdate = time2();
+      r.gl.shadowMap.autoUpdate = true;
+      const plain = new THREE.MeshStandardMaterial({ color: 0x777777 });
+      const swapped: [THREE.Mesh, THREE.Material][] = [];
+      r.scene.traverse((m) => {
+        const mm = m as THREE.Mesh;
+        if (mm.isMesh && (mm.material as THREE.Material).onBeforeCompile && mm.receiveShadow && !mm.castShadow && mm.geometry.attributes.normal && !mm.geometry.attributes.uv) {
+          swapped.push([mm, mm.material as THREE.Material]);
+          mm.material = plain;
+        }
+      });
+      out['plainGround' + swapped.length] = time2();
+      swapped.forEach(([m, mat]) => (m.material = mat));
+      return out;
+    },
     profile: async (T: number) => {
       await renderFrame(T);
       return r.profile(T);
