@@ -16,6 +16,8 @@ import { funnel, flag, arch } from '../dressing';
 import { Ghost, HoloText } from '../fx';
 import { pbrArrayWall } from './walls';
 import { Scene } from '../core';
+import { Furnace } from '../bosses/Furnace';
+import { waterSide, aimAt } from '../bosses/place';
 
 const HALF = 21097.5;
 
@@ -283,6 +285,12 @@ export function ch3(): Scene[] {
 
   // --- the first marathon build and FURNACE: Richmond Runfest Marathon 10.09.2023, 3:55:11
   const ric = RunProfile.fromSplits(RICHMOND.splits, RICHMOND.distanceKm, RICHMOND.timeSec);
+  let furnace: Furnace;
+  const furnaceSide = (race: RaceScene, s: number) => {
+    // the side of the course away from the river, sampled over a stretch so it doesn't flip every frame
+    const k = Math.floor(s / 150) * 150;
+    return waterSide(race, k + 75, 32);
+  };
   scenes.push(
     logCard('c3-longruns', [
       ['LONG RUN 26 KM', '8 weeks to Richmond'],
@@ -296,20 +304,47 @@ export function ch3(): Scene[] {
       sky: SKY.hot,
       halfWidth: 2.2,
       field: { count: 120, pack: 5, kmin: 0.8, kmax: 1.2, seed: 35 },
-      build: (race) => {
+      build: async (race) => {
         arch(race, 0, 'RICHMOND', 8);
+        furnace = (await Furnace.create()).barge();
+        race.extras.add(furnace.root);
+        // time the meltdown and evacuation shots to stretches where the course runs beside the river
+        const k = ric.distance / race.course.length;
+        const riverAt = (d0: number, d1: number) => {
+          for (let d = d0; d < d1; d += 50) {
+            const s = d / k;
+            const wet = Math.max(...[-1, 1].map((sd) => { const p = race.place(s, sd * 34); return race.arena.data.maskAt(p.x, p.z); }));
+            if (wet > 0.6) return ric.timeAt(d);
+          }
+          return null;
+        };
+        const sh = race.o.shots;
+        const m = sh.findIndex((x) => x.tag === 'melt'), e = sh.findIndex((x) => x.tag === 'evac');
+        sh[m].T = riverAt(27000, 32000) ?? sh[m].T;
+        sh[e].T = riverAt(33500, 40000) ?? sh[e].T;
       },
       shots: [
         { dur: 6, T: 1800, cam: { mode: 'follow', dist: 5, h: 1.6, ang: 20, look: 1.3 }, tag: 'cruise' },
-        { dur: 5, T: 6212, cam: { mode: 'follow', dist: 3.5, h: 1, ang: 95 }, tag: 'half' },
-        { dur: 7, T: 8900, cam: { mode: 'follow', dist: 4, h: 1.6, ang: 160, look: 1.4 }, tag: 'melt' },
-        { dur: 6, T: 11800, cam: { mode: 'follow', dist: 8, h: 2.5, ang: 200, look: 1 }, tag: 'evac' },
+        // halfway: it rolls into view alongside, mouth towards the road
+        { dur: 7, T: 6212, cam: { mode: 'follow', dist: 8, h: 1.8, ang: -30, look: 1.4, fov: 52 }, cam2: { dist: 6.5, ang: -38 }, tag: 'half' },
+        { dur: 7, T: 8900, cam: { mode: 'follow', dist: 6, h: 1.4, ang: 165, look: 1.4, fov: 52, side: 1.2 }, tag: 'melt' },
+        { dur: 6, T: 11800, cam: { mode: 'follow', dist: 36, h: 18, ang: 150, look: 4, fov: 40 }, cam2: { dist: 30, h: 14 }, tag: 'evac' },
         { dur: 9, T: 14100, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, tag: 'finish' },
       ],
       pose: (i) => ({ fatigue: clamp01((i.d - 20000) / 12000) * 1.0 }),
       onFrame: (race, i, ctx) => {
         const h = ctx.hud, g = ctx.r.grade;
         const heat = clamp01((i.d - 18000) / 8000);
+        // a furnace barge on the Thames pacing him: ahead at halfway, bearing down from behind in the meltdown
+        const side = furnaceSide(race, i.s);
+        const lead = i.tag === 'half' ? 22 : i.tag === 'cruise' ? 60 : i.tag === 'evac' ? -20 : -12;
+        const fp = race.place(Math.min(i.s, race.course.length) + lead, side * 32);
+        furnace.root.position.set(fp.x, race.arena.data.waterAt(fp.x, fp.z) - 2.2, fp.z);
+        furnace.root.visible = race.arena.data.maskAt(fp.x, fp.z) > 0.5;
+        furnace.root.rotation.y = Math.atan2(fp.dx, fp.dz);
+        furnace.crucible.rotation.y = side * Math.PI / 2;
+        if (furnace.root.visible && (i.tag === 'half' || i.tag === 'melt' || i.tag === 'evac')) aimAt(race.stage!.camera, new THREE.Vector3(fp.x, fp.y + 8, fp.z), i.tag === 'evac' ? 0.45 : 0.35);
+        furnace.update(i.t, { heat: 0.25 + 0.75 * heat, siren: i.tag === 'evac' ? 1 : 0, banked: i.finished ? smooth(0, 4, i.T - ric.finish) : 0, travel: i.s });
         g.gain = [1.0 + 0.08 * heat, 0.96, 0.86 - 0.1 * heat];
         g.saturation = 0.85 + 0.1 * heat;
         g.bloom = 0.25 + 0.2 * heat;
@@ -325,8 +360,8 @@ export function ch3(): Scene[] {
         if (i.tag === 'half') h.text('HALFWAY  1:43:32', 960, 900, { font: 'mono', size: 44, color: COL.white, align: 'center', alpha: smooth(0.5, 1, i.shotT), tracking: 4, shadow: true });
         if (i.tag === 'melt') h.text('SPLITS 5:16 > 6:46', 960, 900, { font: 'mono', size: 44, color: COL.red, align: 'center', alpha: smooth(1, 1.5, i.shotT), tracking: 4, shadow: true });
         if (i.tag === 'evac') {
-          h.text('RACE BEING STOPPED BEHIND YOU', 960, 880, { font: 'head', size: 50, weight: 700, color: COL.red, align: 'center', alpha: Math.floor(i.shotT * 2) % 2 ? 0.5 : 1, tracking: 8, shadow: true });
-          h.text('TOO MANY CASUALTIES', 960, 940, { font: 'mono', size: 30, color: COL.amber, align: 'center', tracking: 6, shadow: true });
+          h.text('RACE BEING STOPPED BEHIND YOU', 960, 800, { font: 'head', size: 50, weight: 700, color: COL.red, align: 'center', alpha: Math.floor(i.shotT * 2) % 2 ? 0.5 : 1, tracking: 8, shadow: true });
+          h.text('TOO MANY CASUALTIES', 960, 858, { font: 'mono', size: 30, color: COL.amber, align: 'center', tracking: 6, shadow: true });
         }
         if (i.tag === 'finish') {
           raceClock(h, { T: Math.min(i.T, ric.finish), hours: true, alpha: 1 - smooth(6, 7, i.shotT) });
