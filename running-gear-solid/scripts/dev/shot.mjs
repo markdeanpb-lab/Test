@@ -35,6 +35,7 @@ for (const t of times) {
   fs.writeFileSync(f, Buffer.from(png.split(',')[1], 'base64'));
   console.log(`t=${t} ${ms} ms -> ${path.relative(ROOT, f)}`);
 }
+if (process.env.DUMP) console.log("DUMP", JSON.stringify(await page.evaluate((k) => window[k], process.env.DUMP)));
 const real = errors.filter((e) => !/404/.test(e));
 if (real.length) console.log('ERRORS:\n' + real.slice(0, 20).join('\n'));
 await browser.close();

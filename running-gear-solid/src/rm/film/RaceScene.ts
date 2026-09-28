@@ -87,6 +87,10 @@ export interface RaceOpts {
   lane?: number;
   /** course arc (m) where race distance 0 sits (for scenes that start part-way round) */
   s0?: number;
+  /** hide STRIDE (prop-only shots) */
+  hideRunner?: boolean;
+  /** override ground height along the course (bridges): arc -> y or null */
+  deck?: (s: number) => number | null;
   wet?: number;
   night?: number;
   treeLight?: number;
@@ -147,7 +151,7 @@ export class RaceScene extends Scene {
     this.crowd = crowd;
     const c = arena.data.j.courses[o.course ?? 0];
     this.course = new Polyline(o.rawGps ? c.gps : c.p);
-    this.scale = this.course.length / o.profile.distance;
+    this.scale = o.profile.synthetic ? 1 : this.course.length / o.profile.distance;
     stage.scene.add(arena.group, runner.root, this.extras);
     if (crowd) stage.scene.add(crowd.group);
     arena.wet = o.wet ?? 0;
@@ -200,7 +204,8 @@ export class RaceScene extends Scene {
   place(s: number, off: number) {
     const q = this.courseAt(s);
     const x = q.x - q.dz * off, z = q.z + q.dx * off;
-    return { x, y: this.arena.heightAt(x, z), z, dx: q.dx, dz: q.dz };
+    const dk = this.o.deck?.(s);
+    return { x, y: dk ?? this.arena.heightAt(x, z), z, dx: q.dx, dz: q.dz };
   }
 
   raceTime(t: number) {
@@ -356,6 +361,7 @@ export class RaceScene extends Scene {
     this.info = { t, T, d, s, pos, dir, speed, shot: i, shotT: lt, shotU: u, tag: shot.tag, finished };
     // runner
     const r = this.runner;
+    r.root.visible = !o.hideRunner;
     r.root.position.copy(pos);
     r.root.rotation.y = Math.atan2(dir.dx, dir.dz);
     const extra = o.pose?.(this.info) ?? {};

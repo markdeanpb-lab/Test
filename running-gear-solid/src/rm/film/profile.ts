@@ -7,6 +7,8 @@ export class RunProfile {
   readonly t: number[]; // seconds
   readonly distance: number;
   readonly finish: number;
+  /** true for made-up walk/stand profiles: 1 race metre = 1 course metre */
+  synthetic = false;
   constructor(d: number[], t: number[], official?: number) {
     // enforce monotone and scale time so the last sample is the official finish
     const t0 = t[0];

@@ -17,7 +17,7 @@ export const HDRIS = [
   'kloofendal_overcast_puresky', 'kloofendal_misty_morning_puresky', 'kloofendal_28d_misty_puresky', 'kloofendal_48d_partly_cloudy_puresky',
   'qwantani_dawn_puresky', 'qwantani_sunrise_puresky', 'qwantani_dusk_2_puresky', 'qwantani_sunset_puresky', 'qwantani_night_puresky',
   'belfast_sunset_puresky', 'industrial_sunset_puresky', 'overcast_soil_puresky', 'wasteland_clouds_puresky', 'the_sky_is_on_fire',
-  'winter_sky', 'moonless_golf', 'rooftop_night',
+  'winter_sky', 'moonless_golf', 'rooftop_night', 'kloofendal_43d_clear_puresky', 'qwantani_noon_puresky',
 ];
 export const TEXTURES = [
   'asphalt_02', 'clean_asphalt', 'worn_asphalt', 'concrete_pavement', 'brick_pavement_02', 'leafy_grass', 'sparse_grass',

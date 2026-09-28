@@ -11,22 +11,26 @@ export const ROUTES = routes as unknown as Record<string, number[]>;
 
 export const SKY: Record<string, AtmosSpec> = {
   dawn: { hdri: 'qwantani_dawn_puresky', sun: 2.2, sunColor: 0xffc890, env: 0.8, fog: 0.004, fogColor: 0xc9b39a, shadowSize: 40 },
-  sunrise: { hdri: 'qwantani_sunrise_puresky', sun: 2.6, sunColor: 0xffd2a0, env: 0.85, fog: 0.003, fogColor: 0xd3c1a8 },
+  sunrise: { hdri: 'qwantani_sunrise_puresky', sun: 2.4, sunColor: 0xffd2a0, env: 0.75, fog: 0.0012, fogColor: 0xb8ab9a, bgIntensity: 0.7 },
   morning: { hdri: 'kloofendal_48d_partly_cloudy_puresky', sun: 2.5, env: 1, fog: 0.0022, fogColor: 0xaab3b9 },
-  misty: { hdri: 'kloofendal_misty_morning_puresky', sun: 0.9, sunColor: 0xfff0dc, env: 1.1, fog: 0.012, fogColor: 0xc4c8c8 },
+  misty: { hdri: 'kloofendal_misty_morning_puresky', sun: 0.9, sunColor: 0xfff0dc, env: 0.9, fog: 0.008, fogColor: 0xa9aeae, bgIntensity: 0.7 },
   overcast: { hdri: 'kloofendal_overcast_puresky', sun: 0.5, env: 1.15, fog: 0.004, fogColor: 0xb3b8ba },
   grey: { hdri: 'overcast_soil_puresky', sun: 0.35, env: 1.0, fog: 0.006, fogColor: 0x9ea3a6 },
-  clear: { hdri: 'kloofendal_43d_clear_puresky', sun: 3.0, env: 1, fog: 0.0015, fogColor: 0xb9c7d4 },
+  clear: { hdri: 'kloofendal_43d_clear_puresky', sun: 2.3, env: 0.8, fog: 0.0015, fogColor: 0xa9b7c4, bgIntensity: 0.8 },
   hot: { hdri: 'qwantani_noon_puresky', sun: 3.4, sunColor: 0xfff0d0, env: 1, fog: 0.003, fogColor: 0xd8d0bd },
   dusk: { hdri: 'qwantani_dusk_2_puresky', sun: 1.8, sunColor: 0xffa070, env: 0.7, fog: 0.004, fogColor: 0x8c7c86 },
   sunset: { hdri: 'belfast_sunset_puresky', sun: 2.2, sunColor: 0xffae70, env: 0.8, fog: 0.003, fogColor: 0xc0a090 },
   night: { hdri: 'qwantani_night_puresky', sun: 0.15, sunColor: 0x8fa8ff, env: 0.35, fog: 0.01, fogColor: 0x10141c },
-  storm: { hdri: 'wasteland_clouds_puresky', sun: 1.4, env: 0.9, fog: 0.004, fogColor: 0x8a9096 },
+  storm: { hdri: 'wasteland_clouds_puresky', sun: 1.2, env: 0.75, fog: 0.0016, fogColor: 0x7d848a, bgIntensity: 0.65 },
   winter: { hdri: 'winter_sky', sun: 1.6, sunColor: 0xffe0c0, env: 0.9, fog: 0.004, fogColor: 0xaab4c0 },
 };
 
 /** constant-pace profile (standing, walking, easy runs with no stream data) */
-export const steady = (metres: number, seconds: number) => new RunProfile([0, metres], [0, seconds]);
+export const steady = (metres: number, seconds: number) => {
+  const p = new RunProfile([0, metres], [0, seconds]);
+  p.synthetic = true;
+  return p;
+};
 
 /** fade the picture in over [0,a] and out over [dur-b, dur] */
 export function fades(g: Grade, t: number, dur: number, a = 0.8, b = 0.8) {

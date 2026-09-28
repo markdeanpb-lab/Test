@@ -143,3 +143,38 @@ export class HoloText {
     (this.points.material as THREE.PointsMaterial).opacity = 1 - u;
   }
 }
+
+/** Deterministic rain (or wind-blown streaks) in a box that follows the camera. */
+export class Streaks {
+  readonly lines: THREE.LineSegments;
+  private n: number;
+  private box: THREE.Vector3;
+  private vel: THREE.Vector3;
+  private len: number;
+  constructor(o: { n?: number; box?: [number, number, number]; vel?: [number, number, number]; len?: number; color?: number; opacity?: number } = {}) {
+    this.n = o.n ?? 5000;
+    this.box = new THREE.Vector3(...(o.box ?? [40, 18, 40]));
+    this.vel = new THREE.Vector3(...(o.vel ?? [0.6, -9, 0.3]));
+    this.len = o.len ?? 0.045;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(this.n * 6), 3));
+    this.lines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: o.color ?? 0xc8d4dc, transparent: true, opacity: o.opacity ?? 0.35, depthWrite: false }));
+    this.lines.frustumCulled = false;
+  }
+  update(cam: THREE.Vector3, t: number) {
+    const a = this.lines.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const arr = a.array as Float32Array;
+    const b = this.box, v = this.vel;
+    const wrap = (x: number, w: number) => ((x % w) + w) % w - w / 2;
+    for (let i = 0; i < this.n; i++) {
+      const sp = 0.8 + 0.4 * hash(i, 9);
+      const x = cam.x + wrap(hash(i, 1) * b.x + v.x * t * sp - cam.x, b.x);
+      const y = cam.y + wrap(hash(i, 2) * b.y + v.y * t * sp - cam.y, b.y);
+      const z = cam.z + wrap(hash(i, 3) * b.z + v.z * t * sp - cam.z, b.z);
+      const k = i * 6;
+      arr[k] = x; arr[k + 1] = y; arr[k + 2] = z;
+      arr[k + 3] = x - v.x * this.len * sp; arr[k + 4] = y - v.y * this.len * sp; arr[k + 5] = z - v.z * this.len * sp;
+    }
+    a.needsUpdate = true;
+  }
+}
