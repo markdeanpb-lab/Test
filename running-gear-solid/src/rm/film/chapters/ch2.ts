@@ -333,10 +333,10 @@ export function ch2(): Scene[] {
         const k = gnr.distance / race.course.length;
         const sh = race.o.shots;
         sh[0].T = gnr.timeAt((tyne.s0 + 40) * k);
-        sh[0].cam = { mode: 'fixed', at: { s: (tyne.s0 + (tyne.s1 - tyne.s0) / 2) * k, off: 140, h: 6 }, look: 1, fov: 34, shake: 0.1 };
-        sh[0].cam2 = { fov: 26 };
-        sh[1].T = gnr.timeAt((tyne.s0 + 25) * k);
-        sh[2].T = gnr.timeAt((tyne.s0 + 70) * k);
+        sh[0].cam = { mode: 'fixed', at: { s: (tyne.s0 + (tyne.s1 - tyne.s0) / 2) * k, off: -150, h: 12 }, look: 20, fov: 42, shake: 0.1 };
+        sh[0].cam2 = { fov: 36 };
+        sh[1].T = gnr.timeAt((tyne.s0 + 55) * k);
+        sh[2].T = gnr.timeAt((tyne.s0 + 95) * k);
       },
       shots: [
         { dur: 7, T: 560, cam: { mode: 'follow', dist: 60, h: 30, ang: 120, look: 0, fov: 40, shake: 0.1 }, cam2: { dist: 50, ang: 140 }, grade: { letterbox: 1 } },
@@ -478,7 +478,7 @@ export function ch2(): Scene[] {
         { dur: 5, T: 100, cam: { mode: 'follow', dist: 30, h: 12, ang: 140, look: 2, fov: 40 }, cam2: { dist: 24 } },
         { dur: 5, T: 260, cam: { mode: 'follow', dist: 4, h: 1.5, ang: 12, look: 1.3, ahead: 20 } },
         { dur: 5, T: 560, cam: { mode: 'follow', dist: 3.2, h: 0.9, ang: 95 } },
-        { dur: 5, T: 900, cam: { mode: 'follow', dist: 4, h: 1.4, ang: 160, look: 1.4 } },
+        { dur: 5, T: 900, cam: { mode: 'follow', dist: 4, h: 1.4, ang: -125, look: 1.4 } },
         { dur: 12, T: 1188, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.6, ang: 175, look: 1.6 }, cam2: { dist: 9 } },
       ],
       pose: (i) => ({ lean: i.d > 1000 ? 0.08 : 0, fatigue: i.d > 2000 ? 0.3 : 0 }),
@@ -636,14 +636,14 @@ export function ch2(): Scene[] {
         wf.draw('19:25', 'PB');
       },
       shots: [
-        { dur: 8, T: -20, cam: { mode: 'follow', dist: 9, h: 2, ang: 70, look: 0.8, fov: 30 }, cam2: { dist: 7.5 }, grade: { letterbox: 1 } },
-        { dur: 10, T: -12, cam: { mode: 'follow', dist: 2.2, h: 1.2, ang: 120, look: 0.9, fov: 30 }, grade: { letterbox: 1 } },
+        { dur: 8, T: -20, cam: { mode: 'follow', dist: 9, h: 2, ang: -110, look: 0.8, fov: 30 }, cam2: { dist: 7.5 }, grade: { letterbox: 1 } },
+        { dur: 10, T: -12, cam: { mode: 'follow', dist: 2.2, h: 1.2, ang: -60, look: 1.0, fov: 30 }, grade: { letterbox: 1 } },
       ],
       pose: () => ({ other: { Sitting_Idle_Loop: [1, 3] }, post: (r) => r.root.position.y += 0.02 }),
       onFrame: (race, i, ctx) => {
         const h = ctx.hud, g = ctx.r.grade;
         // sit on the seat: the sitting clip puts the hips behind the root, so step the root forward
-        const yaw = bench.rotation.y + Math.PI;
+        const yaw = bench.rotation.y;
         const off = 0.35;
         race.runner.root.rotation.y = yaw;
         race.runner.root.position.set(bench.position.x + Math.sin(yaw) * off, bench.position.y, bench.position.z + Math.cos(yaw) * off);

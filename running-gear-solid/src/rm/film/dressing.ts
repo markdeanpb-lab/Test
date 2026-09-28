@@ -227,25 +227,54 @@ export function archBridge(race: RaceScene, s0: number, s1: number, o: { rise?: 
   const y0 = race.arena.heightAt(race.courseAt(s0).x, race.courseAt(s0).z);
   const y1 = race.arena.heightAt(race.courseAt(s1).x, race.courseAt(s1).z);
   const ap = o.approach ?? 30;
-  const deckY = (s: number) => (s < s0 - ap || s > s1 + ap ? null : y0 + (y1 - y0) * Math.min(1, Math.max(0, (s - s0) / (s1 - s0))));
+  // approaches ramp from the road surface up to the abutments, so the deck meets the street flush
+  const road = (s: number) => race.arena.heightAt(race.courseAt(s).x, race.courseAt(s).z);
+  const ramp = (u: number) => u * u * (3 - 2 * u);
+  const deckY = (s: number) => {
+    if (s < s0 - ap || s > s1 + ap) return null;
+    if (s < s0) return road(s) + (y0 - road(s)) * ramp((s - (s0 - ap)) / ap);
+    if (s > s1) return road(s) + (y1 - road(s)) * ramp(1 - (s - s1) / ap);
+    return y0 + (y1 - y0) * ((s - s0) / (s1 - s0));
+  };
   const W = o.width ?? 14;
-  const deckMat = new THREE.MeshStandardMaterial({ color: 0x3a3b3d, roughness: 0.85 });
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0x3a3b3d, roughness: 0.85, side: THREE.DoubleSide });
   const steelMat = new THREE.MeshStandardMaterial({ color: o.col ?? 0x2f5d3a, roughness: 0.5, metalness: 0.6 });
   const n = Math.ceil((s1 - s0 + 2 * ap) / 4);
   const parts: THREE.BufferGeometry[] = [];
   const arches: THREE.BufferGeometry[] = [];
   const rise = o.rise ?? 30;
+  const P0 = race.courseAt(s0), P1 = race.courseAt(s1);
+  const cl = Math.hypot(P1.x - P0.x, P1.z - P0.z) || 1;
+  const cd = { x: (P1.x - P0.x) / cl, z: (P1.z - P0.z) / cl };
+  const chord = (u: number) => ({ x: P0.x + (P1.x - P0.x) * u, z: P0.z + (P1.z - P0.z) * u });
+  // deck: one continuous ribbon along the course (per-segment boxes left sawtooth seams on bends)
+  {
+    const pos: number[] = [];
+    const edge = (s: number) => {
+      const q = race.courseAt(s);
+      const y = deckY(s)! + 0.02;
+      return { lx: q.x - q.dz * (W / 2), lz: q.z + q.dx * (W / 2), rx: q.x + q.dz * (W / 2), rz: q.z - q.dx * (W / 2), y };
+    };
+    const quad = (a: number[], b: number[], c: number[], d: number[]) => pos.push(...a, ...b, ...c, ...a, ...c, ...d);
+    for (let i = 0; i < n; i++) {
+      const A = edge(s0 - ap + i * 4), B = edge(s0 - ap + (i + 1) * 4);
+      quad([A.lx, A.y, A.lz], [A.rx, A.y, A.rz], [B.rx, B.y, B.rz], [B.lx, B.y, B.lz]); // top
+      quad([A.lx, A.y - 1.4, A.lz], [B.lx, B.y - 1.4, B.lz], [B.rx, B.y - 1.4, B.rz], [A.rx, A.y - 1.4, A.rz]); // underside
+      quad([A.lx, A.y, A.lz], [B.lx, B.y, B.lz], [B.lx, B.y - 1.4, B.lz], [A.lx, A.y - 1.4, A.lz]); // left fascia
+      quad([A.rx, A.y, A.rz], [A.rx, A.y - 1.4, A.rz], [B.rx, B.y - 1.4, B.rz], [B.rx, B.y, B.rz]); // right fascia
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.computeVertexNormals();
+    parts.push(g);
+  }
   for (let i = 0; i < n; i++) {
     const sa = s0 - ap + i * 4, sb = sa + 4;
     const a = race.courseAt(sa), b = race.courseAt(sb);
     const ya = deckY(sa)!, yb = deckY(sb)!;
     const len = Math.hypot(b.x - a.x, b.z - a.z);
-    const box = new THREE.BoxGeometry(W, 1.4, len + 0.05);
-    box.translate(0, -0.72, len / 2);
     const m = new THREE.Matrix4().makeRotationY(Math.atan2(b.x - a.x, b.z - a.z));
     m.setPosition(a.x, (ya + yb) / 2 + 0.02, a.z);
-    box.applyMatrix4(m);
-    parts.push(box.toNonIndexed());
     // parapets
     for (const side of [-1, 1]) {
       const p = new THREE.BoxGeometry(0.3, 1.1, len + 0.05);
@@ -257,9 +286,11 @@ export function archBridge(race: RaceScene, s0: number, s1: number, o: { rise?: 
     if (sa >= s0 && sb <= s1) {
       const u0 = (sa - s0) / (s1 - s0), u1 = (sb - s0) / (s1 - s0);
       const h0 = 4 * rise * u0 * (1 - u0), h1 = 4 * rise * u1 * (1 - u1);
+      // the arch rides the straight chord between the abutments (GPS wiggle would kink it)
+      const ca = chord(u0), cb = chord(u1);
       for (const side of [-1, 1]) {
         const off = side * (W / 2 + 0.6);
-        const A = new THREE.Vector3(a.x - a.dz * off, ya + h0, a.z + a.dx * off), B = new THREE.Vector3(b.x - b.dz * off, yb + h1, b.z + b.dx * off);
+        const A = new THREE.Vector3(ca.x - cd.z * off, ya + h0, ca.z + cd.x * off), B = new THREE.Vector3(cb.x - cd.z * off, yb + h1, cb.z + cd.x * off);
         const g = new THREE.BoxGeometry(1.2, 1.6, A.distanceTo(B) + 0.3);
         g.lookAt(B.clone().sub(A));
         g.translate((A.x + B.x) / 2, (A.y + B.y) / 2, (A.z + B.z) / 2);
@@ -272,11 +303,12 @@ export function archBridge(race: RaceScene, s0: number, s1: number, o: { rise?: 
       }
       if (i % 3 === 0 && h0 > 8) {
         const tie = new THREE.BoxGeometry(W + 1.2, 0.6, 0.6);
-        tie.applyMatrix4(new THREE.Matrix4().makeRotationY(Math.atan2(a.dx, a.dz)).setPosition(a.x, ya + h0, a.z));
+        tie.applyMatrix4(new THREE.Matrix4().makeRotationY(Math.atan2(cd.x, cd.z)).setPosition(ca.x, ya + h0, ca.z));
         arches.push(tie.toNonIndexed());
       }
     }
   }
+  for (const p of parts) p.deleteAttribute('uv');
   const deck = new THREE.Mesh(mergeGeometries(parts), deckMat);
   deck.castShadow = deck.receiveShadow = true;
   race.extras.add(deck);

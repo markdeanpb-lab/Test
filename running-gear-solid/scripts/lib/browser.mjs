@@ -39,7 +39,7 @@ export async function openFilm(url, { width = 960, height = 540 } = {}) {
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
   });
-  await page.goto(url + '?render=1');
+  await page.goto(url + (url.includes('?') ? '&' : '?') + 'render=1');
   await page.waitForFunction(() => window.RGS && (window.RGS.ready || window.RGS.error), null, { timeout: 180000 });
   const err = await page.evaluate(() => window.RGS.error);
   if (err) throw new Error('Film failed to initialise:\n' + err + '\n' + errors.join('\n'));
