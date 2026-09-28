@@ -12,7 +12,7 @@ import { Crowd, Person, randomKit } from '../char/Crowd';
 import { RunProfile } from './profile';
 import { CamSpec, applyCam, mixSpec } from './cams';
 import { hash } from '../engine/assets';
-import { barriers } from './dressing';
+import { barriers, autoBridges } from './dressing';
 
 export interface Shot {
   dur: number;
@@ -93,6 +93,8 @@ export interface RaceOpts {
   hideRunner?: boolean;
   /** override ground height along the course (bridges): arc -> y or null */
   deck?: (s: number) => number | null;
+  /** don't auto-build flat bridges over water crossings */
+  noAutoBridge?: boolean;
   wet?: number;
   night?: number;
   treeLight?: number;
@@ -166,6 +168,7 @@ export class RaceScene extends Scene {
       T1 = Math.max(T1, s.T + s.dur * (s.rate ?? 1));
     });
     this.track = new PhaseTrack(runner, (T) => this.dist(T), T0 - 1, T1 + 1);
+    if (!o.noAutoBridge && !o.deck) o.deck = autoBridges(this);
     this.buildField();
     this.buildSpectators();
     await o.build?.(this, ctx);

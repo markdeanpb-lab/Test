@@ -102,7 +102,7 @@ export class Crowd {
         this.sphere.center.set(pp.x, pp.y + 0.9, pp.z);
         if (!this.frustum.intersectsSphere(this.sphere)) continue;
         const dc = camera.position.distanceTo(this.sphere.center);
-        if (dc < 1.3) continue; // never let an extra fill the lens
+        if (dc < 2.0) continue; // never let an extra fill the lens
         if (subject) {
           // nobody standing between the camera and the subject
           const ax = camera.position.x, az = camera.position.z, bx = subject.x, bz = subject.z;

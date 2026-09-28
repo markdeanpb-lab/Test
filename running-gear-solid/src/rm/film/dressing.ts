@@ -223,19 +223,20 @@ export function kmBoard(race: RaceScene, s: number, label: string, off = 3) {
  * A through-arch bridge carrying the course over water between arcs s0..s1 (Tyne Bridge style):
  * deck at the approach heights, a green steel arch with hangers. Returns the deck-height function.
  */
-export function archBridge(race: RaceScene, s0: number, s1: number, o: { rise?: number; col?: number; width?: number } = {}) {
+export function archBridge(race: RaceScene, s0: number, s1: number, o: { rise?: number; col?: number; width?: number; approach?: number } = {}) {
   const y0 = race.arena.heightAt(race.courseAt(s0).x, race.courseAt(s0).z);
   const y1 = race.arena.heightAt(race.courseAt(s1).x, race.courseAt(s1).z);
-  const deckY = (s: number) => (s < s0 - 30 || s > s1 + 30 ? null : y0 + (y1 - y0) * Math.min(1, Math.max(0, (s - s0) / (s1 - s0))));
+  const ap = o.approach ?? 30;
+  const deckY = (s: number) => (s < s0 - ap || s > s1 + ap ? null : y0 + (y1 - y0) * Math.min(1, Math.max(0, (s - s0) / (s1 - s0))));
   const W = o.width ?? 14;
   const deckMat = new THREE.MeshStandardMaterial({ color: 0x3a3b3d, roughness: 0.85 });
   const steelMat = new THREE.MeshStandardMaterial({ color: o.col ?? 0x2f5d3a, roughness: 0.5, metalness: 0.6 });
-  const n = Math.ceil((s1 - s0 + 60) / 4);
+  const n = Math.ceil((s1 - s0 + 2 * ap) / 4);
   const parts: THREE.BufferGeometry[] = [];
   const arches: THREE.BufferGeometry[] = [];
   const rise = o.rise ?? 30;
   for (let i = 0; i < n; i++) {
-    const sa = s0 - 30 + i * 4, sb = sa + 4;
+    const sa = s0 - ap + i * 4, sb = sa + 4;
     const a = race.courseAt(sa), b = race.courseAt(sb);
     const ya = deckY(sa)!, yb = deckY(sb)!;
     const len = Math.hypot(b.x - a.x, b.z - a.z);
@@ -285,4 +286,29 @@ export function archBridge(race: RaceScene, s0: number, s1: number, o: { rise?: 
     race.extras.add(arch);
   }
   return deckY;
+}
+
+/** Simple flat bridges wherever the course crosses water (river/canal/lake). Returns a deck fn. */
+export function autoBridges(race: RaceScene, width = 9) {
+  const spans: [number, number][] = [];
+  const L = race.course.length;
+  let a = -1;
+  for (let s = 0; s <= L; s += 2) {
+    const q = race.courseAt(s);
+    const wet = race.arena.data.maskAt(q.x, q.z) > 0.25;
+    if (wet && a < 0) a = s;
+    if (!wet && a >= 0) {
+      spans.push([a - 8, s + 8]);
+      a = -1;
+    }
+  }
+  const decks = spans.map(([s0, s1]) => archBridge(race, s0, s1, { rise: 0, col: 0x55575a, width, approach: 4 }));
+  if (!decks.length) return undefined;
+  return (s: number) => {
+    for (const d of decks) {
+      const y = d(s);
+      if (y !== null) return y;
+    }
+    return null;
+  };
 }

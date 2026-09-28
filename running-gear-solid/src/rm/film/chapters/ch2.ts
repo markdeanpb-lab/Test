@@ -313,6 +313,7 @@ export function ch2(): Scene[] {
     new RaceScene({
       id: 'c2-gnr',
       arena: 'gnr',
+      noAutoBridge: true,
       profile: gnr,
       sky: SKY.clear,
       halfWidth: 5,

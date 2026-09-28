@@ -18,7 +18,7 @@ export const SKY: Record<string, AtmosSpec> = {
   grey: { hdri: 'overcast_soil_puresky', sun: 0.35, env: 1.0, fog: 0.006, fogColor: 0x9ea3a6 },
   clear: { hdri: 'kloofendal_43d_clear_puresky', sun: 2.3, env: 0.8, fog: 0.0015, fogColor: 0xa9b7c4, bgIntensity: 0.8 },
   hot: { hdri: 'qwantani_noon_puresky', sun: 3.4, sunColor: 0xfff0d0, env: 1, fog: 0.003, fogColor: 0xd8d0bd },
-  dusk: { hdri: 'qwantani_dusk_2_puresky', sun: 1.8, sunColor: 0xffa070, env: 0.7, fog: 0.004, fogColor: 0x8c7c86 },
+  dusk: { hdri: 'qwantani_dusk_2_puresky', sun: 1.8, sunColor: 0xffa070, env: 0.7, fog: 0.002, fogColor: 0x6c5f68, bgIntensity: 0.55 },
   sunset: { hdri: 'belfast_sunset_puresky', sun: 2.2, sunColor: 0xffae70, env: 0.8, fog: 0.003, fogColor: 0xc0a090 },
   night: { hdri: 'qwantani_night_puresky', sun: 0.15, sunColor: 0x8fa8ff, env: 0.35, fog: 0.01, fogColor: 0x10141c },
   storm: { hdri: 'wasteland_clouds_puresky', sun: 1.2, env: 0.75, fog: 0.0016, fogColor: 0x7d848a, bgIntensity: 0.65 },
@@ -70,13 +70,15 @@ export function logCard(id: string, entries: [string, string][], o: { dur?: numb
       h.text(o.title ?? 'MISSION LOG', 240, 250, { font: 'mono', size: 26, color: COL.uiDim, alpha: a, tracking: 8 });
       h.line(240, 272, 1680, 272, COL.uiFaint, 1, a);
       let t0 = 0.8, y = 360;
+      const qx = Math.max(520, 240 + Math.max(...entries.map(([d]) => h.measure(d, { font: 'mono', size: 28, tracking: 3 }))) + 50);
       entries.forEach(([date, text], i) => {
         if (t < t0) return;
         const typed = h.type(`"${text}"`, t, t0 + 0.35, 40);
         h.text(date, 240, y, { font: 'mono', size: 28, color: o.col ?? COL.ui, alpha: a, tracking: 3 });
-        const lines = h.wrap(typed, 1180, { font: 'body', size: 44, weight: 600 });
-        lines.forEach((ln, k) => h.text(ln, 520, y + k * 54, { font: 'body', size: 44, weight: 600, color: COL.white, alpha: a }));
-        y += Math.max(1, h.wrap(`"${text}"`, 1180, { font: 'body', size: 44, weight: 600 }).length) * 54 + 34;
+        const lw = 1680 - qx;
+        const lines = h.wrap(typed, lw, { font: 'body', size: 44, weight: 600 });
+        lines.forEach((ln, k) => h.text(ln, qx, y + k * 54, { font: 'body', size: 44, weight: 600, color: COL.white, alpha: a }));
+        y += Math.max(1, h.wrap(`"${text}"`, lw, { font: 'body', size: 44, weight: 600 }).length) * 54 + 34;
         t0 += per[i];
       });
     },
