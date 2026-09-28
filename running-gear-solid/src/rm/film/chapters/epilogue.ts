@@ -170,7 +170,7 @@ export function epilogue(): Scene[] {
       })(),
       sky: SKY.sunrise,
       shots: [
-        { dur: 6, T: -2, cam: { mode: 'follow', dist: 3.2, h: 1.5, ang: 160, look: 1.4, fov: 32 }, grade: { letterbox: 1 } },
+        { dur: 6, T: -2, cam: { mode: 'follow', dist: 3.6, h: 1.7, ang: 160, look: 1.6, fov: 34 }, grade: { letterbox: 1 } },
         { dur: 12, T: 4, cam: { mode: 'follow', dist: 6, h: 1.4, ang: -10, look: 1.2, fov: 30 }, cam2: { dist: 26, h: 2.5 }, grade: { letterbox: 1 } },
       ],
       onFrame: (race, i, ctx) => {
