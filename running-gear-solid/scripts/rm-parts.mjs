@@ -36,7 +36,15 @@ if (!flag('assemble-only')) {
       continue;
     }
     console.log(`\n== ${base}: ${p.start.toFixed(2)} - ${p.end.toFixed(2)} s`);
-    const r = spawnSync('node', [path.join(ROOT, 'scripts', 'rm-render.mjs'), '--workers', opt('workers', '2'), '--from', String(p.start), '--to', String(p.end), '--noaudio', '--out', p.file], { stdio: 'inherit', cwd: ROOT });
+    // a crashed attempt is retried; rm-render resumes from the blocks it already finished
+    let r;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const argv = [path.join(ROOT, 'scripts', 'rm-render.mjs'), '--workers', opt('workers', '1'), '--from', String(p.start), '--to', String(p.end), '--noaudio', '--out', p.file];
+      if (attempt === 0 && flag('force')) argv.push('--fresh');
+      r = spawnSync('node', argv, { stdio: 'inherit', cwd: ROOT });
+      if (r.status === 0) break;
+      console.error(`part ${base} attempt ${attempt + 1} failed`);
+    }
     if (r.status !== 0) {
       console.error('part failed', base);
       process.exit(1);

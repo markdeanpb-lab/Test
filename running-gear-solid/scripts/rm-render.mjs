@@ -3,7 +3,7 @@
 // 1920x1080 RGB into FFmpeg per worker slice, joins the segments, synthesises the score from
 // the film's own cue list and muxes output/running-gear-solid.mp4.
 //
-//   node scripts/rm-render.mjs [--workers N] [--from S] [--to S] [--only sceneprefix] [--out f.mp4] [--noaudio]
+//   node scripts/rm-render.mjs [--fresh] [--workers N] [--from S] [--to S] [--only sceneprefix] [--out f.mp4] [--noaudio]
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -42,11 +42,24 @@ const to = Math.min(meta.duration, Number(opt('to', meta.duration)));
 const f0 = Math.round(from * FPS), f1 = Math.round(to * FPS), total = f1 - f0;
 console.log(`REMASTER: ${meta.duration.toFixed(1)} s film; frames ${f0}..${f1 - 1} (${total}) @ ${FPS} fps, ${workers} worker(s)`);
 
-// Slices are interleaved in blocks so workers share the load of heavy and light scenes,
+// Work is split into contiguous blocks that workers take in turn,
 // but each block is contiguous (scene loads amortise).
-const BLOCK = Math.max(24, Math.ceil(total / (workers * 6)));
+// fixed-size blocks (20 s) keep resume keys independent of the worker count
+const BLOCK = 480;
 const blocks = [];
 for (let a = f0, k = 0; a < f1; a += BLOCK, k++) blocks.push({ k, a, b: Math.min(f1, a + BLOCK) });
+// segments live in a directory keyed by the output file and frame range, so concurrent renders
+// never collide and an interrupted render resumes from its finished blocks
+const SEG = path.join(OUT, 'seg', `${path.basename(outFile, '.mp4')}_${f0}-${f1}_b${BLOCK}`);
+if (flag('fresh')) fs.rmSync(SEG, { recursive: true, force: true });
+fs.mkdirSync(SEG, { recursive: true });
+for (const b of blocks) {
+  b.seg = path.join(SEG, `${String(b.k).padStart(4, '0')}.mp4`);
+  if (fs.existsSync(b.seg)) b.taken = b.done = true;
+}
+const resumed = blocks.filter((b) => b.done).length;
+if (resumed) console.log(`  resuming: ${resumed}/${blocks.length} blocks already rendered`);
+const todo = blocks.filter((b) => !b.done).reduce((n, b) => n + b.b - b.a, 0);
 const started = Date.now();
 let done = 0;
 const X264 = ['-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p'];
@@ -57,7 +70,7 @@ async function worker(w) {
     const blk = blocks.find((b) => !b.taken);
     if (!blk) break;
     blk.taken = true;
-    const seg = path.join(OUT, `rmseg_${String(blk.k).padStart(4, '0')}.mp4`);
+    const seg = blk.seg + '.part.mp4';
     const enc = run(ffmpegPath, ['-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${W}x${H}`, '-framerate', String(FPS), '-i', '-', '-vf', 'vflip', ...X264, '-r', String(FPS), seg], true);
     for (let f = blk.a; f < blk.b; f++) {
       const b64 = await film.page.evaluate(async (t) => {
@@ -66,14 +79,14 @@ async function worker(w) {
       }, f / FPS);
       await write(enc.p.stdin, Buffer.from(b64, 'base64'));
       done++;
-      if (done % 48 === 0 || done === total) {
+      if (done % 48 === 0 || done === todo) {
         const el = (Date.now() - started) / 1000;
-        console.log(`  ${done}/${total}  ${(done / el).toFixed(2)} fps  eta ${Math.round(((el / done) * (total - done)) / 60)} min`);
+        console.log(`  ${done}/${todo}  ${(done / el).toFixed(2)} fps  eta ${Math.round(((el / done) * (todo - done)) / 60)} min`);
       }
     }
     enc.p.stdin.end();
     await enc.done;
-    blk.seg = seg;
+    fs.renameSync(seg, blk.seg);
   }
   const errs = film.errors.filter((e) => !/404/.test(e));
   if (errs.length) console.warn(`worker ${w} page errors:\n` + errs.slice(0, 10).join('\n'));
@@ -88,11 +101,10 @@ if (!flag('noaudio')) {
   const r = spawnSync('npx', ['tsx', path.join(ROOT, 'scripts', 'rm-audio.ts')], { stdio: 'inherit', cwd: ROOT });
   if (r.status !== 0) console.warn('audio synthesis failed');
 }
-const list = path.join(OUT, 'rmsegs.txt');
+const list = path.join(SEG, 'list.txt');
 fs.writeFileSync(list, blocks.map((b) => `file '${path.basename(b.seg)}'`).join('\n') + '\n');
 const hasAudio = !flag('noaudio') && fs.existsSync(wav);
 const aIn = hasAudio ? ['-ss', String(from), '-t', String(total / FPS), '-i', wav] : [];
 await run(ffmpegPath, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', list, ...aIn, '-map', '0:v', ...(hasAudio ? ['-map', '1:a', '-c:a', 'aac', '-b:a', '224k', '-shortest'] : []), '-c:v', 'copy', '-movflags', '+faststart', outFile]).done;
-for (const b of blocks) fs.rmSync(b.seg, { force: true });
-fs.rmSync(list, { force: true });
+fs.rmSync(SEG, { recursive: true, force: true });
 console.log(`wrote ${path.relative(ROOT, outFile)} in ${((Date.now() - started) / 60000).toFixed(1)} min`);
