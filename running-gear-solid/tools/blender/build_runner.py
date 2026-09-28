@@ -90,7 +90,7 @@ def region(v):
     arms = wsum(w, ARMB)
     headneck = wsum(w, ['neck_01', 'Head'])
     torso = wsum(w, SPINE + ['pelvis', 'clavicle_l', 'clavicle_r'])
-    if p[up] > waist - 0.03 and arms < 0.12 and headneck < 0.08 and torso > 0.5:
+    if p[up] > waist - 0.075 and arms < 0.12 and headneck < 0.08 and torso > 0.45:
         out.add('singlet')
     if p[up] > mid_thigh and p[up] < waist + 0.035 and wsum(w, ['pelvis', 'thigh_l', 'thigh_r', 'spine_01']) > 0.5:
         out.add('shorts')
@@ -115,6 +115,18 @@ def make_garment(name, key, offset, smooth=0, flatten_sole=False, cover_skin=Tru
     bmesh.ops.delete(bm, geom=kill, context='FACES')
     loose = [v for v in bm.verts if not v.link_faces]
     bmesh.ops.delete(bm, geom=loose, context='VERTS')
+    # weld UV/normal seams so the offset shell has no cracks
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
+    # clean garment edges (necklines, armholes, hems): smooth boundary loops along themselves
+    for _ in range(8):
+        bnd = [v for v in bm.verts if v.is_boundary]
+        new = {}
+        for v in bnd:
+            nb = [e.other_vert(v) for e in v.link_edges if e.is_boundary]
+            if len(nb) == 2:
+                new[v] = (nb[0].co + nb[1].co) * 0.5 * 0.6 + v.co * 0.4
+        for v, co in new.items():
+            v.co = co
     for _ in range(smooth):
         bmesh.ops.smooth_vert(bm, verts=bm.verts, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
     bm.normal_update()

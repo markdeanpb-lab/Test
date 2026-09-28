@@ -85,6 +85,8 @@ export interface RaceOpts {
   halfWidth?: number;
   /** STRIDE lateral offset (m, +right) */
   lane?: number;
+  /** course arc (m) where race distance 0 sits (for scenes that start part-way round) */
+  s0?: number;
   wet?: number;
   night?: number;
   treeLight?: number;
@@ -93,7 +95,7 @@ export interface RaceOpts {
   /** per-frame hook for boss/FX/HUD (after camera is placed) */
   onFrame?: (race: RaceScene, i: Info, ctx: Ctx) => void;
   /** hook for runner pose overrides (fatigue etc.) */
-  pose?: (i: Info) => { fatigue?: number; lean?: number; other?: Record<string, [number, number]>; locoWeight?: number; speedScale?: number };
+  pose?: (i: Info) => { fatigue?: number; lean?: number; other?: Record<string, [number, number]>; locoWeight?: number; speedScale?: number; post?: (r: Runner) => void };
   cues?: Cue[];
   /** what STRIDE does after the finish: walk on, or stop */
   after?: 'walk' | 'stop';
@@ -289,12 +291,13 @@ export class RaceScene extends Scene {
       const startPen = T <= 0 || d <= 0;
       let lane = r.lane + (r.k === 1 ? Math.sin(T * 0.07 + r.seed) * 0.25 : Math.sin(T * 0.07 + r.seed) * 0.6);
       if (startPen) {
-        // standing in the pen behind the line: rows of five, 0.75 m apart
+        // standing in the pen behind the line: shoulder to shoulder, 0.62 m apart
         const idx = this.field.indexOf(r);
-        const row = Math.floor(idx / 5), col = idx % 5;
         const hw = this.o.halfWidth ?? 2.5;
-        lane = (col / 4 - 0.5) * 2 * (hw - 0.4) + (hash(r.seed, 7) - 0.5) * 0.25;
-        d = -1.2 - row * 0.75 - hash(r.seed, 8) * 0.2;
+        const cols = Math.max(3, Math.floor((2 * (hw - 0.3)) / 0.62));
+        const row = Math.floor(idx / cols), col = idx % cols;
+        lane = (col / (cols - 1) - 0.5) * 2 * (hw - 0.3) + (hash(r.seed, 7) - 0.5) * 0.22;
+        d = -1.0 - row * 0.72 - hash(r.seed, 8) * 0.2;
       }
       if (d > L + 30) continue;
       raw.push({ r, d, lane, T, startPen });
@@ -314,7 +317,7 @@ export class RaceScene extends Scene {
     }
     for (const { r, d, lane, T: _T, startPen } of raw) {
       void _T;
-      const p = this.place(d * this.scale, lane);
+      const p = this.place((this.o.s0 ?? 0) + d * this.scale, lane);
       const spd = startPen ? 0 : Math.max(0.1, (this.o.profile.distAt(T * r.k + 1) - this.o.profile.distAt(T * r.k - 1)) / 2);
       const stride = 2.5 + spd * 0.35;
       const phase = d / stride + hash(r.seed, 3);
@@ -344,7 +347,7 @@ export class RaceScene extends Scene {
     const T = shot.T + lt * (shot.rate ?? 1);
     const d = this.dist(T);
     const lane = o.lane ?? 0.4;
-    const s = d * this.scale;
+    const s = (this.o.s0 ?? 0) + d * this.scale;
     const p = this.place(s, lane);
     const speed = T <= 0 ? 0 : (this.dist(T + 0.5) - this.dist(T - 0.5)) / 1;
     const pos = new THREE.Vector3(p.x, p.y, p.z);
@@ -357,19 +360,20 @@ export class RaceScene extends Scene {
     r.root.rotation.y = Math.atan2(dir.dx, dir.dz);
     const extra = o.pose?.(this.info) ?? {};
     if (speed < 0.3) {
-      r.pose({ phase: 0, speed: 1, locoWeight: 0, other: extra.other ?? { Idle_Loop: [1, T + 10] }, fatigue: extra.fatigue });
+      r.pose({ phase: 0, speed: 1, locoWeight: 0, other: extra.other ?? { Idle_Loop: [1, T + 10] }, fatigue: extra.fatigue, post: extra.post });
     } else {
-      r.pose({ phase: this.track.at(T), speed: Math.max(0.6, speed), fatigue: extra.fatigue, lean: extra.lean, other: extra.other, locoWeight: extra.locoWeight });
+      r.pose({ phase: this.track.at(T), speed: Math.max(0.6, speed), fatigue: extra.fatigue, lean: extra.lean, other: extra.other, locoWeight: extra.locoWeight, post: extra.post });
     }
     // camera
     const stage = this.stage!;
     const cu = shot.ease === 'linear' ? u : shot.ease === 'out' ? 1 - Math.pow(1 - u, 2) : easeInOut(u);
     const spec = mixSpec(shot.cam, shot.cam2, cu);
-    applyCam(stage.camera, spec, { pos, dir }, t, (x, z) => this.arena.heightAt(x, z), (ss) => this.courseAt(ss));
+    // fixed cameras are specified by race distance along the course
+    applyCam(stage.camera, spec, { pos, dir }, t, (x, z) => this.arena.heightAt(x, z), (dd) => this.courseAt((this.o.s0 ?? 0) + dd * this.scale));
     // world
     stage.atmos.follow(pos);
     this.arena.update(stage.camera.position, pos, t);
-    this.crowd?.set(this.people(T, d, lane), stage.camera);
+    this.crowd?.set(this.people(T, d, lane), stage.camera, 16, pos);
     Object.assign(ctx.r.grade, shot.grade ?? {});
     o.onFrame?.(this, this.info, ctx);
     void ease;

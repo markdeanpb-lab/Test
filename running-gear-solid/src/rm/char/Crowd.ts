@@ -90,7 +90,7 @@ export class Crowd {
   }
 
   /** Place everyone for this frame. Culls people outside the camera frustum. */
-  set(people: Person[], camera?: THREE.Camera, lodDist = 16) {
+  set(people: Person[], camera?: THREE.Camera, lodDist = 16, subject?: THREE.Vector3) {
     for (const m of this.meshes.values()) m.count = 0;
     if (camera) {
       camera.updateMatrixWorld();
@@ -103,6 +103,13 @@ export class Crowd {
         if (!this.frustum.intersectsSphere(this.sphere)) continue;
         const dc = camera.position.distanceTo(this.sphere.center);
         if (dc < 1.3) continue; // never let an extra fill the lens
+        if (subject) {
+          // nobody standing between the camera and the subject
+          const ax = camera.position.x, az = camera.position.z, bx = subject.x, bz = subject.z;
+          const vx = bx - ax, vz = bz - az, l2 = vx * vx + vz * vz;
+          const u = l2 ? Math.max(0, Math.min(1, ((pp.x - ax) * vx + (pp.z - az) * vz) / l2)) : 0;
+          if (u > 0 && u < 0.97 && Math.hypot(ax + vx * u - pp.x, az + vz * u - pp.z) < 0.5) continue;
+        }
         if (dc > lodDist && this.geos.has(name + '_lo')) name += '_lo';
       }
       const m = this.meshFor(name);
@@ -148,7 +155,7 @@ function crowdMaterial() {
         else if (part > 2.5 && part < 3.5) { vKit = vec3(0.85); vRough = 0.9; }
         else if (part > 3.5 && part < 4.5) { vKit = iShoes; vRough = 0.5; }
         else if (part > 4.5 && part < 5.5) { vKit = iHair; vRough = 0.55; }
-        else if (part > 5.5 && part < 6.5) { vKit = vec3(0.9); vRough = 0.2; }
+        else if (part > 5.5 && part < 6.5) { vKit = vec3(0.06); vRough = 0.2; }
         else if (part > 6.5) { vKit = vec3(0.05); vRough = 0.3; }`,
       );
     sh.fragmentShader = sh.fragmentShader

@@ -19,13 +19,17 @@ export const STRIDE_KIT: Kit = { singlet: 0x1d3f6e, shorts: 0x141417, socks: 0xe
 
 interface Gait { clip: THREE.AnimationClip; action: THREE.AnimationAction; a: number; b: number; travel: number; speed: number; stride: number; offset: number }
 
-let shared: Promise<{ body: THREE.Object3D; clips: THREE.AnimationClip[] }> | null = null;
-function assets() {
-  shared ??= (async () => {
-    const [char, u1, u2] = await Promise.all([loadGLTF('/assets/char/runner.glb'), loadGLTF('/assets/char/UAL1_Standard.glb'), loadGLTF('/assets/char/UAL2_Standard.glb')]);
-    return { body: char.scene, clips: [...u1.animations, ...u2.animations] };
-  })();
-  return shared;
+const shared = new Map<string, Promise<{ body: THREE.Object3D; clips: THREE.AnimationClip[] }>>();
+function assets(model: string) {
+  let p = shared.get(model);
+  if (!p) {
+    p = (async () => {
+      const [char, u1, u2] = await Promise.all([loadGLTF('/assets/char/' + model), loadGLTF('/assets/char/UAL1_Standard.glb'), loadGLTF('/assets/char/UAL2_Standard.glb')]);
+      return { body: char.scene, clips: [...u1.animations, ...u2.animations] };
+    })();
+    shared.set(model, p);
+  }
+  return p;
 }
 
 export class Runner {
@@ -36,6 +40,8 @@ export class Runner {
   private readonly actions = new Map<string, THREE.AnimationAction>();
   private gaits: Record<'walk' | 'jog' | 'sprint', Gait>;
   private bones: Record<string, THREE.Bone> = {};
+  private boneList: THREE.Bone[] = [];
+  private clean: THREE.Quaternion[] = [];
   readonly materials: Record<string, THREE.MeshStandardMaterial> = {};
 
   private constructor(src: { body: THREE.Object3D; clips: THREE.AnimationClip[] }, kit: Kit) {
@@ -44,7 +50,10 @@ export class Runner {
     this.clips = new Map(src.clips.map((c) => [c.name, c]));
     this.body.traverse((o) => {
       const m = o as THREE.SkinnedMesh;
-      if ((o as THREE.Bone).isBone) this.bones[o.name] = o as THREE.Bone;
+      if ((o as THREE.Bone).isBone) {
+        this.bones[o.name] = o as THREE.Bone;
+        this.boneList.push(o as THREE.Bone);
+      }
       if (!m.isMesh) return;
       m.castShadow = m.receiveShadow = true;
       m.frustumCulled = false;
@@ -92,8 +101,8 @@ export class Runner {
     this.gaits = { walk: mk('Walk_Loop'), jog: mk('Jog_Fwd_Loop'), sprint: mk('Sprint_Loop') };
   }
 
-  static async create(kit: Kit = STRIDE_KIT) {
-    return new Runner(await assets(), kit);
+  static async create(kit: Kit = STRIDE_KIT, model = 'runner.glb') {
+    return new Runner(await assets(model), kit);
   }
 
   /**
@@ -133,6 +142,54 @@ export class Runner {
     return this.bones[name];
   }
 
+  /** Rotate a bone so its axis (towards `child`) points at a world-space target. */
+  aim(boneName: string, child: string, target: THREE.Vector3, twist = 0) {
+    const b = this.bones[boneName], c = this.bones[child];
+    if (!b || !c) return;
+    this.root.updateMatrixWorld(true);
+    const axis = c.position.clone().normalize();
+    const q = b.getWorldQuaternion(new THREE.Quaternion());
+    const p = b.getWorldPosition(new THREE.Vector3());
+    const cur = axis.clone().applyQuaternion(q);
+    const want = target.clone().sub(p).normalize();
+    const d = new THREE.Quaternion().setFromUnitVectors(cur, want);
+    const nq = d.multiply(q);
+    if (twist) nq.multiply(new THREE.Quaternion().setFromAxisAngle(axis, twist));
+    const pq = b.parent!.getWorldQuaternion(new THREE.Quaternion()).invert();
+    b.quaternion.copy(pq.multiply(nq));
+    b.updateMatrixWorld(true);
+  }
+
+  /** Procedural pose: left wrist raised in front of the chest, head down to read the watch. */
+  checkWatch(k = 1, twist = -1.2) {
+    if (k <= 0) return;
+    this.root.updateMatrixWorld(true);
+    const yaw = this.root.rotation.y;
+    const f = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    const right = new THREE.Vector3(-f.z, 0, f.x);
+    const base = this.root.position;
+    const sh = this.bones.upperarm_l.getWorldPosition(new THREE.Vector3());
+    const hand0 = this.bones.hand_l.getWorldPosition(new THREE.Vector3());
+    const elbow0 = this.bones.lowerarm_l.getWorldPosition(new THREE.Vector3());
+    const wrist = base.clone().addScaledVector(f, 0.3).addScaledVector(right, 0.13).add(new THREE.Vector3(0, 1.24, 0));
+    const elbow = sh.clone().addScaledVector(f, 0.14).addScaledVector(right, -0.2).add(new THREE.Vector3(0, -0.2, 0));
+    this.aim('upperarm_l', 'lowerarm_l', elbow0.lerp(elbow, k));
+    this.aim('lowerarm_l', 'hand_l', hand0.lerp(wrist, k), twist * k);
+    this.tilt('neck_01', right, -0.25 * k);
+    this.tilt('Head', right, -0.35 * k);
+  }
+
+  /** rotate a bone about a world-space axis */
+  tilt(boneName: string, axisW: THREE.Vector3, angle: number) {
+    const b = this.bones[boneName];
+    if (!b) return;
+    const q = b.getWorldQuaternion(new THREE.Quaternion());
+    const nq = new THREE.Quaternion().setFromAxisAngle(axisW.clone().normalize(), angle).multiply(q);
+    const pq = b.parent!.getWorldQuaternion(new THREE.Quaternion()).invert();
+    b.quaternion.copy(pq.multiply(nq));
+    b.updateMatrixWorld(true);
+  }
+
   action(name: string) {
     let a = this.actions.get(name);
     if (!a) {
@@ -148,7 +205,7 @@ export class Runner {
    * Pose the runner. phase = cycles completed (from integrated distance / stride), speed m/s.
    * other: extra clip weights {name: [weight, time]} blended on top (idle, walk-in, etc.)
    */
-  pose(o: { phase: number; speed: number; fatigue?: number; lean?: number; other?: Record<string, [number, number]>; locoWeight?: number }) {
+  pose(o: { phase: number; speed: number; fatigue?: number; lean?: number; other?: Record<string, [number, number]>; locoWeight?: number; post?: (r: Runner) => void }) {
     const { jog, sprint, walk } = this.gaits;
     const s = o.speed;
     // gait weights by speed: walk < 2.2 m/s < jog < 4.6 m/s < sprint
@@ -185,7 +242,13 @@ export class Runner {
       a.time = t % a.getClip().duration;
       a.setEffectiveWeight(w);
     }
+    // three's PropertyMixer only writes a bone when its value changes, so restore the clean
+    // (pre-procedural) pose first; otherwise procedural tweaks would accumulate across frames
+    const bl = this.boneList;
+    if (this.clean.length) for (let i = 0; i < bl.length; i++) bl[i].quaternion.copy(this.clean[i]);
     this.mixer.update(0);
+    if (!this.clean.length) for (const b of bl) this.clean.push(b.quaternion.clone());
+    else for (let i = 0; i < bl.length; i++) this.clean[i].copy(bl[i].quaternion);
     // procedural layer: fatigue slump / forward lean
     const f = o.fatigue ?? 0, lean = o.lean ?? 0;
     const rot = (b: string, x: number, y = 0, z = 0) => {
@@ -200,6 +263,7 @@ export class Runner {
       rot('upperarm_l', 0, 0, -0.12 * f);
       rot('upperarm_r', 0, 0, 0.12 * f);
     }
+    o.post?.(this);
   }
 
   /** metres per full cycle (two steps) at speed s */

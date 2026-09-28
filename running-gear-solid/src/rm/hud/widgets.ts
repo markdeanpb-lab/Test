@@ -66,3 +66,61 @@ export function splitPop(h: Hud, o: { km: number; split: number; since: number; 
   h.text(`KM ${o.km}`, 96, 1000, { font: 'mono', size: 22, color: COL.uiDim, alpha: a, tracking: 3, shadow: true });
   h.text(pace(o.split), 210, 1002, { font: 'mono', size: 34, color: o.col ?? COL.white, alpha: a, shadow: true });
 }
+
+/** Large circular watch-face inset (for "checking the watch" beats). */
+export function watchInset(h: Hud, o: { main: string; sub?: string; top?: string; alpha?: number; x?: number; y?: number; r?: number; col?: string; progress?: number }) {
+  const a = o.alpha ?? 1;
+  if (a <= 0) return;
+  const x = o.x ?? 960, y = o.y ?? 540, r = o.r ?? 260;
+  const g = h.g;
+  const col = o.col ?? COL.ui;
+  g.save();
+  g.globalAlpha = a;
+  // bezel
+  const grd = g.createRadialGradient(x - r * 0.3, y - r * 0.4, r * 0.2, x, y, r * 1.12);
+  grd.addColorStop(0, '#3a3d40');
+  grd.addColorStop(1, '#0b0c0d');
+  g.fillStyle = grd;
+  g.beginPath();
+  g.arc(x, y, r * 1.12, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = '#030504';
+  g.beginPath();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.fill();
+  // ticks
+  g.strokeStyle = col;
+  for (let i = 0; i < 60; i++) {
+    const ang = (i / 60) * Math.PI * 2;
+    const l = i % 5 === 0 ? 18 : 8;
+    g.globalAlpha = a * (i % 5 === 0 ? 0.7 : 0.3);
+    g.lineWidth = i % 5 === 0 ? 3 : 1.5;
+    g.beginPath();
+    g.moveTo(x + Math.sin(ang) * (r - 14), y - Math.cos(ang) * (r - 14));
+    g.lineTo(x + Math.sin(ang) * (r - 14 - l), y - Math.cos(ang) * (r - 14 - l));
+    g.stroke();
+  }
+  // progress arc
+  if (o.progress !== undefined) {
+    g.globalAlpha = a;
+    g.lineWidth = 8;
+    g.shadowColor = col;
+    g.shadowBlur = 16;
+    g.beginPath();
+    g.arc(x, y, r - 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.001, o.progress));
+    g.stroke();
+    g.shadowBlur = 0;
+  }
+  g.restore();
+  if (o.top) h.text(o.top, x, y - r * 0.32, { font: 'mono', size: r * 0.1, color: COL.uiDim, align: 'center', alpha: a, tracking: 6 });
+  h.text(o.main, x, y + r * 0.12, { font: 'mono', size: r * 0.34, color: col, align: 'center', alpha: a, glow: 18 });
+  if (o.sub) h.text(o.sub, x, y + r * 0.36, { font: 'mono', size: r * 0.1, color: COL.ui, align: 'center', alpha: a, tracking: 6 });
+  // glass highlight
+  g.save();
+  g.globalAlpha = a * 0.08;
+  g.fillStyle = '#fff';
+  g.beginPath();
+  g.ellipse(x - r * 0.25, y - r * 0.45, r * 0.55, r * 0.22, -0.5, 0, Math.PI * 2);
+  g.fill();
+  g.restore();
+}

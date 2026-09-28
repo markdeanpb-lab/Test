@@ -18,7 +18,7 @@ export interface CamSpec {
   /** lateral screen offset of the look point (m, +right) */
   side?: number;
   fov?: number;
-  /** fixed: world position, or course-relative {s (arc m), off (m, +right), h} */
+  /** fixed: world position, or course-relative {s (race distance m), off (m, +right), h} */
   at?: [number, number, number] | { s: number; off: number; h: number };
   shake?: number;
   roll?: number;
