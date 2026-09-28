@@ -11,7 +11,7 @@
     "audio": "tsx scripts/rm-audio.ts",
     "render": "node scripts/rm-parts.mjs",
     "shots": "node scripts/screenshots.mjs",
-    "render:v1": "npm run audio && node scripts/render.mjs",
+    "render:v1": "npm run audio:v1 && node scripts/render.mjs",
     "audio:v1": "tsx scripts/synth-audio.ts"
   },
   "license": "MIT",

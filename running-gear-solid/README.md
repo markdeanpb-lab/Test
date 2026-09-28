@@ -1,4 +1,70 @@
-# RUNNING GEAR SOLID
+# RUNNING GEAR SOLID: REMASTERED
+
+A 26-minute cinematic film, made in code from a real Strava running career (14.05.2020 – 27.09.2026). It is staged as a
+modern high-budget remake of a late-1990s tactical-espionage game. Every race, time, split, route and quote on
+screen comes from the Strava record. Codec dialogue is fiction and never states a fact the data doesn't support.
+
+```
+npm install
+npm run dev       # live preview (remaster.html; ?only=<scene prefix> to jump, e.g. ?only=c8)
+npm run render    # render every chapter to output/parts/, synthesise audio, assemble output/running-gear-solid.mp4
+```
+
+`npm run render` renders one part per chapter, so a single chapter can be redone:
+`node scripts/rm-parts.mjs --only 08 --force`, then `node scripts/rm-parts.mjs --assemble-only`.
+Output: 1920×1080, 24 fps, H.264 + AAC. With SwiftShader and no GPU, frames take about 0.85 s each; the whole film
+renders in about 7–8 hours with 2 workers.
+
+The story bible (threads, boss tiers, chapter beats, sources) is in [`docs/STORY.md`](docs/STORY.md). The v1 critique
+that drove the remaster is in [`docs/V1_REVIEW.md`](docs/V1_REVIEW.md).
+
+## Structure
+
+| Chapter | Span | Climax |
+|---|---|---|
+| PROLOGUE | Manchester start pen, watch set to 3:00:00 | "A line." → six years earlier |
+| 1 BASIC TRAINING | First run (11 minutes standing still), first parkrun back | – |
+| 2 20:XX | SUB 20 appears; THE HARE, HINGE, near misses | **DOUBLE ZERO** R1 20:00 (wind) → R2 19:25 |
+| 3 AMBITION | FORTY, SUB 19, SUB 1:30 appears | **PHANTOM 1:30** I escapes; FURNACE; THE CLAW |
+| 4 THE PHANTOM | Shingles, doubt | **PHANTOM 1:30** II: 1:29:01, the music stops |
+| 5 HAIRLINE | Stress reaction, Valencia cancelled | The boss you can't fight |
+| 6 RETURN | Comeback, final Finsbury, SUB 18 | **EIGHTEEN**: 18:19, not yet |
+| 7 THE LINE | 18 weeks of bricks, THE HARE at Bath, Regent's Park | Watch set to 3:00:00 |
+| 8 THE WALL | Manchester Marathon on real splits | MACHINE → FRICTION → WALL → SURVIVAL: 3:20:03, "I AM STILL STANDING" |
+| EPILOGUE | Crutches, 18:43, mission log | SUB 3 and SUB 18 incomplete: new mission detected |
+
+## How it is built
+
+- **Engine** (`src/rm/engine/`): the Three.js renderer with a custom quarter-res SSAO, bokeh, bloom, FXAA and a final
+  grade/grain/letterbox pass that composites the 1080p HUD canvas. Also the HDRI sky, the sun, and shadows that
+  follow the runner.
+- **World** (`src/rm/world/`): arenas built from OpenStreetMap, terrain tiles and map-matched Strava GPS
+  (`tools/geo/`). Includes chunked splat-textured terrain, extruded buildings, tree impostors, water and barriers.
+  Courses are the real ones (Finsbury is the two-lap course).
+- **Characters** (`src/rm/char/`): STRIDE is a Quaternius CC0 body with a generated kit (`tools/blender/build_runner.py`).
+  The gait uses stance time-warp from a cadence model, plus procedural fatigue, lean and watch checks. The crowd is
+  baked in Blender (`tools/blender/bake_crowd.py`, not committed; rebuild before rendering).
+- **Film** (`src/rm/film/`):
+  - `core.ts` is the deterministic `renderFrame(t)` scene graph with cues.
+  - `RaceScene.ts` stages a race from a real RunProfile, with its field, spectators and camera rigs.
+  - `Codec.ts`, `Cards.ts`, `VRScene.ts`, `Bricks.ts` and `fx.ts` provide codec calls, 2D cards, the VR void, the
+    training-brick wall, and the ghost pacers, holo numbers and wall effects.
+  - `chapters/*.ts` hold the edit.
+- **HUD** (`src/rm/hud/`): contextual TARGET / PROJECTION / DELTA blocks, boss plates, splits and the watch inset.
+- **Audio** (`scripts/rm-audio.ts`): the score, ambience and SFX are synthesised from the film's own cue list. Silence
+  cues duck the music.
+- **Render** (`scripts/rm-parts.mjs`, `scripts/rm-render.mjs`): headless Chromium steps exact timestamps, and workers
+  stream raw RGB into x264.
+
+Third-party assets: Quaternius (CC0), Poly Haven (CC0), OpenStreetMap (ODbL), AWS Terrain Tiles, Rajdhani and
+Share Tech Mono (OFL). Fetch them with `node scripts/fetch-assets.mjs`. All names, characters, music and dialogue
+are original.
+
+---
+
+# v1: the five-minute PS1 cut
+
+The original prototype still builds with `npm run render:v1` / `npm run audio:v1`.
 
 A five-minute cinematic "lost 1998 PS1 tactical-espionage game", generated in
 code from a real Strava running career (1,231 runs, 14.05.2020 – 27.09.2026).
@@ -8,8 +74,8 @@ data, it is not shown as fact.
 
 ```
 npm install
-npm run dev       # live preview at http://localhost:5199 (space = play, arrows = seek, ?t=SECONDS)
-npm run render    # synthesise audio, render every frame, encode output/running-gear-solid.mp4
+npx vite          # (v1) live preview at http://localhost:5199/index.html (space = play, arrows = seek, ?t=SECONDS)
+npm run render:v1 # synthesise audio, render every frame, encode output/running-gear-solid.mp4 (same path as the remaster; pass `-- --out output/v1.mp4`)
 ```
 
 `npm run render` passes options through: `npm run render -- --workers 3`,
