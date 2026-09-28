@@ -46,7 +46,7 @@ export function ch1(): Scene[] {
       { dur: 5, T: 420, cam: { mode: 'follow', dist: 5, h: 1.7, ang: 12, look: 1.2, fov: 40 }, cam2: { dist: 4.2 } },
       { dur: 5, T: 880, cam: { mode: 'follow', dist: 3.4, h: 0.9, ang: 82, look: 1.0, fov: 42 } },
       // CCTV: eleven minutes standing still, fast-forwarded
-      { dur: 12, T: 1080, rate: 57, cam: { mode: 'fixed', at: { s: stopD - 16, off: -5, h: 6.5 }, look: 1.0, fov: 34, shake: 0 }, tag: 'cctv' },
+      { dur: 12, T: 1080, rate: 57, cam: { mode: 'fixed', at: { s: stopD - 16, off: 6, h: 6.5 }, look: 1.0, fov: 34, shake: 0 }, tag: 'cctv' },
       { dur: 5, T: 1770, cam: { mode: 'follow', dist: 4.5, h: 1.5, ang: 170, look: 1.3, fov: 38 }, cam2: { dist: 6, h: 2 } },
       { dur: 7, T: 2934, cam: { mode: 'follow', dist: 9, h: 3, ang: 150, look: 1.0, fov: 36 }, cam2: { dist: 11, h: 4 }, tag: 'end' },
     ],
@@ -146,7 +146,7 @@ export function ch1(): Scene[] {
     },
     shots: [
       { dur: 6, T: -10, cam: { mode: 'follow', dist: 14, h: 6, ang: 150, look: 0.8, fov: 38, shake: 0.2 }, cam2: { dist: 11, h: 4.5 }, grade: { letterbox: 1 } },
-      { dur: 4, T: 2, cam: { mode: 'follow', dist: 5.5, h: 1.3, ang: 145, look: 1.1, fov: 38, shake: 0.5 } },
+      { dur: 4, T: 2, cam: { mode: 'follow', dist: 6, h: 2.4, ang: 18, look: 1.1, fov: 38, shake: 0.4, ahead: 4 } },
       { dur: 4, T: 540, cam: { mode: 'follow', dist: 4.5, h: 1.6, ang: 10, look: 1.2, fov: 40 } },
       { dur: 4, T: 1180, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: 95, look: 1.1, fov: 40 } },
       { dur: 9, T: 1533, rate: 0.45, cam: { mode: 'follow', dist: 5.5, h: 1.4, ang: 168, look: 1.2, fov: 36, shake: 0.3 }, cam2: { dist: 7.5 }, tag: 'finish' },
