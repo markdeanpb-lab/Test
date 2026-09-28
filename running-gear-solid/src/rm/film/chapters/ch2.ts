@@ -18,7 +18,8 @@ import { Ghost, HoloText, Streaks } from '../fx';
 import { prop, shoesProp, binProp, WatchFace } from '../props';
 import { Scene, Ctx } from '../core';
 import { Sentinel } from '../bosses/Sentinel';
-import { waterSide, faceCourse, mmss } from '../bosses/place';
+import { Hinge } from '../bosses/Hinge';
+import { waterSide, faceCourse, mmss, aimAt } from '../bosses/place';
 
 const parkrunDressing = (race: RaceScene) => {
   funnel(race, race.course.length, 30);
@@ -179,6 +180,7 @@ export function ch2(): Scene[] {
 
   // --- HINGE (major): "Testing the knee", then Hackney Half 22.05.2022, 1:46:30
   const hingeProf = RunProfile.fromSplits(HINGE.splits, HINGE.distanceKm, HINGE.timeSec);
+  let hinge: Hinge, hingeStart: THREE.Object3D;
   const hingePhase = (km: number) => (km < 5 ? 0 : km < 14 ? 1 : 2);
   scenes.push(
     logCard('c2-log-knee', [['21.05.2022', 'Parkrun - Testing the knee']], { title: 'MISSION LOG', hold: 1 }),
@@ -189,24 +191,35 @@ export function ch2(): Scene[] {
       sky: SKY.clear,
       halfWidth: 4,
       field: { count: 260, pack: 8, kmin: 0.8, kmax: 1.2, seed: 23 },
-      spectators: [{ s0: -40, s1: 60, density: 0.7 }, { s0: 21000, s1: 21400, density: 0.8 }, { s0: 6000, s1: 6200, density: 0.5 }, { s0: 12000, s1: 12150, density: 0.5 }],
-      build: (race) => {
-        arch(race, 0, 'HACKNEY HALF', 11);
+      spectators: [{ s0: 21000, s1: 21400, density: 0.8 }, { s0: 6000, s1: 6200, density: 0.5 }, { s0: 12000, s1: 12150, density: 0.5 }],
+      build: async (race) => {
+        hingeStart = arch(race, 0, 'HACKNEY HALF', 11);
         arch(race, race.course.length, 'FINISH', 11);
+        hinge = await Hinge.create();
+        race.extras.add(hinge.root);
       },
       shots: [
         { dur: 5, T: -6, cam: { mode: 'follow', dist: 12, h: 5, ang: 160, look: 1 }, cam2: { dist: 9 }, grade: { letterbox: 1 } },
-        { dur: 5, T: 700, cam: { mode: 'follow', dist: 4.5, h: 1.5, ang: 20, look: 1.2 } },
+        // it steps over the field: the reveal from under its knee
+        { dur: 7, T: 700, cam: { mode: 'follow', dist: 8, h: 1.0, ang: 14, look: 1.4, fov: 52 }, cam2: { dist: 6.5 }, tag: 'boss' },
         { dur: 6, T: 2600, cam: { mode: 'follow', dist: 3.2, h: 0.7, ang: 95, look: 0.7 }, tag: 'knee' },
-        { dur: 5, T: 4200, cam: { mode: 'follow', dist: 5, h: 2.2, ang: 190, look: 1.2 } },
-        { dur: 5, T: 5900, cam: { mode: 'follow', dist: 3.4, h: 1.3, ang: 150, look: 1.3 } },
+        // grind: from the side, the machine and the man in one frame, lamps going red
+        { dur: 6, T: 4200, cam: { mode: 'follow', dist: 38, h: 44, ang: 200, look: 2, ahead: 6, fov: 40 }, cam2: { dist: 34, h: 40, ang: 190 } },
+        { dur: 5, T: 5900, cam: { mode: 'follow', dist: 7.5, h: 0.9, ang: -18, look: 1.4, fov: 52 }, tag: 'boss' },
         { dur: 8, T: 6378, rate: 0.5, cam: { mode: 'follow', dist: 7, h: 1.6, ang: 172 }, cam2: { dist: 9 } },
+        // it held: the machine locks straight over the finish, lamps green
+        { dur: 5, T: 6392, rate: 0.4, cam: { mode: 'follow', dist: 12, h: 2.2, ang: 0, look: 1.4, fov: 50 }, tag: 'held' },
       ],
       pose: (i) => ({ fatigue: i.d > 14000 ? 0.5 : i.d > 5000 ? 0.2 : 0 }),
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
         const km = i.d / 1000;
         const ph = hingePhase(km);
+        // it walks the course a few metres ahead of him; at the finish it locks straight
+        const fin = i.T - hingeProf.finish;
+        hingeStart.visible = i.shot === 0;
+        hinge.update(i.t, Math.min(i.s, race.course.length) + (i.tag === 'held' ? 16 : 13), (s, off) => race.place(s, off), 0, { phase: ph, held: fin > 0 ? smooth(0.5, 3, fin) : 0, spread: 6.2 });
+        if (i.tag === 'boss' || i.tag === 'held') aimAt(race.stage!.camera, hinge.body.position, i.tag === 'held' ? 0.6 : 0.2 + 0.18 * smooth(0, 4, i.shotT));
         if (i.shot === 0) eventTag(h, { name: 'HACKNEY HALF', date: '22.05.2022', t: i.shotT });
         if (i.shot >= 1 && i.shot <= 4) {
           raceClock(h, { T: i.T, d: i.d, pace: HINGE.splits[Math.min(20, Math.floor(km))] });
@@ -226,18 +239,21 @@ export function ch2(): Scene[] {
             h.text('LOAD TEST', 960, 200, { font: 'mono', size: 30, color: COL.amber, align: 'center', alpha: 0.6 + 0.4 * pulse, tracking: 10, shadow: true });
           }
         }
+        if (i.tag === 'held') {
+          stamp(h, 'JOINT HELD', { alpha: smooth(0.5, 1.5, i.shotT), size: 110, col: COL.green, sub: '1:46:30', y: 860 });
+          fades(ctx.r.grade, i.shotT, 5, 0.01, 1);
+        }
         if (i.shot === 5) {
           raceClock(h, { T: Math.min(i.T, hingeProf.finish), hours: true, alpha: 1 - smooth(6, 7, i.shotT) });
           if (i.finished) {
             const a = smooth(0.3, 1, i.T - hingeProf.finish);
-            stamp(h, 'JOINT HELD', { alpha: a, size: 110, col: COL.green, sub: '1:46:30' });
             h.text('LOG: "THE KNEE HELD OUT - GREAT ATMOSPHERE"', 960, 900, { font: 'mono', size: 30, color: COL.ui, align: 'center', alpha: a, tracking: 3, shadow: true });
           }
-          fades(ctx.r.grade, i.shotT, 8, 0.01, 1);
+          fades(ctx.r.grade, i.shotT, 8, 0.01, 0.5);
         }
         void race;
       },
-      cues: [{ t: 0, kind: 'amb-crowd', dur: 34 }, { t: 3, kind: 'music', id: 'boss', dur: 28 }, { t: 5, kind: 'boss-intro' }, { t: 29, kind: 'win' }],
+      cues: [{ t: 0, kind: 'amb-crowd', dur: 42 }, { t: 3, kind: 'music', id: 'boss', dur: 31 }, { t: 5, kind: 'boss-intro' }, { t: 32, kind: 'win' }],
     }),
   );
 
