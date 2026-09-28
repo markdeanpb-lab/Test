@@ -163,10 +163,10 @@ export function ch3(): Scene[] {
     new RaceScene({
       id: 'c3-chalk',
       arena: 'hackney',
-      s0: 21252.6,
+      s0: 21252.0,
       profile: steady(1, 100),
       sky: SKY.clear,
-      lane: 5.5,
+      lane: 5.25,
       build: async (race) => {
         const p = race.place(21250, 6.3);
         wall = await pbrArrayWall('1:30:00');
@@ -176,7 +176,7 @@ export function ch3(): Scene[] {
       },
       shots: [
         { dur: 5, T: -30, cam: { mode: 'follow', dist: 5, h: 1.3, ang: 250, look: 1.1, fov: 34 }, cam2: { dist: 4.3 }, grade: { letterbox: 1 } },
-        { dur: 6, T: -25, cam: { mode: 'follow', dist: 3.6, h: 1.5, ang: 205, look: 1.6, side: -0.9, fov: 30 }, grade: { letterbox: 1 } },
+        { dur: 6, T: -25, cam: { mode: 'follow', dist: 3.2, h: 1.55, ang: 228, look: 1.55, side: -0.5, fov: 32 }, grade: { letterbox: 1 } },
       ],
       pose: () => ({ other: { Idle_Loop: [1, 2] }, fatigue: 1.1 }),
       onFrame: (race, i, ctx) => {
@@ -356,7 +356,7 @@ export function ch3(): Scene[] {
       shots: fingers.map((f, k) => ({
         dur: 4.2,
         T: claw.timeAt(((f.fromKm + f.toKm) / 2) * 1000),
-        cam: k % 2 ? { mode: 'follow' as const, dist: 3.5, h: 0.6, ang: 150, look: 1.2, fov: 44 } : { mode: 'follow' as const, dist: 4.5, h: 2.4, ang: 20, look: 0.8, ahead: 6 },
+        cam: k % 2 ? { mode: 'follow' as const, dist: 3.5, h: 0.6, ang: k === 3 ? -105 : 105, look: 1.2, fov: 44 } : { mode: 'follow' as const, dist: 4.5, h: 2.4, ang: 20, look: 0.8, ahead: 6 },
         tag: f.name,
       })).concat([{ dur: 7, T: claw.finish - 5, cam: { mode: 'follow', dist: 7, h: 2, ang: 160, look: 1.2 }, tag: 'done' } as any]),
       pose: (i) => ({ lean: i.tag && i.tag !== 'done' ? 0.12 : 0, fatigue: i.tag === 'done' ? 0.6 : 0.3 }),
@@ -405,7 +405,7 @@ export function ch3(): Scene[] {
       },
       shots: [
         { dur: 5, T: 300, cam: { mode: 'follow', dist: 4.5, h: 1.5, ang: 25 }, tag: '19:21|1 second off matching Finsbury PB' },
-        { dur: 6, T: 40, cam: { mode: 'follow', dist: 3.2, h: 0.5, ang: 60, look: 0.4 }, tag: "19:20|without the puddle on first corner would've been 19:18" },
+        { dur: 6, T: 40, cam: { mode: 'follow', dist: 3.4, h: 1.1, ang: 60, look: 0.9 }, tag: "19:20|without the puddle on first corner would've been 19:18" },
         { dur: 8, T: 1150, rate: 0.6, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, tag: '19:18|thanks to Joel for pacing' },
       ],
       onFrame: (race, i, ctx) => {
