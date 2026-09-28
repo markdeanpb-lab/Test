@@ -178,3 +178,55 @@ export class Streaks {
     a.needsUpdate = true;
   }
 }
+
+/**
+ * A brick wall made of instanced bricks that can rise out of the ground (THE WALL, and the
+ * weekly training columns that become it). Bricks: 0.44 x 0.2 x 0.22 m.
+ */
+export class BrickWall {
+  readonly mesh: THREE.InstancedMesh;
+  private base: { x: number; y: number; z: number; d: number }[] = [];
+  private m = new THREE.Matrix4();
+  private q = new THREE.Quaternion();
+  constructor(mat: THREE.Material, cells: { x: number; y: number; z: number; delay: number }[], rot = 0) {
+    const g = new THREE.BoxGeometry(0.43, 0.19, 0.21);
+    this.mesh = new THREE.InstancedMesh(g, mat, cells.length);
+    this.mesh.castShadow = this.mesh.receiveShadow = true;
+    this.mesh.frustumCulled = false;
+    this.q.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, rot);
+    for (const c of cells) this.base.push({ x: c.x, y: c.y, z: c.z, d: c.delay });
+    // per-brick colour: weathered London stock / red brick mix
+    const col = new THREE.Color();
+    const pal = [0x8b4a36, 0x7a3f2e, 0x9a5a40, 0x6e3a2c, 0xa06848, 0x5f3428, 0x8e6a4e];
+    cells.forEach((_, i) => {
+      col.setHex(pal[Math.floor(hash(i, 11) * pal.length)]).multiplyScalar(0.75 + 0.5 * hash(i, 12));
+      this.mesh.setColorAt(i, col);
+    });
+    this.set(1);
+  }
+  /** u: global rise time (s since start); each brick rises over 0.35 s after its delay */
+  set(u: number, jitter = 0) {
+    const v = new THREE.Vector3(), s = new THREE.Vector3(1, 1, 1);
+    this.base.forEach((b, i) => {
+      const k = Math.min(1, Math.max(0, (u - b.d) / 0.35));
+      const e = 1 - Math.pow(1 - k, 3);
+      const j = jitter ? (hash(i, 5) - 0.5) * jitter : 0;
+      v.set(b.x + j, b.y - (1 - e) * 2.2, b.z + j * 0.5);
+      s.setScalar(k > 0 ? 1 : 0.0001);
+      this.m.compose(v, this.q, s);
+      this.mesh.setMatrixAt(i, this.m);
+    });
+    this.mesh.instanceMatrix.needsUpdate = true;
+  }
+}
+
+/** cells for a wall (w x h metres), running along local x, bond pattern, rising from the middle */
+export function wallCells(w: number, h: number, stagger = 0.012) {
+  const cells: { x: number; y: number; z: number; delay: number }[] = [];
+  const rows = Math.round(h / 0.2), cols = Math.round(w / 0.44);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const x = -w / 2 + (c + (r % 2 ? 0.5 : 0)) * 0.44;
+    cells.push({ x, y: 0.1 + r * 0.2, z: 0, delay: r * 0.09 + Math.abs(x) * stagger * 4 + hash(r, c) * 0.25 });
+  }
+  return cells;
+}

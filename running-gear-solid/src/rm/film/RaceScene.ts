@@ -292,12 +292,22 @@ export class RaceScene extends Scene {
     if (!this.crowd) return out;
     const L = this.o.profile.distance;
     const runFrames = 12;
+    const walkers = new Set<FieldEntry>();
     const raw: { r: FieldEntry; d: number; lane: number; T: number; startPen: boolean }[] = [];
     for (const r of this.field) {
       // distance: their own pace (k) on STRIDE's profile, plus a pack offset that drifts
       let d: number;
       if (T <= 0) d = 0;
-      else d = r.k === 1 ? this.o.profile.distAt(T) + r.c + Math.sin(T * 0.05 + r.seed) * 6 : this.o.profile.distAt(T * r.k);
+      else {
+        // their own race time on STRIDE's profile; after their finish they walk on and leave
+        const tr = r.k === 1 ? T + r.c / Math.max(1, this.o.profile.speedAt(T)) : T * r.k;
+        const over = tr - this.o.profile.finish;
+        d = over > 0 ? L + over * 1.2 : this.o.profile.distAt(tr) + (r.k === 1 ? Math.sin(T * 0.05 + r.seed) * 6 : 0);
+        if (over > 0) {
+          if (over > 30) continue;
+          walkers.add(r);
+        }
+      }
       const startPen = T <= 0 || d <= 0;
       let lane = r.lane + (r.k === 1 ? Math.sin(T * 0.07 + r.seed) * 0.25 : Math.sin(T * 0.07 + r.seed) * 0.6);
       if (startPen) {
@@ -309,7 +319,6 @@ export class RaceScene extends Scene {
         lane = (col / (cols - 1) - 0.5) * 2 * (hw - 0.3) + (hash(r.seed, 7) - 0.5) * 0.22;
         d = -1.0 - row * 0.72 - hash(r.seed, 8) * 0.2;
       }
-      if (d > L + 30) continue;
       raw.push({ r, d, lane, T, startPen });
     }
     // de-conflict: nobody within 1.1 m ahead/behind and 0.75 m across of anyone else (or STRIDE)
@@ -331,10 +340,11 @@ export class RaceScene extends Scene {
       const spd = startPen ? 0 : Math.max(0.1, (this.o.profile.distAt(T * r.k + 1) - this.o.profile.distAt(T * r.k - 1)) / 2);
       const stride = 2.5 + spd * 0.35;
       const phase = d / stride + hash(r.seed, 3);
-      const moving = !startPen && d < L;
-      const pose = moving ? 'run' : 'idle';
-      const frames = moving ? runFrames : 3;
-      const fi = moving ? Math.floor((((phase % 1) + 1) % 1) * frames) : r.seed % 3;
+      const walking = walkers.has(r);
+      const moving = !startPen && (d < L || walking);
+      const pose = walking ? 'walk' : moving ? 'run' : 'idle';
+      const frames = walking ? 8 : moving ? runFrames : 3;
+      const fi = walking ? Math.floor((((d / 1.3) % 1) + 1) % 1 * 8) : moving ? Math.floor((((phase % 1) + 1) % 1) * frames) : r.seed % 3;
       out.push({
         mesh: `${pose}_${r.body}_${String(fi).padStart(2, '0')}`,
         x: p.x, y: p.y, z: p.z,
