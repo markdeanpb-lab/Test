@@ -6,17 +6,20 @@
   deforms with the rig: singlet, shorts, socks, shoes, watch
 - body skin under the kit removed (no poke-through)
 
-Run: python3 tools/blender/build_runner.py  ->  public/assets/char/runner.glb
+Run: python3 tools/blender/build_runner.py [--body male|female] [--hair Hair_X] [--out name.glb]
+     -> public/assets/char/runner.glb
 """
 import bpy, bmesh, os, sys
 from mathutils import Vector
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SRC = os.path.join(ROOT, 'assets-src', 'Universal Base Characters[Standard]')
-BODY = os.path.join(SRC, 'Base Characters', 'Godot - UE', 'Superhero_Male_FullBody.gltf')
+arg = lambda k, d: sys.argv[sys.argv.index(k) + 1] if k in sys.argv else d
+SEX = arg('--body', 'male')
+BODY = os.path.join(SRC, 'Base Characters', 'Godot - UE', 'Superhero_%s_FullBody.gltf' % ('Female' if SEX == 'female' else 'Male'))
 HAIRDIR = os.path.join(SRC, 'Hairstyles', 'Rigged to Head Bone', 'glTF (Godot -Unreal)')
-OUT = os.path.join(ROOT, 'public', 'assets', 'char', 'runner.glb')
-HAIR = sys.argv[sys.argv.index('--hair') + 1] if '--hair' in sys.argv else 'Hair_SimpleParted'
+OUT = os.path.join(ROOT, 'public', 'assets', 'char', arg('--out', 'runner.glb'))
+HAIR = arg('--hair', 'Hair_SimpleParted')
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
@@ -166,8 +169,6 @@ bm.to_mesh(body.data)
 bm.free()
 body.name = 'Skin'
 
-for o in bpy.data.objects:
-    print('DBG', o.name, o.type, o.parent and o.parent.name, o.parent_type, [(m.type, m.object and m.object.name) for m in getattr(o, 'modifiers', [])], len(getattr(o, 'vertex_groups', [])))
 for o in bpy.data.objects:
     o.select_set(o.type == 'ARMATURE' or (o.type == 'MESH' and o.parent == arm and len(o.vertex_groups) > 0))
 bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=True, export_animations=False, export_skins=True, export_image_format='WEBP', export_image_quality=85)

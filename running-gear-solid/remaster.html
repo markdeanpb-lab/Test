@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>RUNNING GEAR SOLID: REMASTERED</title>
+    <style>
+      html, body { margin: 0; background: #000; color: #bdf5d6; font: 13px monospace; }
+      canvas { display: block; width: 960px; height: 540px; }
+      #bar { display: flex; gap: 8px; padding: 6px; align-items: center; }
+      body.render #bar { display: none; }
+    </style>
+  </head>
+  <body>
+    <canvas id="film"></canvas>
+    <div id="bar"><button id="play">PLAY</button><input id="scrub" type="range" min="0" max="1000" value="0" style="flex:1" /><span id="time"></span><span id="seq"></span></div>
+    <script type="module" src="/src/rm/main.ts"></script>
+  </body>
+</html>
