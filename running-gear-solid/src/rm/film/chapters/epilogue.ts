@@ -39,6 +39,8 @@ export function epilogue(): Scene[] {
       field: { count: 140, pack: 4, seed: 91 },
       build: async (race) => {
         phantom = await Ghost.create(0x5ff3ff, true, 0.16);
+        race.extras.add(...phantom.pacer('1:30'));
+        phantom.camera = race.stage!.camera;
         phantom.prepare(phD, 3000, 5000);
         race.extras.add(phantom.runner.root);
       },

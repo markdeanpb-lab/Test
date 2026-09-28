@@ -117,14 +117,22 @@ export function ch3(): Scene[] {
         arch(race, 0, 'HACKNEY HALF', 11);
         arch(race, race.course.length, 'FINISH', 11);
         phantom = await Ghost.create(0x5ff3ff, true, 0.16);
+        race.extras.add(...phantom.pacer('1:30'));
+        phantom.camera = race.stage!.camera;
         phantom.prepare(phD, -2, 6000);
         race.extras.add(phantom.runner.root);
+        // the overtake: the last moment STRIDE is still level with 1:30 pace
+        let cross = 3170;
+        for (let T = 600; T < 5400; T += 0.5) if (delta(T) <= 0 && delta(T + 0.5) > 0) cross = T;
+        const sh = race.o.shots;
+        const p = sh.findIndex((x) => x.tag === 'pass');
+        sh[p].T = cross - 3.5;
       },
       shots: [
         { dur: 5, T: -4, cam: { mode: 'follow', dist: 10, h: 4, ang: 160, look: 1.2 }, cam2: { dist: 8 }, grade: { letterbox: 1 } },
         { dur: 6, T: 800, cam: { mode: 'follow', dist: 5, h: 1.6, ang: 160, look: 1.2 }, tag: 'ahead' },
         { dur: 6, T: 2140, cam: { mode: 'follow', dist: 7, h: 2, ang: 185, look: 1.2 }, tag: 'ahead' },
-        { dur: 10, T: 3170, rate: 0.6, cam: { mode: 'follow', dist: 4, h: 1.3, ang: 70, look: 1.2, ahead: 2 }, cam2: { ang: 30, ahead: 6 }, tag: 'pass' },
+        { dur: 10, T: 3170, rate: 0.7, cam: { mode: 'follow', dist: 5, h: 1.5, ang: 60, look: 1.3, ahead: 1, fov: 44 }, cam2: { ang: 25, ahead: 6 }, tag: 'pass' },
         { dur: 5, T: 4300, cam: { mode: 'follow', dist: 4.5, h: 1.7, ang: 12, look: 1.3, ahead: 30 }, tag: 'behind' },
         { dur: 8, T: 5725, rate: 0.6, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, cam2: { dist: 8 }, tag: 'finish' },
       ],
@@ -156,7 +164,7 @@ export function ch3(): Scene[] {
           fades(ctx.r.grade, i.shotT, 8, 0.01, 1);
         }
       },
-      cues: [{ t: 0, kind: 'amb-crowd', dur: 40 }, { t: 3, kind: 'music', id: 'phantom', dur: 34 }, { t: 17, kind: 'phantom-pass' }, { t: 36, kind: 'fail' }],
+      cues: [{ t: 0, kind: 'amb-crowd', dur: 40 }, { t: 3, kind: 'music', id: 'phantom', dur: 34 }, { t: 22, kind: 'phantom-pass' }, { t: 36, kind: 'fail' }],
     }),
   );
 

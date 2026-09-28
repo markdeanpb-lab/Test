@@ -118,6 +118,8 @@ export function ch4(): Scene[] {
         startArch = arch(race, 0, 'HACKNEY HALF', 11);
         finishArch = arch(race, race.course.length, 'FINISH', 13);
         phantom = await Ghost.create(0x5ff3ff, true, 0.16);
+        race.extras.add(...phantom.pacer('1:30'));
+        phantom.camera = race.stage!.camera;
         phantom.prepare(phD, -2, 5600);
         race.extras.add(phantom.runner.root);
       },

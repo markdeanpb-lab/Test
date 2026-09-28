@@ -46,6 +46,65 @@ export class Ghost {
     r.root.position.set(pos.x, pos.y, pos.z);
     r.root.rotation.y = Math.atan2(pos.dx, pos.dz);
     r.pose({ phase: this.track ? this.track.at(T) : T * 2.9, speed: Math.max(0.8, speed) });
+    if (this.pole) {
+      // the pacer's pole rides on its back; the sign turns to the camera like a flag in the wind
+      this.pole.position.set(pos.x - pos.dx * 0.25, pos.y, pos.z - pos.dz * 0.25);
+      this.pole.rotation.z = Math.sin(T * 5.6) * 0.03;
+      if (this.camera) {
+        const c = this.camera.position;
+        this.signMesh!.rotation.y = Math.atan2(c.x - pos.x, c.z - pos.z);
+      }
+      this.floor!.position.set(pos.x, pos.y + 0.03, pos.z);
+      this.pole.visible = this.floor!.visible = this.runner.root.visible;
+    }
+  }
+
+  /** carry a pace-group pole with a glowing sign (e.g. '1:30') and a light pool at its feet */
+  pole?: THREE.Group;
+  private signMesh?: THREE.Mesh;
+  private floor?: THREE.Mesh;
+  camera?: THREE.Camera;
+  pacer(text: string, col = '#5ff3ff') {
+    const g = new THREE.Group();
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 2.5, 8), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
+    stick.position.y = 1.25;
+    g.add(stick);
+    const c = document.createElement('canvas');
+    c.width = 512;
+    c.height = 256;
+    const x = c.getContext('2d')!;
+    x.fillStyle = 'rgba(95,243,255,0.12)';
+    x.fillRect(8, 8, 496, 240);
+    x.strokeStyle = col;
+    x.lineWidth = 8;
+    x.strokeRect(8, 8, 496, 240);
+    x.font = '700 150px "Share Tech Mono"';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    x.shadowColor = col;
+    x.shadowBlur = 24;
+    x.fillStyle = '#e8feff';
+    x.fillText(text, 256, 118);
+    x.font = '500 34px "Share Tech Mono"';
+    x.shadowBlur = 8;
+    x.fillText('PACE', 256, 210);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    this.signMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.55), new THREE.MeshBasicMaterial({ map: t, transparent: true, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    this.signMesh.position.y = 2.45;
+    g.add(this.signMesh);
+    this.pole = g;
+    const fc = document.createElement('canvas');
+    fc.width = fc.height = 128;
+    const fx = fc.getContext('2d')!;
+    const grd = fx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grd.addColorStop(0, 'rgba(95,243,255,0.55)');
+    grd.addColorStop(1, 'rgba(95,243,255,0)');
+    fx.fillStyle = grd;
+    fx.fillRect(0, 0, 128, 128);
+    this.floor = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(fc), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    this.floor.rotation.x = -Math.PI / 2;
+    return [g, this.floor];
   }
 }
 
