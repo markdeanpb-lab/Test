@@ -26,11 +26,17 @@ export const TEXTURES = [
   'corrugated_iron', 'bark_brown_02', 'plastered_wall_02', 'cobblestone_floor_08',
   // boss machinery
   'rusty_metal_02', 'rusty_metal_04', 'metal_plate', 'rust_coarse_01', 'green_metal_rust', 'blue_metal_plate', 'metal_grate_rusty',
+  // interiors and boss arenas
+  'laminate_floor_02', 'dirty_carpet', 'decrepit_wallpaper', 'castle_brick_02_white', 'castle_wall_slates', 'rock_face_03',
+  'mossy_cobblestone', 'old_stone_wall', 'snow_02', 'marble_01',
 ];
 export const MODELS = [
   'island_tree_01', 'island_tree_02', 'island_tree_03', 'tree_small_02', 'shrub_01', 'shrub_02', 'shrub_03', 'shrub_04',
   'street_lamp_01', 'street_lamp_02', 'painted_wooden_bench', 'concrete_road_barrier', 'modular_chainlink_fence', 'fire_hydrant',
   'jacaranda_tree', 'fir_tree_01', 'pine_tree_01', 'grass_medium_01', 'grass_medium_02', 'dead_tree_trunk_02', 'nettle_plant', 'dandelion_01',
+  // the lockdown flat and boss arenas
+  'sofa_02', 'television_02', 'coffee_table_round_01', 'drawer_cabinet', 'vintage_wooden_drawer_01', 'potted_plant_01', 'wall_clock',
+  'modern_ceiling_lamp_01', 'standing_picture_frame_01', 'large_castle_door', 'rubber_boots', 'wooden_bookshelf_worn', 'modern_wooden_cabinet',
 ];
 
 function get(url, file) {

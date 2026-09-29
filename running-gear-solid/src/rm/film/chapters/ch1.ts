@@ -11,6 +11,12 @@ import { COL, env, smooth, fmt } from '../../hud/Hud';
 import { raceClock, stamp } from '../../hud/widgets';
 import { funnel, flag } from '../dressing';
 import { Scene } from '../core';
+import { lockdownScenes, briefing } from './door';
+import { lifeHud, equip, banner, results } from '../../hud/game';
+import type { Kit } from '../../char/Runner';
+
+/** the first run: an old t-shirt, the shorts from the drawer, the trainers from the cabinet */
+const FIRST_KIT: Kit = { singlet: 0x7c8088, shorts: 0x17181c, socks: 0xeeeeea, shoes: 0xe4e2dc, hair: 0x2a1d14 };
 
 /** the first run's stream, with the stop made explicit (GPS interpolation would creep 130 m) */
 function firstRunProfile() {
@@ -38,6 +44,7 @@ export function ch1(): Scene[] {
     arena: 'regents',
     course: 0,
     profile: prof,
+    kit: FIRST_KIT,
     sky: SKY.grey,
     lane: 0.2,
     halfWidth: 2,
@@ -48,7 +55,7 @@ export function ch1(): Scene[] {
       // CCTV: eleven minutes standing still, fast-forwarded
       { dur: 12, T: 1080, rate: 57, cam: { mode: 'fixed', at: { s: stopD - 16, off: 6, h: 6.5 }, look: 1.0, fov: 34, shake: 0 }, tag: 'cctv' },
       { dur: 5, T: 1770, cam: { mode: 'follow', dist: 4.5, h: 1.5, ang: 170, look: 1.3, fov: 38 }, cam2: { dist: 6, h: 2 } },
-      { dur: 7, T: 2934, cam: { mode: 'follow', dist: 9, h: 3, ang: 150, look: 1.0, fov: 36 }, cam2: { dist: 11, h: 4 }, tag: 'end' },
+      { dur: 11, T: 2934, cam: { mode: 'follow', dist: 9, h: 3, ang: 150, look: 1.0, fov: 36 }, cam2: { dist: 11, h: 4 }, tag: 'end' },
     ],
     pose: (i) => (i.tag === 'cctv' && i.speed < 0.3 ? { other: { Idle_Loop: [1, i.T * 0.02] } } : {}),
     onFrame: (race, i, ctx) => {
@@ -60,6 +67,14 @@ export function ch1(): Scene[] {
         h.caption(['14.05.2020  11:46', 'LONDON  -  LOCKDOWN', 'FIRST RUN ON RECORD'], i.shotT, 1.5, env(i.shotT, 1.2, 8, 0.4, 0.6), 110, 150);
       }
       if (i.shot >= 1 && i.shot <= 2) raceClock(h, { T: i.T, d: i.d, alpha: 0.9 });
+      // gameplay: the stamina gauge empties just before the stop and refills while he stands there
+      const stam = i.T < 1096 ? Math.max(0.02, 1 - Math.pow(i.T / 1096, 1.6)) : i.T < 1764 ? Math.min(1, (i.T - 1096) / 668) : Math.max(0.1, 1 - (i.T - 1764) / 1400);
+      if (i.shot >= 1 && i.tag !== 'cctv' && i.tag !== 'end') {
+        h.time = i.t;
+        lifeHud(h, { life: 1, stamina: stam, alpha: 1 });
+        equip(h, { item: 'OLD TRAINERS', weapon: 'NONE' });
+      }
+      if (i.tag === 'cctv' && i.T > 1096 && i.T < 1200) banner(h, 'STAMINA DEPLETED', (i.T - 1096) / 57 + 0.05, { col: COL.red, sub: 'REST TO RECOVER', dur: 2.2 });
       if (i.tag === 'cctv') {
         g.saturation = 0;
         g.contrast = 1.25;
@@ -77,16 +92,17 @@ export function ch1(): Scene[] {
         h.text('>> x60', 960, 1010, { font: 'mono', size: 28, color: COL.white, align: 'center', alpha: 0.8, tracking: 3 });
       }
       if (i.tag === 'end') {
-        const a = smooth(1, 2, i.shotT) * (1 - smooth(6.2, 7, i.shotT));
-        h.panel(110, 700, 560, 250, { alpha: a });
-        h.text('5.07 KM', 150, 780, { font: 'mono', size: 54, color: COL.white, alpha: a });
-        h.text(`MOVING   37:56`, 150, 850, { font: 'mono', size: 34, color: COL.ui, alpha: a, tracking: 2 });
-        h.text(`ELAPSED  48:58`, 150, 905, { font: 'mono', size: 34, color: COL.amber, alpha: a, tracking: 2 });
-        g.fade = smooth(6, 7, i.shotT);
+        banner(h, 'MISSION COMPLETE', i.shotT - 0.3, { col: COL.green, sub: 'FIRST RUN ON RECORD', dur: 2.6 });
+        results(h, i.shotT - 2.8, {
+          title: 'RESULTS',
+          rows: [['DISTANCE', '5.07 KM'], ['MOVING TIME', '37:56'], ['ELAPSED', '48:58'], ['STANDING STILL', '11:02']],
+          codename: 'TORTOISE',
+          rank: 'Slow. But it finished.',
+        });
       }
       void race;
     },
-    cues: [{ t: 0, kind: 'amb-city-quiet', dur: 42 }, { t: 18, kind: 'cctv', dur: 12 }],
+    cues: [{ t: 0, kind: 'amb-city-quiet', dur: 46 }, { t: 18, kind: 'cctv', dur: 12 }, { t: 18.3, kind: 'fail' }, { t: 35.3, kind: 'win' }, { t: 38, kind: 'result' }],
   });
 
   const standing = new CodecScene({
@@ -172,7 +188,29 @@ export function ch1(): Scene[] {
     cues: [{ t: 0, kind: 'amb-park', dur: 36 }, { t: 7, kind: 'music', id: 'first-steps', dur: 20 }, { t: 22.5, kind: 'result', big: false }],
   });
 
-  return [chapterCard('c1-card', 'CHAPTER 1', 'BASIC TRAINING', '2020  -  2021'), first, standing, shins, years, parkrun];
+  const [flat, door] = lockdownScenes();
+  const call = new CodecScene({
+    id: 'c1-codec-lockdown',
+    freq: '140.85',
+    lines: [
+      { who: 'TEMPO', text: 'Stride. Day fifty-three. How long are you going to sit there?' },
+      { who: 'STRIDE', text: "There's nowhere to go." },
+      { who: 'TEMPO', text: 'The rules changed yesterday. You can go outside as much as you like.' },
+      { who: 'STRIDE', text: "I don't run." },
+      { who: 'PAUSE', dur: 1 },
+      { who: 'TEMPO', text: 'Then this is your first mission. The objective is four metres away.' },
+      { who: 'STRIDE', text: 'The front door?' },
+      { who: 'TEMPO', text: "Careful. It's stronger than it looks." },
+    ],
+  });
+  const brief = briefing('c1-brief', {
+    op: 'FRONT DOOR',
+    objective: 'GO OUTSIDE. RUN.',
+    intel: ['Equipment: none', 'Running experience: none', 'Rules: outdoor exercise unlimited from 13.05.2020'],
+    enemy: 'UNKNOWN',
+    dur: 8,
+  });
+  return [chapterCard('c1-card', 'CHAPTER 1', 'BASIC TRAINING', '2020  -  2021'), flat, call, brief, door, first, standing, shins, years, parkrun];
 }
 
 export { steady };

@@ -257,6 +257,14 @@ const Bm = [47, 50, 54], G = [43, 47, 50], Em = [40, 43, 47], E = [40, 44, 47], 
 const inRange = (t0: number, t1: number) => (fn: (t: number) => void, t: number) => t < t1 && fn(t);
 
 const MUSIC: Record<string, (t: number, d: number) => void> = {
+  // THE DOOR: a tense, slightly ridiculous stealth-boss loop (low ostinato, stabs, ticking)
+  door(t, d) {
+    const bpm = 128;
+    drums(t, t + d, bpm, 'drive', 0.75);
+    bassline(t, t + d, bpm, [50, 50, 53, 48], 8, 0.22, [1, 0, 1, 0, 1, 1, 0, 1]);
+    loop(t, t + d, bpm, 1, (i, x) => i % 4 === 3 && lead(x, [74, 77, 76, 72][Math.floor(i / 4) % 4], 0.12, 0.05));
+    pads(t, t + d, [Dm, Bb, Gm, A], 60 / bpm * 8, 0.03, 900);
+  },
   dread(t, d) {
     note(t, d, mtof(38), { wave: 'saw', amp: 0.05, a: 3, d: 0.1, s: 1, r: 2, lp: 300, detune: 7, wet: 0.5 });
     pads(t + 1, t + d, [Dm, Bb], 6, 0.03, 700);
@@ -448,6 +456,34 @@ const cityHum = (t: number, dur: number) => {
 };
 
 const SFX_FN: Record<string, (c: { t: number; [k: string]: unknown }) => void> = {
+  // game feel
+  'item-get': (c) => [74, 78, 81, 86].forEach((m, i) => lead(c.t + i * 0.08, m, 0.14, 0.07)),
+  'hit-dmg': (c) => {
+    hit(c.t, 0.55);
+    note(c.t, 0.35, 70, { wave: 'sine', amp: 0.4, a: 0.002, d: 0.3, s: 0, glide: 0.5, wet: 0.2 });
+    note(c.t, 0.15, 1, { wave: 'noise', amp: 0.3, a: 0.001, d: 0.14, s: 0, lp: 3000, wet: 0.2 });
+  },
+  countered: (c) => {
+    beep(c.t, 1320, 0.07, 0.06);
+    beep(c.t + 0.07, 1760, 0.07, 0.09);
+  },
+  letterbox: (c) => {
+    clank(c.t, 0.25);
+    whoosh(c.t + 0.05, 0.12);
+  },
+  mash: (c) => {
+    for (let k = 0; k < (c.dur as number); k += 1 / 12) tick(c.t + k, 0.05);
+    rumble(c.t + 1, (c.dur as number) - 1, 0.25);
+  },
+  'door-open': (c) => {
+    hit(c.t, 0.9);
+    riser(c.t - 1.2, 1.2, 0.2);
+    note(c.t, 3, 1, { wave: 'noise', amp: 0.08, a: 0.3, d: 0.5, s: 0.6, r: 1.5, lp: 6000, hp: 800, wet: 0.7 });
+  },
+  'tv-news': (c) => {
+    // murmur of a presenter from another room
+    for (let k = 0; k < (c.dur as number); k += 0.22) note(c.t + k, 0.18, 180 + 60 * Math.sin(k * 3.1) + 40 * rnd(), { wave: 'saw', amp: 0.012 * (0.5 + rnd()), a: 0.02, d: 0.1, s: 0.5, r: 0.05, lp: 900, hp: 150, wet: 0.35 });
+  },
   'codec-ring': (c) => codecRing(c.t, c.t + (c.dur as number)),
   'codec-open': (c) => {
     staticBurst(c.t, 0.18, 0.08);

@@ -70,6 +70,12 @@ export function fmt(sec: number, o: { hours?: boolean; tenths?: boolean; sign?: 
 }
 export const pace = (secPerKm: number) => `${Math.floor(secPerKm / 60)}:${String(Math.round(secPerKm % 60)).padStart(2, '0')}`;
 
+/**
+ * Readability floor: the film is watched on phones, so nothing is drawn smaller than ~32 px at
+ * 1080p; sizes below 44 are lifted smoothly towards it (larger sizes are unchanged).
+ */
+export const readable = (size: number) => (size >= 44 ? size : Math.max(32, 44 - (44 - size) * 0.45));
+
 export class Hud {
   readonly g: CanvasRenderingContext2D;
   readonly W = 1920;
@@ -88,7 +94,7 @@ export class Hud {
   }
 
   font(o: TextOpts) {
-    return `${o.weight ?? (o.font === 'mono' ? 400 : 600)} ${o.size ?? 28}px "${FAMILY[o.font ?? 'head']}"`;
+    return `${o.weight ?? (o.font === 'mono' ? 400 : 600)} ${readable(o.size ?? 28)}px "${FAMILY[o.font ?? 'head']}"`;
   }
 
   measure(s: string, o: TextOpts = {}) {

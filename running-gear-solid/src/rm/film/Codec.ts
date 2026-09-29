@@ -21,7 +21,7 @@ const CAST: Record<Who, { model: string; kit: Kit; title: string }> = {
 };
 
 // window rects (1080p) and the matching 3D placement
-const WIN = { l: { x: 300, y: 230, w: 400, h: 480 }, r: { x: 1220, y: 230, w: 400, h: 480 } };
+const WIN = { l: { x: 300, y: 150, w: 400, h: 520 }, r: { x: 1220, y: 150, w: 400, h: 520 } };
 const CAM_D = 2.2, FOV = 30, CAM_Y = 1.62;
 
 export interface CodecOpts {
@@ -182,7 +182,7 @@ export class CodecScene extends Scene {
       h.stroke(w.x - 12, y - 12, w.w + 24, hh + 24, col, 1, k * 0.35);
       h.brackets(w.x - 20, y - 20, w.w + 40, hh + 40, 26, col, 3, k);
       if (!active && cur && cur.who !== 'PAUSE') h.rect(w.x, y, w.w, hh, '#000', 0.45 * k);
-      h.text(side === 'l' ? CAST.STRIDE.title : CAST[right].title, w.x + w.w / 2, w.y + w.h + 58, { font: 'head', size: 34, weight: 700, color: col, align: 'center', alpha: k, tracking: 6 });
+      h.text(side === 'l' ? CAST.STRIDE.title : CAST[right].title, w.x + w.w / 2, w.y + w.h + 52, { font: 'head', size: 36, weight: 700, color: col, align: 'center', alpha: k, tracking: 6 });
     }
     // centre: frequency + signal meter
     const f = this.o.freq ?? '140.85';
@@ -196,10 +196,20 @@ export class CodecScene extends Scene {
     }
     // dialogue
     if (cur && cur.who !== 'PAUSE' && cur.text) {
+      // the line sits under the portrait of whoever is speaking
       const a = clamp01((t - cur.t0) / 0.15) * clamp01((cur.t1 - t) / 0.2) * k;
+      const w = cur.who === 'STRIDE' ? WIN.l : WIN.r;
+      const cx = w.x + w.w / 2;
+      const opts = { font: 'body' as const, size: 50, weight: 600 };
+      const full = h.wrap(cur.text, 800, opts);
       const s = h.type(cur.text, t, cur.t0, 30);
-      const lines = h.wrap(s, 1320, { font: 'body', size: 44, weight: 600 });
-      lines.forEach((ln, i) => h.text(ln, 300, 880 + i * 56, { font: 'body', size: 44, weight: 600, color: COL.white, alpha: a, tracking: 0.5 }));
+      // wrap the typed prefix exactly as the full line wraps, so words don't jump between lines
+      let left = s.length;
+      full.forEach((ln, i) => {
+        const part = ln.slice(0, Math.max(0, left));
+        left -= ln.length + 1;
+        if (part) h.text(part, cx - h.measure(ln, opts) / 2, 830 + i * 60, { ...opts, color: COL.white, alpha: a, tracking: 0.5, shadow: true });
+      });
     }
   }
 
