@@ -16,8 +16,58 @@ export class Gate {
   static async create(width: number) {
     const g = new Gate(width);
     await g.build();
+    await g.castle();
     return g;
   }
+
+  /** dress the gantry as a castle gatehouse: stone towers, battlements, walls, torches, banners */
+  private async castle() {
+    const W = this.width;
+    const stone = await metal('castle', { tint: 0xb8b0a4, rough: 1 });
+    const dark = await metal('plate', { tint: 0x2a2c30, rough: 0.8 });
+    const g = new THREE.Group();
+    for (const side of [-1, 1]) {
+      const tx = side * (W / 2 + 3.2);
+      const tower = box(5, 15, 5.5, stone, 3, 0.03);
+      tower.position.set(tx, 7.5, 0);
+      g.add(tower);
+      for (let k = 0; k < 4; k++) {
+        const m = box(1.1, 1.3, 5.6, stone, 2, 0.05);
+        m.position.set(tx - 1.9 + k * 1.27, 15.6, 0);
+        if (k % 2 === 0) g.add(m);
+      }
+      // curtain wall running off each side
+      const wall = box(40, 9, 3, stone, 3, 0.02);
+      wall.position.set(side * (W / 2 + 5.7 + 20), 4.5, 0.5);
+      g.add(wall);
+      for (let k = 0; k < 14; k++) {
+        const m = box(1.2, 1.2, 3.1, stone, 2, 0.05);
+        m.position.set(side * (W / 2 + 6.4 + k * 2.8), 9.6, 0.5);
+        g.add(m);
+      }
+      // torches with fire
+      const torch = cyl(0.12, 0.18, 1.1, dark, 8);
+      torch.position.set(side * (W / 2 + 0.9), 4.8, -2.9);
+      g.add(torch);
+      const fire = new Particles({ n: 60, box: [0.4, 0.2, 0.4], vel: [0, 2.2, 0], life: 0.7, size: 0.7, color: 0xff8a30, additive: true, swirl: 1, grow: -0.6, seed: 60 + side });
+      fire.points.position.set(side * (W / 2 + 0.9), 5.4, -2.9);
+      g.add(fire.points);
+      this.fires.push(fire);
+      const light = new THREE.PointLight(0xff8a40, 30, 14, 1.8);
+      light.position.copy(fire.points.position);
+      g.add(light);
+      // banner
+      const banner = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 5), new THREE.MeshStandardMaterial({ color: 0x8a1420, roughness: 0.8, side: THREE.DoubleSide }));
+      banner.position.set(tx, 10.5, -2.8);
+      g.add(banner);
+    }
+    // arch over the gate passage
+    const archTop = box(W + 2.4, 6, 5.5, stone, 3, 0.03);
+    archTop.position.set(0, 11, 0);
+    g.add(archTop);
+    this.root.add(g);
+  }
+  private fires: Particles[] = [];
   private constructor(width: number) {
     this.width = width;
   }
@@ -82,6 +132,7 @@ export class Gate {
     this.lamps.forEach((l) => (l.level = moving || d >= 0.98 ? (Math.sin(t * 9) > 0 ? 1 : 0.1) : 0.2));
     const slam = clamp01(o.slam ?? 0);
     this.sparks.update(t, moving ? 0.3 : slam > 0 && slam < 1 ? 1 : 0);
+    for (const f of this.fires) f.update(t, 1, 0.9);
     this.dust.update(t, slam > 0 && slam < 1 ? 1 : 0, 0.35);
   }
 }

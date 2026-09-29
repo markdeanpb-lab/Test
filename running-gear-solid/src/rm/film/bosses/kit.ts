@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { pbr, hash } from '../../engine/assets';
 
-export type Metal = 'rust' | 'rust2' | 'plate' | 'coarse' | 'green' | 'blue' | 'grate' | 'container' | 'corrugated' | 'concrete' | 'brick';
+export type Metal = 'rust' | 'rust2' | 'plate' | 'coarse' | 'green' | 'blue' | 'grate' | 'container' | 'corrugated' | 'concrete' | 'brick' | 'castle' | 'rock' | 'stone';
 const IDS: Record<Metal, string> = {
   rust: 'rusty_metal_02',
   rust2: 'rusty_metal_04',
@@ -18,6 +18,9 @@ const IDS: Record<Metal, string> = {
   corrugated: 'corrugated_iron',
   concrete: 'concrete_wall_003',
   brick: 'brick_wall_08',
+  castle: 'castle_brick_02_white',
+  rock: 'rock_face_03',
+  stone: 'old_stone_wall',
 };
 
 /** PBR material for a machine surface (textures tile once every `tile` metres via world-scaled UVs). */
@@ -28,7 +31,7 @@ export async function metal(kind: Metal, o: { tint?: number; metalness?: number;
     normalMap: t.normalMap,
     roughnessMap: t.roughnessMap,
     color: o.tint ?? 0xffffff,
-    metalness: o.metalness ?? (kind === 'concrete' || kind === 'brick' ? 0 : 0.55),
+    metalness: o.metalness ?? (['concrete', 'brick', 'castle', 'rock', 'stone'].includes(kind) ? 0 : 0.55),
     roughness: o.rough ?? 1,
     emissive: o.emissive ?? 0x000000,
   });

@@ -20,6 +20,7 @@ import { Furnace } from '../bosses/Furnace';
 import { Gate } from '../bosses/Gate';
 import { Sentinel } from '../bosses/Sentinel';
 import { clawBoss } from './claw';
+import { lifeHud, equip, bossHp, prompt, banner, popup } from '../../hud/game';
 import { waterSide, aimAt, mmss } from '../bosses/place';
 
 const HALF = 21097.5;
@@ -50,7 +51,8 @@ export function ch3(): Scene[] {
       chapter: 'AMBITION',
       arena: 'battersea',
       profile: bat,
-      sky: SKY.morning,
+      // the boss level: a castle gatehouse at dusk
+      sky: { ...SKY.dusk, fog: 0.004, fogColor: 0x5a4a58 },
       halfWidth: 3,
       field: { count: 160, pack: 6, kmin: 0.8, kmax: 1.1, seed: 31 },
       build: async (race) => {
@@ -67,20 +69,32 @@ export function ch3(): Scene[] {
         { dur: 7, T: 2352, rate: 0.9, cam: { mode: 'follow', dist: 7, h: 2.0, ang: 8, look: 3.5, ahead: 40, fov: 30 }, cam2: { dist: 6, fov: 34 }, tag: 'gate' },
         { dur: 12, T: 2373, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.7, ang: 12, look: 2.2, ahead: 4, fov: 46 }, cam2: { dist: 5 }, tag: 'under' },
       ],
+      pose: (i) => {
+        const o: Record<string, [number, number]> = {};
+        if (!i.finished && i.T > bat.finish - 0.9) o.Slide_Loop = [1, 0.3];
+        else if (i.finished && i.T < bat.finish + 0.5) o.Slide_Exit = [1, i.T - bat.finish];
+        return Object.keys(o).length ? { other: o, locoWeight: 0 } : {};
+      },
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
         const fin = bat.finish;
-        const drop = i.T < fin ? 0.62 * smooth(fin - 26, fin, i.T) : 0.62 + 0.38 * smooth(fin + 0.8, fin + 2.2, i.T);
+        // the grille drops towards 40:00; he slides under it at 39:35
+        const drop = i.T < fin ? 0.82 * smooth(fin - 26, fin, i.T) : 0.82 + 0.18 * smooth(fin + 0.8, fin + 2.2, i.T);
         gate40.update(i.t, { drop, text: mmss(i.T), slam: smooth(fin + 2.1, fin + 3.2, i.T) });
         if (i.shot === 0) {
           ctx.r.grade.fade = 1 - smooth(0, 1, i.shotT);
           eventTag(h, { name: 'BATTERSEA PARK 10K', date: '15.04.2023', t: i.shotT });
           h.text('BEFORE: 41:37  LONDON WINTER RUN, FEB 2023', 96, 150, { font: 'mono', size: 22, color: COL.uiDim, alpha: env(i.shotT, 1.5, 6, 0.3, 0.4), tracking: 3, shadow: true });
         }
-        bossPlate(h, { name: 'FORTY', sub: 'MINI BOSS', frac: 1 - i.d / bat.distance, alpha: i.finished ? 1 - smooth(0, 1, i.T - bat.finish) : 1 });
+        bossHp(h, { name: 'FORTY', hp: 1 - i.d / bat.distance, sub: 'THE GATE CLOSES AT 40:00', alpha: i.finished ? 1 - smooth(0, 1, i.T - bat.finish) : i.shot >= 1 ? 1 : 0 });
         targetBlock(h, { target: 2399, projection: i.finished ? undefined : bat.projection(i.T), result: i.finished ? 2375 : undefined });
         raceClock(h, { T: Math.min(i.T, bat.finish), d: Math.min(i.d, bat.distance) });
-        if (i.tag === 'under' && i.finished) stamp(h, 'SUB 40', { alpha: smooth(2.5, 3.2, i.T - bat.finish), col: COL.green, sub: 'COMPLETE  -  39:35', size: 130 });
+        if (!i.finished && i.T > fin - 3) prompt(h, { b: 'O', text: 'SLIDE', t: i.T - fin + 3, y: 800, ok: i.T > fin - 0.6 });
+        if (i.shot >= 1 && !i.finished) {
+          h.time = i.t;
+          lifeHud(h, { life: 1, stamina: 1 - clamp01(i.d / bat.distance) * 0.85 });
+        }
+        if (i.tag === 'under' && i.finished) banner(h, 'SUB 40', i.T - bat.finish - 2.4, { col: COL.green, sub: 'COMPLETE  -  39:35', dur: 5 });
         if (i.tag === 'under') fades(ctx.r.grade, i.shotT, 12, 0.01, 1);
       },
       cues: [{ t: 0, kind: 'amb-crowd', dur: 30, level: 0.4 }, { t: 0, kind: 'music', id: 'boss-mini', dur: 22 }, { t: 11, kind: 'alert' }, { t: 26.2, kind: 'wall-rise' }, { t: 27, kind: 'win' }],
