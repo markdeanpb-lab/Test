@@ -259,3 +259,47 @@ export function continueCard(id: string, o: { title: string; line?: string; log?
     cues: [{ t: 0.1, kind: 'gameover' }, ...[2.4, 3.0, 3.6, 4.3].map((t) => ({ t, kind: 'tick' })), { t: 5.2, kind: 'select' }],
   });
 }
+
+/** a PS-style memory card screen: save slots, a cursor, LOAD or SAVE with a progress bar */
+export function memoryCard(id: string, o: { mode: 'LOAD' | 'SAVE'; slots: { name: string; sub: string; icon: string }[]; pick: number; dur: number; after?: string; chapter?: string }) {
+  return new Card({
+    id,
+    chapter: o.chapter,
+    dur: o.dur,
+    draw: (t, h) => {
+      const a = env(t, 0, o.dur, 0.4, 0.6);
+      h.rect(0, 0, 1920, 1080, '#05070c', a);
+      grid(h, a * 0.25);
+      h.text('MEMORY CARD  SLOT 1', 180, 150, { font: 'mono', size: 34, color: COL.uiDim, alpha: a, tracking: 8 });
+      h.text(o.mode === 'LOAD' ? 'LOAD GAME' : 'SAVE GAME', 180, 230, { font: 'head', size: 80, weight: 700, color: COL.white, alpha: a, tracking: 14 });
+      const cur = t < 1.6 ? 0 : o.pick;
+      o.slots.forEach((sl, i) => {
+        const y = 360 + i * 150;
+        const sel = i === cur;
+        h.panel(180, y - 70, 1560, 120, { alpha: a * (sel ? 1 : 0.6), col: sel ? COL.amber : undefined });
+        h.rect(210, y - 50, 80, 80, sel ? COL.amber : '#333a44', a);
+        h.text(sl.icon, 250, y + 8, { font: 'mono', size: 38, color: '#05070c', align: 'center', alpha: a });
+        h.text(sl.name, 330, y - 2, { font: 'head', size: 48, weight: 700, color: sel ? COL.white : COL.ui, alpha: a, tracking: 4 });
+        h.text(sl.sub, 330, y + 38, { font: 'mono', size: 30, color: COL.uiDim, alpha: a, tracking: 3 });
+      });
+      const q = 2.4, go = 3.6;
+      if (t > q) {
+        const qa = a * smooth(q, q + 0.2, t);
+        h.text(o.mode === 'LOAD' ? 'LOAD THIS DATA?' : 'SAVE TO THIS SLOT?', 960, 360 + o.slots.length * 150 + 20, { font: 'head', size: 50, weight: 700, color: COL.white, align: 'center', alpha: qa, tracking: 8 });
+        h.text(t > go ? '> YES' : '  YES', 900, 360 + o.slots.length * 150 + 90, { font: 'mono', size: 44, color: t > go ? COL.amber : COL.ui, align: 'right', alpha: qa });
+        h.text('NO', 1020, 360 + o.slots.length * 150 + 90, { font: 'mono', size: 44, color: COL.uiDim, alpha: qa });
+      }
+      if (t > go + 0.4) {
+        const pa = a * smooth(go + 0.4, go + 0.6, t);
+        const k = clamp01((t - go - 0.5) / 1.8);
+        const done = k >= 1;
+        h.rect(0, 0, 1920, 1080, 'rgba(0,0,0,0.93)', pa);
+        h.text(done ? (o.mode === 'LOAD' ? 'LOAD COMPLETE' : 'SAVE COMPLETE') : o.mode === 'LOAD' ? 'LOADING...' : 'SAVING... DO NOT REMOVE MEMORY CARD', 960, 500, { font: 'mono', size: 44, color: done ? COL.green : COL.white, align: 'center', alpha: pa, tracking: 6 });
+        h.rect(560, 560, 800, 26, 'rgba(255,255,255,0.12)', pa);
+        h.rect(560, 560, 800 * k, 26, done ? COL.green : COL.amber, pa);
+        if (o.after && done) h.text(o.after, 960, 700, { font: 'mono', size: 40, color: COL.ui, align: 'center', alpha: pa * smooth(go + 2.6, go + 3.1, t), tracking: 10 });
+      }
+    },
+    cues: [{ t: 1.6, kind: 'select' }, { t: 3.6, kind: 'select' }, { t: 5.9, kind: 'item-get' }],
+  });
+}

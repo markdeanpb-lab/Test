@@ -3,7 +3,7 @@
 import { RaceScene } from '../RaceScene';
 import { RunProfile } from '../profile';
 import { MANCHESTER } from '../../../data/activities';
-import { SKY, textCard, ROUTES } from '../common';
+import { SKY, textCard, ROUTES, memoryCard } from '../common';
 import { Card } from '../Cards';
 import { WatchFace } from '../props';
 import { arch } from '../dressing';
@@ -147,6 +147,16 @@ export function prologue(): Scene[] {
     cues: [{ t: 0.3, kind: 'music', id: 'title', dur: 12.7 }, { t: 5.2, kind: 'title-hit' }],
   });
 
-  const earlier = textCard('p5-earlier', [{ t: 0.8, text: 'SIX YEARS EARLIER', font: 'mono', size: 40, col: COL.ui, out: 4.2 }], 5);
+  // the flashback is loaded like an old save file
+  const earlier = memoryCard('p5-earlier', {
+    mode: 'LOAD',
+    slots: [
+      { name: 'MANCHESTER MARATHON', sub: '19.04.2026  -  START LINE  -  TARGET 3:00:00', icon: '42' },
+      { name: 'LOCKDOWN  DAY 53', sub: '14.05.2020  -  THE FLAT  -  NO RUNS ON RECORD', icon: '00' },
+    ],
+    pick: 1,
+    dur: 9,
+    after: 'SIX YEARS EARLIER',
+  });
   return [pen, line, gun, title, earlier];
 }

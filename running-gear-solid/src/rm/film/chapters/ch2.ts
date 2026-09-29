@@ -286,6 +286,10 @@ export function ch2(): Scene[] {
           h.text('PARKRUN  SUMMER 2022', 960, 780, { font: 'mono', size: 26, color: COL.uiDim, align: 'center', alpha: a, tracking: 10, shadow: true });
           h.text(i.tag!, 960, 900, { font: 'mono', size: 130, color: COL.white, align: 'center', alpha: a, glow: 14, shadow: true });
           targetBlock(h, { target: 1199, alpha: a * 0.9 });
+          // a game over of a kind: RETRY?
+          const ra = env(i.shotT, 2.1, 3.5, 0.1, 0.2);
+          h.text('MISSION FAILED', 960, 420, { font: 'head', size: 64, weight: 700, color: COL.red, align: 'center', alpha: ra, tracking: 14, glow: 10, shadow: true });
+          h.text('RETRY?   > YES', 960, 500, { font: 'mono', size: 44, color: COL.white, align: 'center', alpha: ra, tracking: 6, shadow: true });
         }
         if (i.shot >= 2) {
           eventTag(h, { name: 'LOG: "RETURN OF FINSBURY PARKRUN"', date: '27.08.2022', t: i.t - 7 });
@@ -296,7 +300,7 @@ export function ch2(): Scene[] {
         if (i.shot === 3) fades(ctx.r.grade, i.shotT, 9, 0.01, 0.9);
         void race;
       },
-      cues: [{ t: 0, kind: 'amb-park', dur: 21 }, { t: 0.2, kind: 'number-hit' }, { t: 3.7, kind: 'number-hit' }, { t: 7, kind: 'music', id: 'tension', dur: 14 }, { t: 15, kind: 'fail' }],
+      cues: [{ t: 0, kind: 'amb-park', dur: 21 }, { t: 0.2, kind: 'number-hit' }, { t: 2.1, kind: 'fail' }, { t: 3.3, kind: 'select' }, { t: 3.7, kind: 'number-hit' }, { t: 5.6, kind: 'fail' }, { t: 6.8, kind: 'select' }, { t: 7, kind: 'music', id: 'tension', dur: 14 }, { t: 15, kind: 'fail' }],
     }),
   );
 

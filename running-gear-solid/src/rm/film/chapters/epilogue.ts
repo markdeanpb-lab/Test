@@ -5,7 +5,7 @@ import { RaceScene } from '../RaceScene';
 import { RunProfile } from '../profile';
 import chipJ from '../../../data/gps/chippenham-half.json';
 import sapJ from '../../../data/gps/st-albans-parkrun.json';
-import { SKY, logCard, fades, missionList, textCard, steady } from '../common';
+import { SKY, logCard, fades, missionList, textCard, steady, memoryCard } from '../common';
 import { Card, grid } from '../Cards';
 import { COL, env, smooth, clamp01, fmt } from '../../hud/Hud';
 import { raceClock, eventTag } from '../../hud/widgets';
@@ -143,6 +143,16 @@ export function epilogue(): Scene[] {
       { name: 'SUB 3:00:00  MARATHON', status: 'INCOMPLETE', note: 'BEST 3:20:03' },
       { name: 'SUB 18:00  5K', status: 'INCOMPLETE', note: 'BEST 18:19' },
     ], 15, 'MISSION LOG  -  2020 - 2026'),
+    memoryCard('e6-save', {
+      mode: 'SAVE',
+      slots: [
+        { name: 'LOCKDOWN  DAY 53', sub: '14.05.2020  -  THE FLAT', icon: '00' },
+        { name: 'MANCHESTER MARATHON', sub: '19.04.2026  -  3:20:03  -  THE WALL WON', icon: '42' },
+        { name: 'STILL STANDING', sub: '27.09.2026  -  9,219 KM  -  PLAY TIME 831 H', icon: 'NEW' },
+      ],
+      pick: 2,
+      dur: 9,
+    }),
   );
 
   // --- silence; a new mission; the runner moves again
