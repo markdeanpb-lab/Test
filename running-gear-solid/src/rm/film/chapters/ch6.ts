@@ -2,19 +2,17 @@
 // The comeback (and the Hare again), the last Finsbury parkrun, a new home, the ghost of 2023,
 // SUB 18 appears, SUB 20 comes back, and EIGHTEEN refuses to fall.
 import { RaceScene } from '../RaceScene';
+import { eighteenBoss } from './eighteen';
 import { RunProfile } from '../profile';
 import { PHANTOM_2023 } from '../../../data/activities';
 import stAlbansHalfJ from '../../../data/gps/st-albans-half.json';
-import festiveJ from '../../../data/gps/striders-festive-5k.json';
-import { SKY, chapterCard, logCard, boardCard, fades, trackPath, textCard } from '../common';
+import { SKY, chapterCard, logCard, boardCard, fades, textCard } from '../common';
 import { Card, grid } from '../Cards';
-import { COL, env, smooth, clamp01 } from '../../hud/Hud';
-import { raceClock, targetBlock, stamp, bossPlate, eventTag } from '../../hud/widgets';
+import { COL, env, smooth } from '../../hud/Hud';
+import { raceClock, stamp, bossPlate, eventTag } from '../../hud/widgets';
 import { funnel, flag, arch } from '../dressing';
 import { Ghost, HoloText } from '../fx';
 import { Lure } from '../bosses/Lure';
-import { Drone } from '../bosses/Drone';
-import { aimAt } from '../bosses/place';
 import { Scene } from '../core';
 
 export function ch6(): Scene[] {
@@ -199,61 +197,9 @@ export function ch6(): Scene[] {
     boardCard('c6-board-sub20-again', { dur: 6, op: 'REBUILD', objective: 'OBJECTIVE (AGAIN)', target: 'SUB 20:00', size: 0.3, sub: 'THE FIRST NUMBER, BACK ON THE BOARD', status: 'SMALLER THAN IT USED TO LOOK', statusCol: COL.ui }),
   );
 
-  // --- EIGHTEEN (mini): Striders Festive 5K 16.12.2025. Target 17:59, result 18:19.
-  const fest = RunProfile.fromGpsProfile(festiveJ as any, 1099);
-  let drone18: Drone;
+  // --- EIGHTEEN: Striders Festive 5K 16.12.2025. Target 17:59, result 18:19 (its own level: the arcade).
   scenes.push(
-    new RaceScene({
-      id: 'c6-eighteen',
-      arena: 'st-albans',
-      path: (race) => {
-        const c = race.arena.data.j.courses[2].gps;
-        let x = 0, z = 0;
-        for (let k = 0; k < c.length; k += 2) {
-          x += c[k];
-          z += c[k + 1];
-        }
-        return trackPath(race.arena.data.j.areas, x / (c.length / 2), z / (c.length / 2), 12, 1.1);
-      },
-      profile: fest,
-      sky: SKY.dusk,
-      night: 0.6,
-      halfWidth: 1.6,
-      field: { count: 40, pack: 3, packSpread: 8, kmin: 0.8, kmax: 1.1, seed: 65 },
-      build: async (race) => {
-        drone18 = await Drone.create();
-        race.extras.add(drone18.root);
-      },
-      shots: [
-        { dur: 5, T: 200, cam: { mode: 'follow', dist: 22, h: 9, ang: 140, look: 1 }, cam2: { dist: 18 } },
-        // the drone, just out of reach over the lane
-        { dur: 6, T: 520, cam: { mode: 'follow', dist: 5, h: 1.6, ang: 14, look: 2.6, ahead: 6, fov: 44 }, cam2: { dist: 4.2 } },
-        { dur: 5, T: 700, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: -95 } },
-        { dur: 16, T: 1093, rate: 0.6, cam: { mode: 'follow', dist: 7, h: 1.3, ang: -65, look: 1.6, fov: 46 }, cam2: { dist: 6, ang: -40 } },
-      ],
-      pose: (i) => ({ fatigue: clamp01((i.d - 3000) / 2000) * 0.5 }),
-      onFrame: (race, i, ctx) => {
-        const h = ctx.hud;
-        // 18:00 pace: it leads by exactly the time he is losing to it
-        const dd = fest.distance / 1080;
-        const lead = Math.max(7, (Math.min(i.T, 1080) * dd - Math.min(i.d, fest.distance)) + 7);
-        const k = race.course.length / fest.distance;
-        const dp = race.place(Math.min(i.d, fest.distance) * k + lead * k, -0.3);
-        drone18.pose(dp, i.t, i.finished ? 3.2 + smooth(0, 6, i.T - fest.finish) * 6 : 3.2);
-        if (i.shot === 3 && i.finished) aimAt(race.stage!.camera, drone18.root.position, 0.55 * smooth(0.2, 2, i.T - fest.finish));
-        if (i.shot === 0) eventTag(h, { name: 'STRIDERS FESTIVE 5K', date: '16.12.2025', t: i.shotT });
-        bossPlate(h, { name: 'EIGHTEEN', sub: 'MINI BOSS', frac: 1 - clamp01(i.d / fest.distance) * 0.9, alpha: i.finished ? 1 - smooth(1, 2, i.T - fest.finish) : 1 });
-        targetBlock(h, { target: 1079, projection: i.finished ? undefined : fest.projection(i.T), result: i.finished ? 1099 : undefined });
-        raceClock(h, { T: Math.min(i.T, fest.finish), d: Math.min(i.d, fest.distance), label: `LAP ${Math.min(12, Math.floor(i.d / 417) + 1)} / 12` });
-        if (i.finished) {
-          const u = i.T - fest.finish;
-          h.text('5K PB', 960, 820, { font: 'mono', size: 34, color: COL.green, align: 'center', alpha: smooth(0.5, 1, u), tracking: 8, shadow: true });
-          h.text('EIGHTEEN: NOT YET', 960, 890, { font: 'head', size: 54, weight: 700, color: COL.red, align: 'center', alpha: smooth(1.5, 2.1, u), tracking: 10, shadow: true });
-        }
-        if (i.shot === 3) fades(ctx.r.grade, i.shotT, 16, 0.01, 1.2);
-      },
-      cues: [{ t: 0, kind: 'music', id: 'boss-mini', dur: 27 }, { t: 5, kind: 'drone-low', dur: 6 }, { t: 28, kind: 'fail' }],
-    }),
+    eighteenBoss(),
     textCard('c6-week1', [{ t: 0.8, text: 'Five days later.', out: 5.5 }, { t: 2.6, text: 'WEEK 1 OF 18', font: 'mono', col: COL.ui, y: 620, size: 44, out: 5.5 }], 6.2),
   );
   void stamp;

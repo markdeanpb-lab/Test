@@ -357,6 +357,14 @@ const MUSIC: Record<string, (t: number, d: number) => void> = {
     pads(t, t + d, [F, Am, Dm, C], 4.5, 0.03, 900);
     for (let k = 1; k < d - 2; k += 3) piano(t + k, [69, 65, 62, 64][Math.floor(k / 3) % 4], 0.05);
   },
+  arcade(t, d) {
+    // chiptune: square lead, pulse bass, noise hats
+    const bpm = 150;
+    drums(t, t + d, bpm, 'drive', 0.6);
+    bassline(t, t + d, bpm, [45, 45, 41, 43], 8, 0.2, [1, 1, 0, 1, 1, 0, 1, 1]);
+    const mel = [81, 84, 88, 86, 84, 81, 79, 81, 84, 83, 79, 76, 77, 79, 81, 84];
+    loop(t + 1.6, t + d, bpm, 2, (i, x) => lead(x, mel[i % 16], 0.18, 0.045));
+  },
   haunt(t, d) {
     // a low tritone drone, a music-box figure a semitone out, far-off bell
     note(t, d, mtof(33), { wave: 'saw', amp: 0.05, a: 3, d: 0.1, s: 1, r: 2, lp: 260, detune: 11, wet: 0.6 });
@@ -587,6 +595,12 @@ const SFX_FN: Record<string, (c: { t: number; [k: string]: unknown }) => void> =
     note(c.t, 0.28, 110, { wave: 'square', amp: 0.06, a: 0.002, d: 0.05, s: 1, r: 0.05, lp: 1400, wet: 0.1 });
     note(c.t, 0.28, 116, { wave: 'square', amp: 0.05, a: 0.002, d: 0.05, s: 1, r: 0.05, lp: 1400, wet: 0.1 });
   },
+  beep3: (c) => {
+    for (let k = 0; k < 3; k++) beep(c.t + 0.8 + k * 0.8, 880, 0.07, 0.15);
+  },
+  checkpoint: (c) => [72, 76, 79, 84].forEach((m, i) => lead(c.t + i * 0.06, m, 0.1, 0.07)),
+  timeup: (c) => [76, 72, 67, 60].forEach((m, i) => lead(c.t + i * 0.16, m, 0.18, 0.08)),
+  hiscore: (c) => [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => lead(c.t + i * 0.12, m, 0.14, 0.07)),
   toll: (c) => {
     // a church bell: low partials, long ring
     [[45, 0.12], [57, 0.06], [64, 0.035], [69, 0.02]].forEach(([m, a]) => note(c.t, 5, mtof(m), { wave: 'sine', amp: a, a: 0.003, d: 4.8, s: 0, r: 0.5, wet: 0.7 }));
