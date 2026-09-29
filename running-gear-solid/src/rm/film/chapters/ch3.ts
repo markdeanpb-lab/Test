@@ -11,7 +11,7 @@ import { SKY, chapterCard, logCard, boardCard, fades, trackPath, missionList, ll
 import { CodecScene } from '../Codec';
 import { Card, grid } from '../Cards';
 import { COL, env, smooth, clamp01, Hud } from '../../hud/Hud';
-import { raceClock, targetBlock, stamp, bossPlate, eventTag, splitPop } from '../../hud/widgets';
+import { raceClock, targetBlock, stamp, eventTag, splitPop } from '../../hud/widgets';
 import { funnel, flag } from '../dressing';
 import { pbrArrayWall } from './walls';
 import { Scene } from '../core';
@@ -168,25 +168,46 @@ export function ch3(): Scene[] {
         race.extras.add(sent19.root);
       },
       shots: [
+        // it reads his memory card; the screen goes to VIDEO 1; he switches controller port
+        { dur: 7.5, T: 330, cam: { mode: 'follow', dist: 5.5, h: 1.6, ang: 12, look: 3, ahead: 10, fov: 46 }, tag: 'read' },
+        { dur: 2.4, T: 560, cam: { mode: 'follow', dist: 4, h: 1.4, ang: 150 }, tag: 'video' },
+        { dur: 3.6, T: 700, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: 95 }, tag: 'port' },
         { dur: 7, T: 1118, rate: 0.8, cam: { mode: 'follow', dist: 6, h: 1.3, ang: 10, look: 2.5, ahead: 8, fov: 50 }, cam2: { dist: 5 } },
         { dur: 11, T: 1137, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, cam2: { dist: 8 } },
       ],
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
         sent19.update(i.t, { wind: 0.2, text: mmss(Math.min(i.T, 1140)), look: i.pos, flicker: 0 });
-        if (i.shot === 0) aimAt(race.stage!.camera, sent19.root.position.clone().add(new THREE.Vector3(0, 18, 0)), 0.35);
+        if (i.tag === 'read' || i.shot === 3) aimAt(race.stage!.camera, sent19.root.position.clone().add(new THREE.Vector3(0, 18, 0)), 0.35);
         eventTag(h, { name: 'LORDSHIP REC PARKRUN', date: '01.07.2023', t: i.t });
-        bossPlate(h, { name: 'NINETEEN', sub: 'MINI BOSS', frac: i.finished ? 1 : 1 - clamp01(i.d / lord.distance) * 0.9, alpha: env(i.t, 0.5, 16, 0.5, 0.5) });
-        targetBlock(h, { target: 1139, label: 'NEXT TARGET: SUB 19', projection: i.finished ? undefined : lord.projection(i.T), result: i.finished ? 1140 : undefined });
-        raceClock(h, { T: Math.min(i.T, 1140), d: Math.min(i.d, lord.distance) });
+        bossHp(h, { name: 'NINETEEN', hp: i.finished ? 1 : 1 - clamp01(i.d / lord.distance) * 0.9, sub: i.tag === 'read' ? 'IT IS READING YOUR MEMORY CARD' : 'MIND GAMES', alpha: env(i.t, 0.5, 29.5, 0.5, 0.5) * (i.tag === 'video' ? 0 : 1) });
+        if (i.tag === 'read') {
+          // Psycho Mantis, more or less: everything it says is on the card
+          const lines = ['I SEE... A MEMORY CARD.', '20:00. EXACTLY. THEN 20:07.', '21:48. YOU WENT OFF TOO FAST.', 'YOU ALWAYS DO.'];
+          lines.forEach((ln, k) => {
+            const t0 = 0.6 + k * 1.6;
+            h.text(h.type(ln, i.shotT, t0, 26), 960, 380 + k * 70, { font: 'mono', size: 46, color: COL.red, align: 'center', alpha: env(i.shotT, t0, 7.3, 0.1, 0.3), tracking: 4, glow: 10, shadow: true });
+          });
+        }
+        if (i.tag === 'video') {
+          // the fake input switch
+          h.rect(0, 0, 1920, 1080, '#000', 1);
+          h.text('VIDEO 1', 120, 130, { font: 'mono', size: 64, color: '#3eff5a', alpha: Math.floor(i.shotT * 3) % 3 ? 1 : 0.7, tracking: 6 });
+        }
+        if (i.tag === 'port') {
+          prompt(h, { b: 'S', text: 'SWITCH TO CONTROLLER PORT 2', t: i.shotT, ok: i.shotT > 1.4, y: 780 });
+          if (i.shotT > 1.6) h.text("IT CAN'T READ YOU NOW", 960, 420, { font: 'head', size: 64, weight: 700, color: COL.green, align: 'center', alpha: smooth(1.6, 2, i.shotT), tracking: 12, shadow: true });
+        }
+        if (i.tag !== 'video' && i.tag !== 'read') targetBlock(h, { target: 1139, label: 'NEXT TARGET: SUB 19', projection: i.finished ? undefined : lord.projection(i.T), result: i.finished ? 1140 : undefined });
+        if (i.tag !== 'video') raceClock(h, { T: Math.min(i.T, 1140), d: Math.min(i.d, lord.distance) });
         if (i.finished) {
           const u = i.T - 1140;
           stamp(h, '19:00', { alpha: smooth(0.2, 0.7, u), size: 180, col: COL.red });
           h.text('EXACTLY. AGAIN.', 960, 700, { font: 'head', size: 60, weight: 700, color: COL.white, align: 'center', alpha: smooth(1.2, 1.8, u), tracking: 14, shadow: true });
         }
-        fades(ctx.r.grade, i.t, 18, 0.5, 1);
+        fades(ctx.r.grade, i.t, 30.5, 0.5, 1);
       },
-      cues: [{ t: 0, kind: 'amb-park', dur: 18 }, { t: 0.4, kind: 'boss-intro' }, { t: 13, kind: 'fail-big' }],
+      cues: [{ t: 0, kind: 'amb-park', dur: 7.5 }, { t: 0.4, kind: 'boss-intro' }, { t: 0.5, kind: 'music', id: 'haunt', dur: 7 }, { t: 7.5, kind: 'silence', dur: 2.4 }, { t: 7.5, kind: 'cctv', dur: 2.4 }, { t: 9.9, kind: 'amb-park', dur: 20.6 }, { t: 11.3, kind: 'select' }, { t: 11.5, kind: 'win-small' }, { t: 26.5, kind: 'fail-big' }],
     }),
   );
 
