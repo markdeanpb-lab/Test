@@ -3,26 +3,25 @@
 import * as THREE from 'three';
 import { RaceScene, Info } from '../RaceScene';
 import { RunProfile } from '../profile';
-import { PHANTOM_2023, RICHMOND, CLAW } from '../../../data/activities';
+import { RICHMOND, CLAW } from '../../../data/activities';
 import batterseaJ from '../../../data/gps/battersea-10k.json';
 import lordshipJ from '../../../data/gps/lordship-parkrun.json';
 import t5000J from '../../../data/gps/finsbury-5000s.json';
 import { SKY, chapterCard, logCard, boardCard, fades, trackPath, missionList, llToLocal, steady } from '../common';
 import { CodecScene } from '../Codec';
 import { Card, grid } from '../Cards';
-import { COL, env, smooth, clamp01, fmt, Hud } from '../../hud/Hud';
+import { COL, env, smooth, clamp01, Hud } from '../../hud/Hud';
 import { raceClock, targetBlock, stamp, bossPlate, eventTag, splitPop } from '../../hud/widgets';
-import { funnel, flag, arch } from '../dressing';
-import { Ghost, HoloText } from '../fx';
+import { funnel, flag } from '../dressing';
 import { pbrArrayWall } from './walls';
 import { Scene } from '../core';
-import { Furnace } from '../bosses/Furnace';
 import { Gate } from '../bosses/Gate';
 import { Sentinel } from '../bosses/Sentinel';
 import { clawBoss } from './claw';
 import { phantomLevel } from './phantom';
-import { lifeHud, equip, bossHp, prompt, banner, popup } from '../../hud/game';
-import { waterSide, aimAt, mmss } from '../bosses/place';
+import { furnaceLevel } from './furnace';
+import { lifeHud, bossHp, prompt, banner } from '../../hud/game';
+import { aimAt, mmss } from '../bosses/place';
 
 const HALF = 21097.5;
 
@@ -33,11 +32,6 @@ function kmSplits(h: Hud, race: RaceScene, i: Info, fast = 240) {
   const since = i.T - p.timeAt(km * 1000);
   const split = p.timeAt(km * 1000) - p.timeAt((km - 1) * 1000);
   splitPop(h, { km, split, since, col: split < fast ? COL.green : COL.white });
-}
-
-/** the Phantom: a cyan wireframe pacer on exact 1:30:00 pace over the GPS distance */
-export function phantomDist(profileDistance: number) {
-  return (T: number) => Math.max(0, T) * (profileDistance / 5400);
 }
 
 export function ch3(): Scene[] {
@@ -259,98 +253,13 @@ export function ch3(): Scene[] {
   );
 
   // --- the first marathon build and FURNACE: Richmond Runfest Marathon 10.09.2023, 3:55:11
-  const ric = RunProfile.fromSplits(RICHMOND.splits, RICHMOND.distanceKm, RICHMOND.timeSec);
-  let furnace: Furnace;
-  const furnaceSide = (race: RaceScene, s: number) => {
-    // the side of the course away from the river, sampled over a stretch so it doesn't flip every frame
-    const k = Math.floor(s / 150) * 150;
-    return waterSide(race, k + 75, 32);
-  };
   scenes.push(
     logCard('c3-longruns', [
       ['LONG RUN 26 KM', '8 weeks to Richmond'],
       ['LONG RUN 28 KM', 'I have become death, destroyer of long runs'],
     ], { title: 'MISSION LOG  -  FIRST MARATHON BUILD', hold: 1 }),
     boardCard('c3-board-richmond', { dur: 7, op: 'RICHMOND RUNFEST MARATHON', objective: 'OBJECTIVE', target: 'FINISH', size: 0.7, route: 'richmond-marathon', sub: '42.2 KM  -  FIRST MARATHON', status: 'FORECAST: HOT', statusCol: COL.red }),
-    new RaceScene({
-      id: 'c3-furnace',
-      arena: 'richmond',
-      profile: ric,
-      sky: SKY.hot,
-      halfWidth: 2.2,
-      field: { count: 120, pack: 5, kmin: 0.8, kmax: 1.2, seed: 35 },
-      build: async (race) => {
-        arch(race, 0, 'RICHMOND', 8);
-        furnace = (await Furnace.create()).barge();
-        race.extras.add(furnace.root);
-        // time the meltdown and evacuation shots to stretches where the course runs beside the river
-        const k = ric.distance / race.course.length;
-        const riverAt = (d0: number, d1: number) => {
-          for (let d = d0; d < d1; d += 50) {
-            const s = d / k;
-            const wet = Math.max(...[-1, 1].map((sd) => { const p = race.place(s, sd * 34); return race.arena.data.maskAt(p.x, p.z); }));
-            if (wet > 0.6) return ric.timeAt(d);
-          }
-          return null;
-        };
-        const sh = race.o.shots;
-        const m = sh.findIndex((x) => x.tag === 'melt'), e = sh.findIndex((x) => x.tag === 'evac');
-        sh[m].T = riverAt(27000, 32000) ?? sh[m].T;
-        sh[e].T = riverAt(33500, 40000) ?? sh[e].T;
-      },
-      shots: [
-        { dur: 6, T: 1800, cam: { mode: 'follow', dist: 5, h: 1.6, ang: 20, look: 1.3 }, tag: 'cruise' },
-        // halfway: it rolls into view alongside, mouth towards the road
-        { dur: 7, T: 6212, cam: { mode: 'follow', dist: 8, h: 1.8, ang: -30, look: 1.4, fov: 52 }, cam2: { dist: 6.5, ang: -38 }, tag: 'half' },
-        { dur: 7, T: 8900, cam: { mode: 'follow', dist: 6, h: 1.4, ang: 165, look: 1.4, fov: 52, side: 1.2 }, tag: 'melt' },
-        { dur: 6, T: 11800, cam: { mode: 'follow', dist: 36, h: 18, ang: 150, look: 4, fov: 40 }, cam2: { dist: 30, h: 14 }, tag: 'evac' },
-        { dur: 9, T: 14100, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, tag: 'finish' },
-      ],
-      pose: (i) => ({ fatigue: clamp01((i.d - 20000) / 12000) * 1.0 }),
-      onFrame: (race, i, ctx) => {
-        const h = ctx.hud, g = ctx.r.grade;
-        const heat = clamp01((i.d - 18000) / 8000);
-        // a furnace barge on the Thames pacing him: ahead at halfway, bearing down from behind in the meltdown
-        const side = furnaceSide(race, i.s);
-        const lead = i.tag === 'half' ? 22 : i.tag === 'cruise' ? 60 : i.tag === 'evac' ? -20 : -12;
-        const fp = race.place(Math.min(i.s, race.course.length) + lead, side * 32);
-        furnace.root.position.set(fp.x, race.arena.data.waterAt(fp.x, fp.z) - 2.2, fp.z);
-        furnace.root.visible = race.arena.data.maskAt(fp.x, fp.z) > 0.5;
-        furnace.root.rotation.y = Math.atan2(fp.dx, fp.dz);
-        furnace.crucible.rotation.y = side * Math.PI / 2;
-        if (furnace.root.visible && (i.tag === 'half' || i.tag === 'melt' || i.tag === 'evac')) aimAt(race.stage!.camera, new THREE.Vector3(fp.x, fp.y + 8, fp.z), i.tag === 'evac' ? 0.45 : 0.35);
-        furnace.update(i.t, { heat: 0.25 + 0.75 * heat, siren: i.tag === 'evac' ? 1 : 0, banked: i.finished ? smooth(0, 4, i.T - ric.finish) : 0, travel: i.s });
-        g.gain = [1.0 + 0.08 * heat, 0.96, 0.86 - 0.1 * heat];
-        g.saturation = 0.85 + 0.1 * heat;
-        g.bloom = 0.25 + 0.2 * heat;
-        const km = Math.floor(i.d / 1000);
-        if (i.tag !== 'finish') {
-          eventTag(h, { name: 'RICHMOND RUNFEST MARATHON', date: '10.09.2023', t: i.t });
-          raceClock(h, { T: i.T, d: i.d, hours: true, pace: RICHMOND.splits[Math.min(41, km)] });
-          const hr = RICHMOND.splitHr![Math.min(RICHMOND.splitHr!.length - 1, km)];
-          h.text(`HR ${hr}`, 1824, 330, { font: 'mono', size: 34, color: COL.ui, align: 'right', shadow: true });
-          const ph = RICHMOND.phases.find((p) => i.d / 1000 >= p.fromKm && i.d / 1000 < p.toKm);
-          bossPlate(h, { name: 'FURNACE', sub: 'THE DAY THE COURSE BURNED', frac: 1 - i.d / ric.distance, phase: ph?.name, col: COL.amber });
-        }
-        if (i.tag === 'half') h.text('HALFWAY  1:43:32', 960, 900, { font: 'mono', size: 44, color: COL.white, align: 'center', alpha: smooth(0.5, 1, i.shotT), tracking: 4, shadow: true });
-        if (i.tag === 'melt') h.text('SPLITS 5:16 > 6:46', 960, 900, { font: 'mono', size: 44, color: COL.red, align: 'center', alpha: smooth(1, 1.5, i.shotT), tracking: 4, shadow: true });
-        if (i.tag === 'evac') {
-          h.text('RACE BEING STOPPED BEHIND YOU', 960, 800, { font: 'head', size: 50, weight: 700, color: COL.red, align: 'center', alpha: Math.floor(i.shotT * 2) % 2 ? 0.5 : 1, tracking: 8, shadow: true });
-          h.text('TOO MANY CASUALTIES', 960, 858, { font: 'mono', size: 30, color: COL.amber, align: 'center', tracking: 6, shadow: true });
-        }
-        if (i.tag === 'finish') {
-          raceClock(h, { T: Math.min(i.T, ric.finish), hours: true, alpha: 1 - smooth(6, 7, i.shotT) });
-          if (i.finished) {
-            const u = i.T - ric.finish;
-            stamp(h, 'SURVIVED', { alpha: smooth(0.2, 0.8, u), size: 120, col: COL.amber, sub: '3:55:11  -  FIRST MARATHON' });
-            h.text('RELATIVE EFFORT 739  -  CAREER HIGH', 960, 780, { font: 'mono', size: 30, color: COL.red, align: 'center', alpha: smooth(1.2, 1.7, u), tracking: 4, shadow: true });
-            h.text('LOG: "MANAGED TO PASS THROUGH THE END WHEN THEY STARTED TO CANCEL THE RACE DUE TO TOO MANY CASUALTIES"', 960, 900, { font: 'mono', size: 22, color: COL.ui, align: 'center', alpha: smooth(2.2, 2.8, u), tracking: 1, shadow: true });
-          }
-          fades(g, i.shotT, 9, 0.01, 1.2);
-        }
-      },
-      cues: [{ t: 0, kind: 'amb-crowd', dur: 33, level: 0.35 }, { t: 0, kind: 'music', id: 'furnace', dur: 24 }, { t: 18, kind: 'siren', dur: 6 }, { t: 25, kind: 'win-grim' }],
-    }),
+    furnaceLevel(),
   );
 
   // --- THE CLAW: Highgate hills 26.11.2023 (boss level)

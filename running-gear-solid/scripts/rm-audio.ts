@@ -573,6 +573,15 @@ const SFX_FN: Record<string, (c: { t: number; [k: string]: unknown }) => void> =
     shatter(c.t, 0.6);
     hit(c.t, 0.5);
   },
+  boom: (c) => boom(c.t, 0.8),
+  lava: (c) => {
+    // a deep roar with bubbling pops
+    note(c.t, c.dur as number, 42, { wave: 'saw', amp: 0.035, a: 2, d: 0.1, s: 1, r: 2, lp: 160, detune: 8, wet: 0.5 });
+    for (let x = c.t; x < c.t + (c.dur as number); x += 0.3 + rnd() * 0.9) note(x, 0.14, 90 + rnd() * 120, { wave: 'sine', amp: 0.03, a: 0.005, d: 0.12, s: 0, glide: 1.8, wet: 0.4, pan: rnd() - 0.5 });
+  },
+  rumble: (c) => {
+    for (let x = c.t; x < c.t + (c.dur as number); x += 0.45) note(x, 0.6, 1, { wave: 'noise', amp: 0.06 * (0.6 + 0.4 * rnd()), a: 0.05, d: 0.5, s: 0, lp: 350, wet: 0.4, pan: rnd() - 0.5 });
+  },
   toll: (c) => {
     // a church bell: low partials, long ring
     [[45, 0.12], [57, 0.06], [64, 0.035], [69, 0.02]].forEach(([m, a]) => note(c.t, 5, mtof(m), { wave: 'sine', amp: a, a: 0.003, d: 4.8, s: 0, r: 0.5, wet: 0.7 }));

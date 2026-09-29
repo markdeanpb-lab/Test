@@ -4,16 +4,15 @@
 import * as THREE from 'three';
 import { RaceScene } from '../RaceScene';
 import { RunProfile } from '../profile';
-import { PHANTOM_2024 } from '../../../data/activities';
+
 import robinJ from '../../../data/gps/robin-hood-half.json';
 import { SKY, chapterCard, logCard, boardCard, fades, steady } from '../common';
 import { CodecScene } from '../Codec';
 import { Card, grid } from '../Cards';
-import { COL, env, smooth, clamp01, fmt } from '../../hud/Hud';
-import { raceClock, stamp, bossPlate, eventTag } from '../../hud/widgets';
+import { COL, env, smooth } from '../../hud/Hud';
+import { raceClock, stamp, eventTag } from '../../hud/widgets';
 import { funnel, flag, arch } from '../dressing';
-import { Ghost } from '../fx';
-import { phantomDist } from './ch3';
+
 import { Scene } from '../core';
 import { phantomLevel } from './phantom';
 
