@@ -3,7 +3,7 @@
 // 1920x1080 RGB into FFmpeg per worker slice, joins the segments, synthesises the score from
 // the film's own cue list and muxes output/running-gear-solid.mp4.
 //
-//   node scripts/rm-render.mjs [--fresh] [--workers N] [--from S] [--to S] [--only sceneprefix] [--out f.mp4] [--noaudio]
+//   node scripts/rm-render.mjs [--fresh] [--qs params] [--workers N] [--from S] [--to S] [--only sceneprefix] [--out f.mp4] [--noaudio]
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -20,7 +20,9 @@ const outFile = path.resolve(ROOT, opt('out', 'output/running-gear-solid.mp4'));
 const workers = Math.max(1, Number(opt('workers', Math.max(1, os.cpus().length - 1))));
 const only = opt('only', '');
 const W = 1920, H = 1080;
-const page = 'remaster.html' + (only ? `?only=${only}&x=` : '');
+// --qs 'scale=0.667' passes extra page params (e.g. a lower internal resolution for quick previews)
+const qs = [only ? `only=${only}` : '', opt('qs', '')].filter(Boolean);
+const page = 'remaster.html' + (qs.length ? `?${qs.join('&')}&x=` : '');
 
 function run(bin, argv, stdin = false) {
   const p = spawn(bin, argv, { stdio: [stdin ? 'pipe' : 'ignore', 'ignore', 'pipe'] });

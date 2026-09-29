@@ -20,6 +20,7 @@ import { Lure } from '../bosses/Lure';
 import { Scene, Ctx } from '../core';
 import { Sentinel } from '../bosses/Sentinel';
 import { Hinge } from '../bosses/Hinge';
+import { hareBoss } from './hare';
 import { waterSide, faceCourse, mmss, aimAt } from '../bosses/place';
 
 const parkrunDressing = (race: RaceScene) => {
@@ -125,60 +126,8 @@ export function ch2(): Scene[] {
     boardCard('c2-board-sub20', { dur: 8, op: 'FINSBURY PARK', objective: 'PRIMARY OBJECTIVE', target: 'SUB 20:00', size: 1, route: 'finsbury-parkrun', sub: '5 KM  -  4:00 /KM', status: 'CURRENT BEST 21:04   GAP 1:05' }),
   );
 
-  // --- THE HARE (mini boss): 23.04.2022, 21:48 "Went off too fast"
-  let hare: Lure;
-  const hareProf = RunProfile.fromRuns('hare-2148');
-  const hareD = (T: number) => hareProf.distAt(T) + 7 + Math.max(0, T - 60) * 0.12 + Math.max(0, T - 230) * 0.9;
-  scenes.push(
-    new RaceScene({
-      id: 'c2-hare',
-      arena: 'finsbury',
-      profile: hareProf,
-      sky: SKY.morning,
-      halfWidth: 2.2,
-      field: { count: 170, pack: 4, kmin: 0.72, kmax: 1.15, seed: 22 },
-      build: async (race) => {
-        parkrunDressing(race);
-        hare = await Lure.create();
-        hare.rig(-1, (race.o.halfWidth ?? 2.5) + 0.2);
-        hare.prepare(hareD, -5, 400);
-        race.extras.add(hare.runner.root);
-      },
-      shots: [
-        { dur: 4, T: -3, cam: { mode: 'follow', dist: 6, h: 1.8, ang: 160, look: 1.1 }, grade: { letterbox: 1 } },
-        { dur: 5, T: 25, cam: { mode: 'follow', dist: 5, h: 2.2, ang: 8, look: 1.9, ahead: 6 } },
-        { dur: 5, T: 150, cam: { mode: 'follow', dist: 6, h: 1.4, ang: 60, look: 1.8, ahead: 8, fov: 46 } },
-        { dur: 5, T: 255, cam: { mode: 'follow', dist: 6, h: 2.2, ang: 15, look: 1.2, ahead: 6 } },
-        { dur: 5, T: 900, cam: { mode: 'follow', dist: 3.2, h: 1.4, ang: 150, look: 1.4 } },
-        { dur: 7, T: 1300, rate: 0.8, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 170 } },
-      ],
-      pose: (i) => (i.shot === 4 ? { fatigue: 0.6 } : {}),
-      onFrame: (race, i, ctx) => {
-        const h = ctx.hud;
-        // the hare: STRIDE's own impatience, sprinting out ahead and vanishing
-        const hd = hareD(i.T);
-        const hp = race.place(hd * (race.course.length / hareProf.distance), -0.6);
-        const op = (i.T > 0 ? 1 : 0) * (1 - smooth(270, 320, i.T));
-        hare.opacity = 0.32 * op;
-        if (op > 0) hare.pose(hp, i.T, (hareD(i.T + 0.5) - hareD(i.T - 0.5)));
-        if (i.shot === 0) eventTag(h, { name: 'FINSBURY PARK', date: '23.04.2022', t: i.shotT });
-        bossPlate(h, { name: 'THE HARE', sub: 'IMPATIENCE', alpha: env(i.t, 4.3, 19, 0.5, 0.5) });
-        if (i.shot >= 1 && i.shot <= 4) {
-          raceClock(h, { T: i.T, d: i.d, pace: i.T / (i.d / 1000) });
-          kmSplits(h, race, i);
-        }
-        if (i.shot === 5) {
-          raceClock(h, { T: Math.min(i.T, hareProf.finish), d: Math.min(i.d, hareProf.distance), alpha: 1 - smooth(4, 5, i.shotT) });
-          if (i.finished) {
-            targetBlock(h, { target: 1264, result: 1308, label: 'PERSONAL BEST', alpha: smooth(0, 0.5, i.T - hareProf.finish) });
-            h.text('LOG: "WENT OFF TOO FAST"', 960, 900, { font: 'mono', size: 34, color: COL.amber, align: 'center', alpha: smooth(1, 1.5, i.T - hareProf.finish), tracking: 3, shadow: true });
-          }
-          fades(ctx.r.grade, i.shotT, 7, 0.01, 0.8);
-        }
-      },
-      cues: [{ t: 0, kind: 'amb-park', dur: 31 }, { t: 4, kind: 'music', id: 'hare', dur: 20 }, { t: 9, kind: 'hare-laugh' }, { t: 24, kind: 'fail' }],
-    }),
-  );
+  // --- THE HARE (mini boss): 23.04.2022, 21:48 "Went off too fast" - a Wonderland chase
+  scenes.push(hareBoss());
 
   // --- HINGE (major): "Testing the knee", then Hackney Half 22.05.2022, 1:46:30
   const hingeProf = RunProfile.fromSplits(HINGE.splits, HINGE.distanceKm, HINGE.timeSec);
