@@ -82,7 +82,6 @@ export function ch6(): Scene[] {
       shots: [
         { dur: 7, T: -20, cam: { mode: 'follow', dist: 20, h: 8, ang: 150, look: 1 }, cam2: { dist: 16, h: 6 }, grade: { letterbox: 1 } },
         { dur: 6, T: 640, cam: { mode: 'follow', dist: 4.5, h: 1.6, ang: 20, look: 1.3 }, grade: { letterbox: 1 } },
-        { dur: 6, T: 900, cam: { mode: 'follow', dist: 12, h: 2.5, ang: 95, look: 1.1, fov: 28 }, grade: { letterbox: 1 } },
         { dur: 10, T: 1140, rate: 0.5, cam: { mode: 'follow', dist: 6.5, h: 1.5, ang: 174, look: 1.3, fov: 32 }, cam2: { dist: 9 }, grade: { letterbox: 1 }, tag: 'line' },
         // the park empties; walking out
         { dur: 12, T: 1165, cam: { mode: 'follow', dist: 24, h: 2.2, ang: -8, look: 1.1, fov: 24, shake: 0.1 }, cam2: { dist: 30 }, grade: { letterbox: 1 }, tag: 'leave' },
@@ -105,7 +104,7 @@ export function ch6(): Scene[] {
         }
         void race;
       },
-      cues: [{ t: 0, kind: 'amb-park', dur: 41, level: 0.6 }, { t: 1, kind: 'music', id: 'farewell', dur: 40 }],
+      cues: [{ t: 0, kind: 'amb-park', dur: 35, level: 0.6 }, { t: 1, kind: 'music', id: 'farewell', dur: 34 }],
     }),
   );
 

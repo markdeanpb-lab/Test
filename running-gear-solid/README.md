@@ -19,19 +19,20 @@ renders in about 7–8 hours with 2 workers.
 
 Each boss is a physical machine in the scene, driven by the real race data (`src/rm/film/bosses/`):
 
-| Boss | Race | What it is |
+| Boss | Race | Level (genre, mechanic) |
 |---|---|---|
-| THE HARE | four races, 2022–2026 | a greyhound-track lure on a boom arm, always a little too fast |
-| HINGE | Hackney Half 2022 | a colossal rusted knee on two hydraulic legs; lamps follow the knee (controlled, grind, seize) and turn green when it holds |
-| DOUBLE ZERO | Victoria Dock 20:00, Finsbury 19:25 | a dockside sentinel with a race-clock head and turbine arms; stops dead on 20:00, then shatters on 19:25 |
-| FORTY | Battersea 10K 39:35 | a portcullis finish gantry that drops towards 40:00 |
-| NINETEEN | Lordship 19:00 | the sentinel again, with a new number on its face |
-| PHANTOM 1:30 | Hackney 2023 / 2024, Chippenham 2026 | a cyan wireframe pacer carrying a 1:30 pace-group sign, on exact 1:30:00 pace |
-| FURNACE | Richmond Marathon 2023 | a blast-furnace barge pacing the course on the Thames |
-| THE CLAW | Highgate hills 2023 | one mechanical finger per climb, tearing out of the verge |
-| HAIRLINE | stress reaction 2024 | the crack you can't fight |
-| EIGHTEEN | Striders Festive 5K 18:19 | a pacing drone locked on 18:00 that he never catches |
-| THE WALL | Manchester Marathon 2026 | the final boss in four stages, on the real splits |
+| THE DOOR | first run, lockdown day 53 | domestic horror-comedy: excuses through the letterbox, countered by searching the flat, then mash NOW |
+| THE HARE | four races, 2022–2026 | fairy tale: a Wonderland chase; CHASE floods the stamina gauge, BLOW UP, it laughs down its hole |
+| HINGE | Hackney Half 2022 | steampunk viaduct: a rusted knee mech; keep cadence, dodge its stamps; the joint holds |
+| DOUBLE ZERO | Victoria Dock 20:00, Finsbury 19:25 | sci-fi storm: a clock sentinel; round 1 TIME UP / DRAW, round 2 each sub-4:00 split is a hit |
+| FORTY | Battersea 10K 39:35 | medieval castle: the portcullis drops towards 40:00, SLIDE under it |
+| NINETEEN | Lordship 19:00 | mind games: it reads his memory card, VIDEO 1, switch controller port; it still stops on 19:00 |
+| PHANTOM 1:30 | Hackney 2023 / 2024 | gothic horror: a ghost town at night, PACE GOGGLES; 2023 it hunts him down and escapes, 2024 he overtakes and it dissolves at dawn |
+| FURNACE | Richmond Marathon 2023 | volcanic hell: HEAT gauge, O DRINK, X DODGE, the course collapsing into lava as the race is stopped |
+| THE CLAW | Highgate hills 2023 | mech: run UP each of five giant fingers as they curl; cleared fingers retract |
+| HAIRLINE | stress reaction 2024 | body horror: an X-ray void; CANNOT ATTACK; the MGS3-style CURE screen |
+| EIGHTEEN | Striders Festive 5K 18:19 | retro arcade: TIME from 18:00, CHECKPOINT / EXTEND!, TIME UP, high-score table |
+| THE WALL | Manchester Marathon 2026 | final boss: the real course, then a brick canyon; it erupts at the 3:00 crossing, BREAK THROUGH, it rebuilds; SURVIVAL to 3:20:03 |
 
 The story bible (threads, boss tiers, chapter beats, sources) is in [`docs/STORY.md`](docs/STORY.md). The v1 critique
 that drove the remaster is in [`docs/V1_REVIEW.md`](docs/V1_REVIEW.md).
