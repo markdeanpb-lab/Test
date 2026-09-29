@@ -20,6 +20,7 @@ import { Furnace } from '../bosses/Furnace';
 import { Gate } from '../bosses/Gate';
 import { Sentinel } from '../bosses/Sentinel';
 import { clawBoss } from './claw';
+import { phantomLevel } from './phantom';
 import { lifeHud, equip, bossHp, prompt, banner, popup } from '../../hud/game';
 import { waterSide, aimAt, mmss } from '../bosses/place';
 
@@ -117,74 +118,8 @@ export function ch3(): Scene[] {
     boardCard('c3-board-130', { dur: 8, op: 'HACKNEY HALF', objective: 'PRIMARY OBJECTIVE', target: '1:29:59', size: 0.9, route: 'hackney-half', sub: '21.1 KM  -  4:15 /KM', status: 'HALF PB 1:38:12   GAP 8:13' }),
   );
 
-  // --- PHANTOM 1:30, encounter 01: Hackney Half 21.05.2023, 1:35:30
-  const ph1 = RunProfile.fromSplits(PHANTOM_2023.splits, PHANTOM_2023.distanceKm, PHANTOM_2023.timeSec);
-  const phD = phantomDist(ph1.distance);
-  let phantom: Ghost;
-  const delta = (T: number) => T - ph1.distAt(T) / (ph1.distance / 5400); // + = STRIDE behind
-  scenes.push(
-    new RaceScene({
-      id: 'c3-phantom1',
-      arena: 'hackney',
-      profile: ph1,
-      sky: SKY.clear,
-      halfWidth: 4,
-      field: { count: 260, pack: 8, kmin: 0.85, kmax: 1.2, seed: 32 },
-      spectators: [{ s0: -40, s1: 50, density: 0.7 }, { s0: 21150, s1: 21400, density: 0.8 }, { s0: 13000, s1: 13200, density: 0.5 }],
-      build: async (race) => {
-        arch(race, 0, 'HACKNEY HALF', 11);
-        arch(race, race.course.length, 'FINISH', 11);
-        phantom = await Ghost.create(0x5ff3ff, true, 0.16);
-        race.extras.add(...phantom.pacer('1:30'));
-        phantom.camera = race.stage!.camera;
-        phantom.prepare(phD, -2, 6000);
-        race.extras.add(phantom.runner.root);
-        // the overtake: the last moment STRIDE is still level with 1:30 pace
-        let cross = 3170;
-        for (let T = 600; T < 5400; T += 0.5) if (delta(T) <= 0 && delta(T + 0.5) > 0) cross = T;
-        const sh = race.o.shots;
-        const p = sh.findIndex((x) => x.tag === 'pass');
-        sh[p].T = cross - 3.5;
-      },
-      shots: [
-        { dur: 5, T: -4, cam: { mode: 'follow', dist: 10, h: 4, ang: 160, look: 1.2 }, cam2: { dist: 8 }, grade: { letterbox: 1 } },
-        { dur: 6, T: 800, cam: { mode: 'follow', dist: 5, h: 1.6, ang: 160, look: 1.2 }, tag: 'ahead' },
-        { dur: 6, T: 2140, cam: { mode: 'follow', dist: 7, h: 2, ang: 185, look: 1.2 }, tag: 'ahead' },
-        { dur: 10, T: 3170, rate: 0.7, cam: { mode: 'follow', dist: 5, h: 1.5, ang: 60, look: 1.3, ahead: 1, fov: 44 }, cam2: { ang: 25, ahead: 6 }, tag: 'pass' },
-        { dur: 5, T: 4300, cam: { mode: 'follow', dist: 4.5, h: 1.7, ang: 12, look: 1.3, ahead: 30 }, tag: 'behind' },
-        { dur: 8, T: 5725, rate: 0.6, cam: { mode: 'follow', dist: 6, h: 1.5, ang: 172 }, cam2: { dist: 8 }, tag: 'finish' },
-      ],
-      pose: (i) => ({ fatigue: clamp01((i.d - 12000) / 8000) * 0.7 }),
-      onFrame: (race, i, ctx) => {
-        const h = ctx.hud;
-        const pd = phD(i.T);
-        const pp = race.place(pd * (race.course.length / ph1.distance), -0.8);
-        phantom.opacity = i.T > 0 && pd < ph1.distance ? 0.16 : 0;
-        phantom.pose(pp, i.T, ph1.distance / 5400);
-        const dl = delta(i.T);
-        if (i.shot === 0) eventTag(h, { name: 'HACKNEY HALF', date: '21.05.2023', t: i.shotT });
-        if (i.shot >= 1 && i.tag !== 'finish') {
-          bossPlate(h, { name: 'PHANTOM 1:30', sub: 'ENCOUNTER 01', col: COL.cyan, phase: `KM ${Math.floor(i.d / 1000)}` });
-          raceClock(h, { T: i.T, d: i.d, hours: true, pace: PHANTOM_2023.splits[Math.min(20, Math.floor(i.d / 1000))] });
-          h.panel(96, 170, 460, 150, { alpha: 0.9, col: COL.cyan });
-          h.text('VS PHANTOM 1:30', 120, 212, { font: 'mono', size: 22, color: COL.uiDim, tracking: 5 });
-          h.text(dl <= 0 ? `${fmt(-dl)} AHEAD` : `${fmt(dl)} BEHIND`, 120, 280, { font: 'mono', size: 52, color: dl <= 0 ? COL.green : COL.red, glow: 8 });
-          h.text(`PROJECTION ${fmt(ph1.projection(i.T), { hours: true })}`, 1824, 330, { font: 'mono', size: 28, color: ph1.projection(i.T) < 5400 ? COL.green : COL.amber, align: 'right', shadow: true });
-        }
-        if (i.tag === 'pass') h.text('OVERTAKEN', 960, 220, { font: 'head', size: 60, weight: 700, color: COL.red, align: 'center', alpha: smooth(5, 6, i.shotT), tracking: 20, shadow: true });
-        if (i.tag === 'finish') {
-          raceClock(h, { T: Math.min(i.T, ph1.finish), hours: true });
-          if (i.finished) {
-            const u = i.T - ph1.finish;
-            stamp(h, 'PHANTOM ESCAPED', { alpha: smooth(0.2, 0.8, u), size: 90, col: COL.cyan, sub: '1:35:30' });
-            h.text('LOG: "AN AMBITIOUS ATTEMPT AT 1:30 BUT HAPPY WITH 1:35"', 960, 900, { font: 'mono', size: 28, color: COL.ui, align: 'center', alpha: smooth(1.5, 2, u), tracking: 2, shadow: true });
-          }
-          fades(ctx.r.grade, i.shotT, 8, 0.01, 1);
-        }
-      },
-      cues: [{ t: 0, kind: 'amb-crowd', dur: 40 }, { t: 3, kind: 'music', id: 'phantom', dur: 34 }, { t: 22, kind: 'phantom-pass' }, { t: 36, kind: 'fail' }],
-    }),
-  );
+  // --- PHANTOM 1:30, encounter 01: Hackney Half 21.05.2023, 1:35:30 (its own level: the ghost town)
+  scenes.push(phantomLevel(1));
 
   // --- quiet: after Hackney. The number chalked on a wall.
   let wall: THREE.Mesh;

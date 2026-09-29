@@ -357,6 +357,19 @@ const MUSIC: Record<string, (t: number, d: number) => void> = {
     pads(t, t + d, [F, Am, Dm, C], 4.5, 0.03, 900);
     for (let k = 1; k < d - 2; k += 3) piano(t + k, [69, 65, 62, 64][Math.floor(k / 3) % 4], 0.05);
   },
+  haunt(t, d) {
+    // a low tritone drone, a music-box figure a semitone out, far-off bell
+    note(t, d, mtof(33), { wave: 'saw', amp: 0.05, a: 3, d: 0.1, s: 1, r: 2, lp: 260, detune: 11, wet: 0.6 });
+    note(t + 1, d - 1, mtof(39), { wave: 'saw', amp: 0.03, a: 3, d: 0.1, s: 1, r: 2, lp: 320, detune: 9, wet: 0.6 });
+    for (let k = 1.5; k < d - 1; k += 0.62) bell(t + k, [81, 80, 77, 76, 81, 84, 83, 76][Math.floor(k / 0.62) % 8], 0.025);
+  },
+  hunted(t, d) {
+    // hunted: a quickening pulse and a rising string cluster
+    const bpm = 132;
+    drums(t, t + d, bpm, 'drive', 0.6);
+    bassline(t, t + d, bpm, [40, 41, 40, 46], 8, 0.22);
+    [52, 53, 58].forEach((m, i) => note(t + i * 1.5, d - i * 1.5, mtof(m), { wave: 'saw', amp: 0.025, a: d * 0.6, d: 0.1, s: 1, r: 0.6, lp: 2400, detune: 14, vib: 0.01, wet: 0.5 }));
+  },
   phantom(t, d) {
     const bpm = 118;
     pads(t, t + d, [Em, C, Am, B7()], 4, 0.04, 1200);
@@ -559,6 +572,25 @@ const SFX_FN: Record<string, (c: { t: number; [k: string]: unknown }) => void> =
   shatter: (c) => {
     shatter(c.t, 0.6);
     hit(c.t, 0.5);
+  },
+  toll: (c) => {
+    // a church bell: low partials, long ring
+    [[45, 0.12], [57, 0.06], [64, 0.035], [69, 0.02]].forEach(([m, a]) => note(c.t, 5, mtof(m), { wave: 'sine', amp: a, a: 0.003, d: 4.8, s: 0, r: 0.5, wet: 0.7 }));
+    note(c.t, 0.08, 1, { wave: 'noise', amp: 0.05, a: 0.001, d: 0.07, s: 0, hp: 2000, wet: 0.5 });
+  },
+  'grave-rise': (c) => {
+    note(c.t, 2.4, 1, { wave: 'noise', amp: 0.08, a: 0.4, d: 1.8, s: 0.2, lp: 500, wet: 0.5 });
+    note(c.t, 2.6, mtof(28), { wave: 'saw', amp: 0.06, a: 0.8, d: 1.6, s: 0.3, lp: 240, glide: 1.5, wet: 0.6 });
+    for (let k = 0; k < 6; k++) note(c.t + 0.2 + k * 0.28, 0.1, 1, { wave: 'noise', amp: 0.05, a: 0.002, d: 0.09, s: 0, lp: 1500, wet: 0.3 });
+  },
+  goggles: (c) => {
+    note(c.t, 0.5, 400, { wave: 'sine', amp: 0.05, a: 0.01, d: 0.45, s: 0, glide: 6, wet: 0.2 });
+    beep(c.t + 0.45, 2400, 0.04, 0.05);
+  },
+  scream: (c) => {
+    // the Phantom dissolving: a falling, tearing wail and a burst of air
+    [0, 7, 13].forEach((st, i) => note(c.t + i * 0.05, 2.6, mtof(84 + st), { wave: 'saw', amp: 0.035, a: 0.08, d: 2.3, s: 0, glide: 0.18, vib: 0.03, lp: 5000, detune: 30, wet: 0.8 }));
+    note(c.t, 2.4, 1, { wave: 'noise', amp: 0.09, a: 0.05, d: 2.2, s: 0, lp: 3000, hp: 600, wet: 0.7 });
   },
   'phantom-pass': (c) => {
     whoosh(c.t, 0.35);

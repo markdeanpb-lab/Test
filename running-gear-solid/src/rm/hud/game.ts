@@ -186,10 +186,10 @@ export function projectile(h: Hud, s: string, x0: number, y0: number, x1: number
 }
 
 /** tactical radar (Soliton-style), top-right: course polyline around the player, enemy dots */
-export function radar(h: Hud, o: { pts?: [number, number][]; enemies?: [number, number, string?][]; heading?: number; alpha?: number; jam?: number }) {
+export function radar(h: Hud, o: { pts?: [number, number][]; enemies?: [number, number, string?][]; heading?: number; alpha?: number; jam?: number; y?: number }) {
   const a = o.alpha ?? 1;
   if (a <= 0) return;
-  const x = 1920 - 96 - 300, y = 150, w = 300, hh = 220;
+  const x = 1920 - 96 - 300, y = o.y ?? 150, w = 300, hh = 220;
   h.panel(x, y, w, hh, { alpha: a });
   const g = h.g;
   g.save();

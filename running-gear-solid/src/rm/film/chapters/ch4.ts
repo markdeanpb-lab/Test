@@ -15,6 +15,7 @@ import { funnel, flag, arch } from '../dressing';
 import { Ghost } from '../fx';
 import { phantomDist } from './ch3';
 import { Scene } from '../core';
+import { phantomLevel } from './phantom';
 
 export function ch4(): Scene[] {
   const scenes: Scene[] = [chapterCard('c4-card', 'CHAPTER 4', 'THE PHANTOM', '2024')];
@@ -97,80 +98,8 @@ export function ch4(): Scene[] {
     }),
   );
 
-  // --- PHANTOM 1:30, encounter 02: Hackney Half 19.05.2024. This time it is behind.
-  const ph2 = RunProfile.fromSplits(PHANTOM_2024.splits, PHANTOM_2024.distanceKm, PHANTOM_2024.timeSec);
-  const phD = phantomDist(ph2.distance);
-  let phantom: Ghost;
-  const lead = (T: number) => ph2.distAt(T) / (ph2.distance / 5400) - T; // seconds ahead of 1:30 pace
-  let startArch: THREE.Object3D, finishArch: THREE.Object3D;
-  scenes.push(
-    new RaceScene({
-      id: 'c4-phantom2',
-      arena: 'hackney',
-      profile: ph2,
-      sky: SKY.morning,
-      halfWidth: 4,
-      field: { count: 260, pack: 8, kmin: 0.85, kmax: 1.2, seed: 41 },
-      // start and finish share the same ground: the start arch only exists for the opening shot, and the
-      // start-pen barriers are left out so nothing cuts across the finish straight
-      spectators: [{ s0: 21100, s1: 21400, density: 0.9 }, { s0: 13000, s1: 13200, density: 0.5 }],
-      build: async (race) => {
-        startArch = arch(race, 0, 'HACKNEY HALF', 11);
-        finishArch = arch(race, race.course.length, 'FINISH', 13);
-        phantom = await Ghost.create(0x5ff3ff, true, 0.16);
-        race.extras.add(...phantom.pacer('1:30'));
-        phantom.camera = race.stage!.camera;
-        phantom.prepare(phD, -2, 5600);
-        race.extras.add(phantom.runner.root);
-      },
-      shots: [
-        { dur: 5, T: -4, cam: { mode: 'follow', dist: 9, h: 3.5, ang: 160, look: 1.2 }, cam2: { dist: 7 }, grade: { letterbox: 1 } },
-        { dur: 6, T: 1250, cam: { mode: 'follow', dist: 6, h: 1.4, ang: 175, look: 1.2, fov: 34 }, tag: 'behind' },
-        { dur: 5, T: 2900, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: 92 } },
-        { dur: 6, T: 4500, cam: { mode: 'follow', dist: 9, h: 2.2, ang: 185, look: 1.1, fov: 30 }, tag: 'behind' },
-        { dur: 6, T: 5250, cam: { mode: 'follow', dist: 4.2, h: 1.5, ang: 15, look: 1.4, ahead: 30 } },
-        // the finish is held
-        { dur: 16, T: 5336, rate: 0.35, cam: { mode: 'follow', dist: 5.5, h: 1.8, ang: 10, look: 1.7, ahead: 14, fov: 36 }, cam2: { dist: 7.5, h: 2.2 }, tag: 'line' },
-        { dur: 9, T: 5360, rate: 0.2, cam: { mode: 'follow', dist: 4.4, h: 1.6, ang: 150, look: 1.4, side: 1.1 }, tag: 'after' },
-      ],
-      pose: (i) => ({ fatigue: clamp01((i.d - 16000) / 5000) * 0.4 }),
-      onFrame: (race, i, ctx) => {
-        startArch.visible = i.shot === 0;
-        finishArch.visible = i.shot > 0;
-        const h = ctx.hud, g = ctx.r.grade;
-        const pd = phD(i.T);
-        phantom.opacity = i.T > 0 && pd < ph2.distance && i.tag !== 'after' ? 0.18 : 0;
-        phantom.pose(race.place(pd * (race.course.length / ph2.distance), -0.8), i.T, ph2.distance / 5400);
-        const ld = lead(i.T);
-        if (i.shot === 0) eventTag(h, { name: 'HACKNEY HALF', date: '19.05.2024', t: i.shotT });
-        if (i.shot >= 1 && i.tag !== 'after') {
-          bossPlate(h, { name: 'PHANTOM 1:30', sub: 'ENCOUNTER 02', col: COL.cyan, frac: 1 - clamp01(i.d / ph2.distance), phase: `KM ${Math.floor(i.d / 1000)}`, alpha: i.finished ? 1 - smooth(0, 1, i.T - ph2.finish) : 1 });
-          raceClock(h, { T: Math.min(i.T, ph2.finish), d: Math.min(i.d, ph2.distance), hours: true, pace: PHANTOM_2024.splits[Math.min(20, Math.floor(i.d / 1000))] });
-          h.panel(96, 170, 460, 150, { alpha: 0.9, col: COL.cyan });
-          h.text('VS PHANTOM 1:30', 120, 212, { font: 'mono', size: 22, color: COL.uiDim, tracking: 5 });
-          h.text(ld >= 0 ? `${fmt(ld)} AHEAD` : `${fmt(-ld)} BEHIND`, 120, 280, { font: 'mono', size: 52, color: ld >= 0 ? COL.green : COL.red, glow: 8 });
-          if (i.shot === 2) h.text('SPLITS: EVERY KM 4:02 - 4:19', 960, 900, { font: 'mono', size: 32, color: COL.green, align: 'center', tracking: 4, shadow: true });
-        }
-        if (i.tag === 'line') {
-          g.vignette = 0.5;
-          if (i.finished) g.saturation = 0.9 - 0.4 * smooth(0, 2, i.T - ph2.finish);
-        }
-        if (i.tag === 'after') {
-          stamp(h, 'SUB 1:30', { alpha: smooth(0.6, 2, i.shotT), size: 170, col: COL.green, y: 520, sub: 'COMPLETE' });
-          h.text('1:29:01', 960, 720, { font: 'mono', size: 60, color: COL.white, align: 'center', alpha: smooth(2, 3, i.shotT), glow: 10, shadow: true });
-          h.text('PHANTOM DESTROYED', 960, 800, { font: 'mono', size: 30, color: COL.cyan, align: 'center', alpha: smooth(3.2, 4, i.shotT), tracking: 8, shadow: true });
-          fades(g, i.shotT, 9, 0.01, 1.4);
-        }
-      },
-      cues: [
-        { t: 0, kind: 'amb-crowd', dur: 59 },
-        { t: 3, kind: 'music', id: 'phantom2', dur: 31 },
-        { t: 34, kind: 'silence', dur: 17 },
-        { t: 34, kind: 'heartbeat', dur: 16 },
-        { t: 50, kind: 'music', id: 'complete', dur: 9 },
-      ],
-    }),
-  );
+  // --- PHANTOM 1:30, encounter 02: Hackney Half 19.05.2024. Its own level again: the ghost town.
+  scenes.push(phantomLevel(2));
 
   // --- consequence: what the breakthrough unlocked
   scenes.push(
