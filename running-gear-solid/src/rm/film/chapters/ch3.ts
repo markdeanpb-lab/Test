@@ -19,7 +19,7 @@ import { Scene } from '../core';
 import { Furnace } from '../bosses/Furnace';
 import { Gate } from '../bosses/Gate';
 import { Sentinel } from '../bosses/Sentinel';
-import { Finger, clawMaterials } from '../bosses/Claw';
+import { clawBoss } from './claw';
 import { waterSide, aimAt, mmss } from '../bosses/place';
 
 const HALF = 21097.5;
@@ -404,94 +404,8 @@ export function ch3(): Scene[] {
     }),
   );
 
-  // --- THE CLAW: Highgate hill repeats 26.11.2023
-  const claw = RunProfile.fromSplits(CLAW.splits, CLAW.distanceKm, CLAW.timeSec);
-  const fingers = CLAW.phases.filter((p) => p.note && p.name !== 'APPROACH');
-  let clawFingers: Finger[] = [], clawRing: Finger[] = [];
-  scenes.push(
-    new RaceScene({
-      id: 'c3-claw',
-      arena: 'highgate',
-      profile: claw,
-      sky: SKY.winter,
-      halfWidth: 1.8,
-      build: async (race) => {
-        const mats = await clawMaterials();
-        const k = claw.distance / race.course.length;
-        clawFingers = fingers.map((f, n) => {
-          const fg = new Finger(mats);
-          // the socket sits on the verge where he will be two seconds into the shot, curling over the road
-          const T0 = claw.timeAt(((f.fromKm + f.toKm) / 2) * 1000);
-          const s = claw.distAt(T0 + 5) / k + 12;
-          const side = n % 2 ? -1 : 1;
-          const p = race.place(s, side * 9);
-          fg.root.position.set(p.x, race.arena.heightAt(p.x, p.z), p.z);
-          fg.root.rotation.y = Math.atan2(side * p.dz, -side * p.dx); // +z (curl direction) towards the road
-          race.extras.add(fg.root);
-          return fg;
-        });
-        // the finale: all five fingers ring him and draw back into the ground
-        const endS = claw.distAt(claw.finish - 5 + 2) / k;
-        const pe = race.place(endS, 0);
-        clawRing = fingers.map((_, n) => {
-          const fg = new Finger(mats);
-          const a = (n / 5) * Math.PI * 2 + 0.3;
-          const x = pe.x + Math.cos(a) * 13, z = pe.z + Math.sin(a) * 13;
-          fg.root.position.set(x, race.arena.heightAt(x, z), z);
-          fg.root.rotation.y = Math.atan2(pe.x - x, pe.z - z);
-          race.extras.add(fg.root);
-          return fg;
-        });
-      },
-      shots: fingers.map((f, k) => ({
-        dur: 5.5,
-        T: claw.timeAt(((f.fromKm + f.toKm) / 2) * 1000),
-        cam: { mode: 'follow' as const, dist: 7, h: 1.1, ang: k % 2 ? 22 : -22, look: 1.6, fov: 54 },
-        cam2: { dist: 6 },
-        tag: f.name,
-      })).concat([{ dur: 8, T: claw.finish - 5, rate: 0.6, cam: { mode: 'follow', dist: 26, h: 24, ang: 160, look: 1.2, fov: 40 }, cam2: { dist: 30, h: 30 }, tag: 'done' } as any]),
-      pose: (i) => ({ lean: i.tag && i.tag !== 'done' ? 0.12 : 0, fatigue: i.tag === 'done' ? 0.6 : 0.3 }),
-      onFrame: (race, i, ctx) => {
-        const h = ctx.hud;
-        eventTag(h, { name: 'THE CLAW  -  HIGHGATE', date: '26.11.2023', t: i.t });
-        clawFingers.forEach((fg, n) => {
-          const active = i.shot === n;
-          const u = active ? i.shotT : 0;
-          fg.update(i.t, active ? smooth(0, 1.6, u) : 0, active ? smooth(1.4, 3.4, u) * 0.9 : 0, 'active');
-        });
-        clawRing.forEach((fg) => {
-          const done = i.tag === 'done';
-          fg.update(i.t, done ? 1 - smooth(1.2, 5.5, i.shotT) : 0, done ? 0.55 : 0, 'done');
-        });
-        if (i.tag && i.tag !== 'done') {
-          const fg = clawFingers[i.shot];
-          aimAt(race.stage!.camera, fg.root.position.clone().add(new THREE.Vector3(0, 8, 0)), 0.2 + 0.3 * smooth(0.3, 2.5, i.shotT));
-        }
-        // five fingers: each climb lights as it is conquered
-        fingers.forEach((f, k) => {
-          const done = i.d / 1000 >= f.toKm;
-          const on = i.d / 1000 >= f.fromKm && !done;
-          const x = 560 + k * 170;
-          h.rect(x, 960 - 90, 120, 90, on ? COL.amber : done ? COL.green : COL.uiFaint, on ? 0.9 : 0.6);
-          h.text(String(k + 1), x + 60, 945, { font: 'head', size: 50, weight: 700, color: COL.black, align: 'center' });
-          h.text(f.name.split(' ')[0], x + 60, 1000, { font: 'mono', size: 16, color: COL.ui, align: 'center', tracking: 1 });
-        });
-        if (i.tag && i.tag !== 'done') {
-          const f = fingers.find((ff) => ff.name === i.tag)!;
-          h.text(f.name, 960, 150, { font: 'head', size: 56, weight: 700, color: COL.amber, align: 'center', tracking: 8, shadow: true });
-          h.text(f.note, 960, 200, { font: 'mono', size: 28, color: COL.white, align: 'center', tracking: 4, shadow: true });
-        }
-        if (i.tag === 'done') {
-          stamp(h, 'CLAW RETRACTED', { alpha: smooth(1.5, 2.2, i.shotT), size: 90, col: COL.green, sub: '22.3 KM  +445 M' });
-          h.text('LOG: "GETTING IT DONE"', 960, 700, { font: 'mono', size: 30, color: COL.ui, align: 'center', alpha: smooth(2.6, 3.2, i.shotT), tracking: 4, shadow: true });
-          fades(ctx.r.grade, i.shotT, 7, 0.01, 1);
-        }
-        if (i.shot === 0) ctx.r.grade.fade = 1 - smooth(0, 0.8, i.shotT);
-        void race;
-      },
-      cues: [{ t: 0, kind: 'music', id: 'claw', dur: 36 }, ...fingers.map((_, k) => ({ t: k * 5.5 + 0.2, kind: 'wall-rise' })), { t: 5 * 5.5 + 1.5, kind: 'win' }],
-    }),
-  );
+  // --- THE CLAW: Highgate hills 26.11.2023 (boss level)
+  scenes.push(clawBoss());
 
   // --- the December Finsbury grind: 19:21, 19:20, 19:18
   const f1918 = RunProfile.fromRuns('finsbury-1918');
