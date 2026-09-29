@@ -580,6 +580,8 @@ export function ch2(): Scene[] {
         // gusts come off its turbines: rotors race, wind spikes
         sent1.update(i.t, { wind: 1, text: mmss(Math.max(0, shown)), look: i.pos, flicker: i.finished ? (Math.sin(i.t * 9) > 0 ? 0.4 : 0) : 0 });
         if (i.shot === 0) eventTag(h, { name: 'ROYAL VICTORIA DOCK', date: '18.02.2023', t: i.shotT });
+        // flat ground, as ordered. Not a calm day.
+        if (i.shot === 1) h.subtitle('Flat ground. So much for a calm day.', env(i.shotT, 0.4, 4.8, 0.3, 0.3), { speaker: 'TEMPO', color: COL.ui });
         if (i.shot >= 1 && i.tag !== 'face') targetBlock(h, { target: 1199, projection: i.finished ? undefined : dz1.projection(i.T), result: i.finished ? 1200 : undefined });
         if (i.shot >= 1 && i.tag !== 'face') raceClock(h, { T: Math.min(i.T, 1200), d: Math.min(i.d, 5010) });
         if (i.shot >= 1 && i.shot < 4) kmSplits(h, race, i);
