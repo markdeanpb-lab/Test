@@ -235,3 +235,27 @@ export function llToLocal(origin: [number, number], lat: number, lon: number): [
   const k = Math.cos(origin[0] * DEG) * DEG * R;
   return [(lon - origin[1]) * k, -(lat - origin[0]) * DEG * R];
 }
+
+/** CONTINUE? 9 ... YES. The game-over screen after a boss wins a round. */
+export function continueCard(id: string, o: { title: string; line?: string; log?: string; dur?: number }) {
+  const dur = o.dur ?? 8;
+  return new Card({
+    id,
+    dur,
+    draw: (t, h) => {
+      const a = env(t, 0, dur, 0.3, 0.5);
+      h.text('GAME OVER', 960, 250, { font: 'head', size: 120, weight: 700, color: COL.red, align: 'center', alpha: a * smooth(0, 0.3, t), tracking: 20, glow: 14 });
+      h.text(o.title, 960, 330, { font: 'mono', size: 38, color: COL.white, align: 'center', alpha: a, tracking: 8 });
+      if (o.line) h.text(o.line, 960, 400, { font: 'body', size: 46, weight: 600, color: COL.white, align: 'center', alpha: a * smooth(0.6, 1, t) });
+      if (o.log) h.text(o.log, 960, 460, { font: 'mono', size: 32, color: COL.amber, align: 'center', alpha: a * smooth(1, 1.4, t) });
+      const n = Math.max(0, 9 - Math.floor(Math.max(0, t - 1.8) * 1.6));
+      const chosen = t > 5.2;
+      h.text('CONTINUE?', 960, 620, { font: 'head', size: 90, weight: 700, color: COL.white, align: 'center', alpha: a * smooth(1.6, 1.9, t), tracking: 14 });
+      if (!chosen) h.text(String(n), 960, 760, { font: 'mono', size: 140, color: COL.amber, align: 'center', alpha: a * smooth(1.8, 2, t), glow: 12 });
+      h.text('YES', 800, 900, { font: 'head', size: 70, weight: 700, color: chosen ? COL.green : COL.white, align: 'center', alpha: a * smooth(2, 2.3, t) * (chosen ? 0.6 + 0.4 * Math.sin(t * 20) : 1), tracking: 8, glow: chosen ? 12 : 0 });
+      h.text('NO', 1120, 900, { font: 'head', size: 70, weight: 700, color: COL.uiDim, align: 'center', alpha: a * smooth(2, 2.3, t), tracking: 8 });
+      if (!chosen) h.text('>', 720, 900, { font: 'head', size: 70, weight: 700, color: COL.white, align: 'center', alpha: a * smooth(2, 2.3, t) * (Math.floor(t * 3) % 2 ? 1 : 0.3) });
+    },
+    cues: [{ t: 0.1, kind: 'gameover' }, ...[2.4, 3.0, 3.6, 4.3].map((t) => ({ t, kind: 'tick' })), { t: 5.2, kind: 'select' }],
+  });
+}

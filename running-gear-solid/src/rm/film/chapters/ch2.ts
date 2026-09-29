@@ -19,7 +19,9 @@ import { prop, shoesProp, binProp, WatchFace } from '../props';
 import { Lure } from '../bosses/Lure';
 import { Scene, Ctx } from '../core';
 import { Sentinel } from '../bosses/Sentinel';
-import { lifeHud, equip, bossHp, prompt, popup, banner } from '../../hud/game';
+import { lifeHud, equip, bossHp, prompt, popup, banner, button } from '../../hud/game';
+import { Particles } from '../bosses/kit';
+import { continueCard } from '../common';
 import { Hinge } from '../bosses/Hinge';
 import { hareBoss } from './hare';
 import { waterSide, faceCourse, mmss, aimAt } from '../bosses/place';
@@ -132,7 +134,7 @@ export function ch2(): Scene[] {
 
   // --- HINGE (major): "Testing the knee", then Hackney Half 22.05.2022, 1:46:30
   const hingeProf = RunProfile.fromSplits(HINGE.splits, HINGE.distanceKm, HINGE.timeSec);
-  let hinge: Hinge, hingeStart: THREE.Object3D;
+  let hinge: Hinge, hingeStart: THREE.Object3D, hingeSteam: Particles;
   const hingePhase = (km: number) => (km < 5 ? 0 : km < 14 ? 1 : 2);
   scenes.push(
     logCard('c2-log-knee', [['21.05.2022', 'Parkrun - Testing the knee']], { title: 'MISSION LOG', hold: 1 }),
@@ -140,7 +142,8 @@ export function ch2(): Scene[] {
       id: 'c2-hinge',
       arena: 'hackney',
       profile: hingeProf,
-      sky: SKY.clear,
+      // the boss level: industrial dusk, steam across the street
+      sky: { ...SKY.dusk, fog: 0.006, fogColor: 0x8a5a44, sun: 2.2, sunColor: 0xff9a50 },
       halfWidth: 4,
       field: { count: 260, pack: 8, kmin: 0.8, kmax: 1.2, seed: 23 },
       spectators: [{ s0: 21000, s1: 21400, density: 0.8 }, { s0: 6000, s1: 6200, density: 0.5 }, { s0: 12000, s1: 12150, density: 0.5 }],
@@ -149,6 +152,8 @@ export function ch2(): Scene[] {
         arch(race, race.course.length, 'FINISH', 11);
         hinge = await Hinge.create();
         race.extras.add(hinge.root);
+        hingeSteam = new Particles({ n: 260, box: [26, 3, 40], vel: [1.5, 2.5, 0], life: 4, size: 5, color: 0xd8c8b8, opacity: 0.25, grow: 2, swirl: 3, seed: 9 });
+        race.extras.add(hingeSteam.points);
       },
       shots: [
         { dur: 5, T: -6, cam: { mode: 'follow', dist: 12, h: 5, ang: 160, look: 1 }, cam2: { dist: 9 }, grade: { letterbox: 1 } },
@@ -173,22 +178,41 @@ export function ch2(): Scene[] {
         hinge.update(i.t, Math.min(i.s, race.course.length) + (i.tag === 'held' ? 16 : 13), (s, off) => race.place(s, off), 0, { phase: ph, held: fin > 0 ? smooth(0.5, 3, fin) : 0, spread: 6.2 });
         if (i.tag === 'boss' || i.tag === 'held') aimAt(race.stage!.camera, hinge.body.position, i.tag === 'held' ? 0.6 : 0.2 + 0.18 * smooth(0, 4, i.shotT));
         if (i.shot === 0) eventTag(h, { name: 'HACKNEY HALF', date: '22.05.2022', t: i.shotT });
+        hingeSteam.points.position.set(i.pos.x, i.pos.y + 1.5, i.pos.z);
+        hingeSteam.update(i.t, 1, 0.22);
         if (i.shot >= 1 && i.shot <= 4) {
+          h.time = i.t;
           raceClock(h, { T: i.T, d: i.d, pace: HINGE.splits[Math.min(20, Math.floor(km))] });
           const hr = HINGE.splitHr![Math.min(20, Math.floor(km))];
           h.text(`HR ${hr}`, 1824, 330, { font: 'mono', size: 34, color: hr >= 186 ? COL.red : COL.ui, align: 'right', shadow: true });
-          // knee integrity: a game gauge, not a measurement
-          const kneeFrac = [0.9, 0.55, 0.3][ph];
-          h.panel(96, 170, 420, 130, { alpha: 0.9 });
-          h.text('KNEE', 120, 212, { font: 'mono', size: 22, color: COL.uiDim, tracking: 6 });
-          h.segBar(120, 232, 370, 18, kneeFrac, 20, ph === 2 ? COL.red : ph === 1 ? COL.amber : COL.ui);
-          h.text(['CONTROLLED', 'GRIND', 'SEIZE'][ph], 120, 285, { font: 'head', size: 30, weight: 700, color: ph === 2 ? COL.red : COL.white, tracking: 4 });
-          bossPlate(h, { name: 'HINGE', sub: 'THE JOINT THAT WOULD NOT HOLD', frac: [0.95, 0.6, 0.3][ph], phase: `KM ${Math.floor(km)}` });
+          // the knee is the life gauge: the boss wins if it empties
+          const kneeFrac = [0.9, 0.55, 0.3][ph] - 0.05 * Math.max(0, Math.sin(i.t * 2.3));
+          lifeHud(h, { life: kneeFrac, stamina: 1 - clamp01(km / 21.1) * 0.8, name: 'STRIDE  -  KNEE' });
+          h.text(['CONTROLLED', 'GRIND', 'SEIZE'][ph], 96, 210, { font: 'head', size: 40, weight: 700, color: ph === 2 ? COL.red : ph === 1 ? COL.amber : COL.green, tracking: 6, shadow: true });
+          equip(h, { item: 'KNEE SUPPORT', weapon: 'CADENCE', weaponSub: `${[172, 168, 164][ph]} SPM` });
+          bossHp(h, { name: 'HINGE', hp: 1 - clamp01(km / 21.1) * 0.9, phase: `KM ${Math.floor(km)}` });
+          // mechanic: keep the cadence (a rhythm track of button prompts), dodge the stamps
+          const beat = 60 / 84; // two steps per prompt
+          const k = Math.floor(i.t / beat), u = (i.t % beat) / beat;
+          if (ph < 2) {
+            for (let n = 0; n < 5; n++) {
+              const x = 960 + (n - u) * 150;
+              button(h, (['X', 'O', 'X', 'T', 'X'] as const)[(k + n) % 5], x, 820, n === 0 ? 34 : 26, n === 0 ? 1 : 0.55, n === 0 && u < 0.25 ? 1 : 0);
+            }
+            h.text('KEEP CADENCE', 960, 760, { font: 'mono', size: 30, color: COL.ui, align: 'center', tracking: 6, shadow: true });
+            if (u < 0.25) popup(h, ['PERFECT', 'GOOD', 'PERFECT'][k % 3], 960, 700, u * beat, COL.green, 44);
+          } else prompt(h, { b: 'R1', text: 'HOLD FORM', t: i.shotT, hold: clamp01(i.shotT / 4), y: 820 });
+          // stamps: the mech's foot comes down beside him
+          const stamp1 = i.t % 3.1;
+          if (i.tag === 'boss' && stamp1 < 0.8) {
+            prompt(h, { b: 'O', text: 'DODGE', t: stamp1, y: 620, ok: stamp1 > 0.4 });
+            const c = race.stage!.camera;
+            c.position.y += Math.sin(stamp1 * 40) * 0.08 * (1 - stamp1 / 0.8);
+          }
           if (i.tag === 'knee') {
-            // x-ray pulse over the knee
             const pulse = 0.5 + 0.5 * Math.sin(i.shotT * 5);
             ctx.r.grade.saturation = 0.6;
-            h.text('LOAD TEST', 960, 200, { font: 'mono', size: 30, color: COL.amber, align: 'center', alpha: 0.6 + 0.4 * pulse, tracking: 10, shadow: true });
+            h.text('LOAD TEST', 960, 250, { font: 'mono', size: 36, color: COL.amber, align: 'center', alpha: 0.6 + 0.4 * pulse, tracking: 10, shadow: true });
           }
         }
         if (i.tag === 'held') {
@@ -428,6 +452,7 @@ export function ch2(): Scene[] {
   // --- DOUBLE ZERO round 1: Royal Victoria Dock 18.02.2023, 20:00 exactly, wind
   const dz1 = RunProfile.fromSplits(DOUBLE_ZERO_R1.splits, DOUBLE_ZERO_R1.distanceKm, 1200);
   let wind: Streaks, holo1: HoloText, sent1: Sentinel;
+  const gust = (t: number) => Math.pow(Math.max(0, Math.sin((t / 4.2) * Math.PI * 2 - 1)), 3);
   const sentHead1 = new THREE.Vector3();
   scenes.push(
     boardCard('c2-board-dz', { dur: 6, op: 'ROYAL VICTORIA DOCK', objective: 'BOSS', target: '20:00', size: 0.8, route: 'victoria-dock', sub: 'DOUBLE ZERO  -  THE MINUTE THAT WOULD NOT BREAK', status: 'WIND WARNING', statusCol: COL.red }),
@@ -435,7 +460,7 @@ export function ch2(): Scene[] {
       id: 'c2-dz1',
       arena: 'victoria-dock',
       profile: dz1,
-      sky: SKY.storm,
+      sky: { ...SKY.storm, bgIntensity: 0.4, sun: 0.5, fog: 0.007, fogColor: 0x3c4650, env: 0.6 },
       halfWidth: 3,
       field: { count: 140, pack: 5, kmin: 0.75, kmax: 1.12, seed: 28 },
       build: async (race) => {
@@ -477,21 +502,39 @@ export function ch2(): Scene[] {
         { dur: 12, T: 1188, rate: 0.5, cam: { mode: 'follow', dist: 6, h: 1.6, ang: 175, look: 1.6 }, cam2: { dist: 9 } },
         { dur: 5, T: 1206, rate: 0.3, cam: { mode: 'follow' }, tag: 'face' },
       ],
-      pose: (i) => ({ lean: i.d > 1000 ? 0.08 : 0, fatigue: i.d > 2000 ? 0.3 : 0 }),
+      pose: (i) => ({ lean: (i.d > 1000 ? 0.08 : 0) + 0.12 * gust(i.t), fatigue: i.d > 2000 ? 0.3 : 0 }),
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
+        h.time = i.t;
         wind.update(race.stage!.camera.position, i.t);
+        // the sentinel's turbines throw gusts across the dock: tuck in behind them
+        const gu = gust(i.t);
+        (wind.lines.material as THREE.LineBasicMaterial).opacity = 0.18 + 0.35 * gu;
+        const cam = race.stage!.camera;
+        cam.position.x += Math.sin(i.t * 31) * 0.05 * gu;
+        cam.position.y += Math.sin(i.t * 27) * 0.04 * gu;
+        if (i.shot >= 1 && i.tag !== 'face' && !i.finished) {
+          lifeHud(h, { life: 1, stamina: 1 - 0.7 * clamp01(i.d / 5010) - 0.15 * gu });
+          equip(h, { item: 'GPS WATCH', weapon: 'NONE' });
+          bossHp(h, { name: 'DOUBLE ZERO', hp: 1 - 0.97 * clamp01(i.d / 5010), phase: 'ROUND 1' });
+          // wind gauge
+          h.panel(1464, 170, 360, 110, {});
+          h.text('WIND', 1488, 212, { font: 'mono', size: 28, color: COL.uiDim, tracking: 5 });
+          h.segBar(1488, 232, 312, 22, 0.55 + 0.45 * gu, 12, gu > 0.5 ? COL.red : COL.amber);
+          if (gu > 0.3) prompt(h, { b: 'R1', text: 'TUCK IN', t: (i.t % 4.2) - 0.8, hold: clamp01(((i.t % 4.2) - 0.8) / 1.6), y: 800 });
+        }
         // its head is the race clock: it counts with him and stops dead on 20:00
         const shown = Math.min(i.T, 1200);
+        // gusts come off its turbines: rotors race, wind spikes
         sent1.update(i.t, { wind: 1, text: mmss(Math.max(0, shown)), look: i.pos, flicker: i.finished ? (Math.sin(i.t * 9) > 0 ? 0.4 : 0) : 0 });
         if (i.shot === 0) eventTag(h, { name: 'ROYAL VICTORIA DOCK', date: '18.02.2023', t: i.shotT });
-        if (i.tag !== 'face') bossPlate(h, { name: 'DOUBLE ZERO', sub: 'ROUND 1', frac: 1 - i.d / 5010, alpha: env(i.t, 1, 20, 0.5, 0.5) });
-        if (i.tag !== 'face') targetBlock(h, { target: 1199, projection: i.finished ? undefined : dz1.projection(i.T), result: i.finished ? 1200 : undefined });
+        if (i.shot >= 1 && i.tag !== 'face') targetBlock(h, { target: 1199, projection: i.finished ? undefined : dz1.projection(i.T), result: i.finished ? 1200 : undefined });
         if (i.shot >= 1 && i.tag !== 'face') raceClock(h, { T: Math.min(i.T, 1200), d: Math.min(i.d, 5010) });
         if (i.shot >= 1 && i.shot < 4) kmSplits(h, race, i);
         if (i.shot === 4 && i.finished) {
           const u = i.T - 1200;
-          stamp(h, '20:00', { alpha: smooth(0.2, 0.8, u), size: 200, col: COL.red, y: 540 });
+          banner(h, 'TIME UP', u * 2 - 0.2, { col: COL.red, sub: 'DRAW', dur: 1.6 });
+          stamp(h, '20:00', { alpha: smooth(1.8, 2.3, u), size: 200, col: COL.red, y: 540 });
           h.text('NOT UNDER.', 960, 680, { font: 'head', size: 64, weight: 700, color: COL.white, align: 'center', alpha: smooth(1.3, 1.8, u), tracking: 16, shadow: true });
           h.text('EXACTLY.', 960, 760, { font: 'head', size: 64, weight: 700, color: COL.red, align: 'center', alpha: smooth(2.3, 2.8, u), tracking: 16, shadow: true });
           h.text('LOG: "CLOSE TO SUB 20 BUT AFFECTED MASSIVELY BY THE WIND"', 960, 900, { font: 'mono', size: 26, color: COL.uiDim, align: 'center', alpha: smooth(3.5, 4, u), tracking: 2, shadow: true });
@@ -502,6 +545,8 @@ export function ch2(): Scene[] {
       cues: [{ t: 0, kind: 'wind', dur: 37 }, { t: 0.6, kind: 'boss-intro' }, { t: 0, kind: 'music', id: 'boss', dur: 22 }, { t: 22, kind: 'silence', dur: 2 }, { t: 23.5, kind: 'fail-big' }],
     }),
   );
+
+  scenes.push(continueCard('c2-continue-dz', { title: 'DOUBLE ZERO  -  ROUND 1', line: '20:00. NOT UNDER. EXACTLY.', log: 'LOG: "Close to sub 20 but affected massively by the wind"' }));
 
   // --- between rounds: 11.03.2023, 20:07, a Finsbury PB and still not enough
   const p2007 = RunProfile.fromRuns('pb-2007');
