@@ -1,7 +1,7 @@
 // CHAPTER 5 - HAIRLINE (Oct - Dec 2024)
 // A stress reaction. The boss you cannot fight: a crack that grows across the screen.
 import { chapterCard, logCard, boardCard } from '../common';
-import { VRScene } from '../VRScene';
+import { hairlineBoss } from './hairline';
 import { Card, grid } from '../Cards';
 import { COL, env, smooth, clamp01, Hud } from '../../hud/Hud';
 import { hash } from '../../engine/assets';
@@ -44,28 +44,7 @@ export function ch5(): Scene[] {
       ['15.10.2024', 'sore ankles'],
       ['29.10.2024', 'Ankle test'],
     ], { title: 'MISSION LOG  -  VALENCIA BUILD', hold: 0.8, col: COL.amber }),
-    new VRScene({
-      id: 'c5-hairline',
-      chapter: 'HAIRLINE',
-      color: 0x9aa6a0,
-      speed: (t) => Math.max(0, 1.3 - t * 0.06),
-      shots: [
-        { dur: 8, cam: { mode: 'follow', dist: 6, h: 1.6, ang: 160, look: 1.1 }, cam2: { dist: 4.5 } },
-        { dur: 9, cam: { mode: 'follow', dist: 2.2, h: 0.5, ang: 110, look: 0.4, fov: 34 }, cam2: { dist: 1.6 } },
-      ],
-      onFrame: (t, ctx) => {
-        const h = ctx.hud, g = ctx.r.grade;
-        g.saturation = 0.1;
-        g.bloom = 0.1;
-        const u = clamp01((t - 1) / 13);
-        crack(h, u, 7, 0.9);
-        h.text('HAIRLINE', 960, 170, { font: 'head', size: 64, weight: 700, color: COL.white, align: 'center', alpha: env(t, 2, 16, 0.6, 1), tracking: 30 });
-        h.text('STRESS REACTION', 960, 225, { font: 'mono', size: 26, color: COL.uiDim, align: 'center', alpha: env(t, 2.8, 16, 0.6, 1), tracking: 12 });
-        h.text('THERE IS NOTHING TO FIGHT', 960, 960, { font: 'mono', size: 34, color: COL.white, align: 'center', alpha: env(t, 8, 16.5, 0.8, 1), tracking: 10, shadow: true });
-        g.fade = Math.max(g.fade, 1 - smooth(0, 1.5, t), smooth(15.5, 17, t));
-      },
-      cues: [{ t: 0, kind: 'drone-low', dur: 17 }, { t: 1, kind: 'crack', dur: 13 }],
-    }),
+    hairlineBoss(),
     logCard('c5-over', [['01.11.2024', 'Valencia Marathon dream over - we will come back stronger.']], { hold: 1.8, col: COL.red }),
     boardCard('c5-cancelled', { dur: 7, op: 'VALENCIA MARATHON', objective: 'OBJECTIVE', target: 'VALENCIA', size: 0.55, strike: 1, sub: 'MARATHON  -  DECEMBER 2024', status: 'MISSION CANCELLED', statusCol: COL.red }),
     new Card({

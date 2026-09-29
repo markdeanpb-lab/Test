@@ -582,6 +582,11 @@ const SFX_FN: Record<string, (c: { t: number; [k: string]: unknown }) => void> =
   rumble: (c) => {
     for (let x = c.t; x < c.t + (c.dur as number); x += 0.45) note(x, 0.6, 1, { wave: 'noise', amp: 0.06 * (0.6 + 0.4 * rnd()), a: 0.05, d: 0.5, s: 0, lp: 350, wet: 0.4, pan: rnd() - 0.5 });
   },
+  denied: (c) => {
+    // the MGS 'can't do that' buzz
+    note(c.t, 0.28, 110, { wave: 'square', amp: 0.06, a: 0.002, d: 0.05, s: 1, r: 0.05, lp: 1400, wet: 0.1 });
+    note(c.t, 0.28, 116, { wave: 'square', amp: 0.05, a: 0.002, d: 0.05, s: 1, r: 0.05, lp: 1400, wet: 0.1 });
+  },
   toll: (c) => {
     // a church bell: low partials, long ring
     [[45, 0.12], [57, 0.06], [64, 0.035], [69, 0.02]].forEach(([m, a]) => note(c.t, 5, mtof(m), { wave: 'sine', amp: a, a: 0.003, d: 4.8, s: 0, r: 0.5, wet: 0.7 }));
