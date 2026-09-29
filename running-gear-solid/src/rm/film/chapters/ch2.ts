@@ -19,6 +19,7 @@ import { prop, shoesProp, binProp, WatchFace } from '../props';
 import { Lure } from '../bosses/Lure';
 import { Scene, Ctx } from '../core';
 import { Sentinel } from '../bosses/Sentinel';
+import { lifeHud, equip, bossHp, prompt, popup, banner } from '../../hud/game';
 import { Hinge } from '../bosses/Hinge';
 import { hareBoss } from './hare';
 import { waterSide, faceCourse, mmss, aimAt } from '../bosses/place';
@@ -531,7 +532,14 @@ export function ch2(): Scene[] {
 
   // --- DOUBLE ZERO round 2: Finsbury 18.03.2023, 19:25. The payoff.
   const dz2 = RunProfile.fromStream(fins as any, 1165);
-  let holo2: HoloText, sent2: Sentinel;
+  let holo2: HoloText, sent2: Sentinel, beam: THREE.Mesh;
+  // real km splits (GPS stream): 3:35, 3:56, 3:49, 4:07; a sub-4:00 km is a hit
+  const DZ2_KM = [1, 2, 3, 4].map((k) => ({ k, T: dz2.timeAt(k * 1000), split: dz2.timeAt(k * 1000) - dz2.timeAt((k - 1) * 1000) }));
+  const dz2Hp = (T: number) => {
+    let hp = 1;
+    for (const s of DZ2_KM) if (T > s.T) hp -= s.split < 240 ? (240 - s.split) * 0.012 + 0.08 : -0.04;
+    return Math.max(0.05, hp) * (T > dz2.finish ? 0 : 1);
+  };
   const sentHead2 = new THREE.Vector3();
   scenes.push(
     new CodecScene({
@@ -548,7 +556,7 @@ export function ch2(): Scene[] {
       id: 'c2-dz2',
       arena: 'finsbury',
       profile: dz2,
-      sky: SKY.sunrise,
+      sky: SKY.morning,
       halfWidth: 2.2,
       lane: 0.3,
       field: { count: 200, pack: 6, packSpread: 16, kmin: 0.72, kmax: 1.08, seed: 30 },
@@ -558,28 +566,41 @@ export function ch2(): Scene[] {
         holo2 = new HoloText('20:00', 20, { col: '#ff4436' });
         holo2.group.visible = false;
         race.extras.add(holo2.group);
-        // round two: the sentinel waits past the finish, on the grass
+        // round two: the sentinel stands in the middle of the park, visible from the whole loop
         sent2 = await Sentinel.create();
         const L = race.course.length;
-        const f = race.place(L + 46, 14);
-        sent2.root.position.set(f.x, race.arena.heightAt(f.x, f.z), f.z);
-        sent2.root.rotation.y = Math.atan2(-f.dx - f.dz * 0.6, -f.dz + f.dx * 0.6);
+        let cx = 0, cz = 0;
+        for (let k = 0; k < 40; k++) {
+          const q = race.courseAt((k / 40) * L * 0.5);
+          cx += q.x / 40;
+          cz += q.z / 40;
+        }
+        sent2.root.position.set(cx, race.arena.heightAt(cx, cz), cz);
+        sent2.root.scale.setScalar(1.35);
         race.extras.add(sent2.root);
-        sentHead2.set(f.x, f.y + 27, f.z);
+        sentHead2.set(cx, sent2.root.position.y + 27 * 1.35, cz);
+        const f = { x: cx, y: sent2.root.position.y, z: cz };
+        // the laser: every km split under 4:00 is a shot at its armour
+        beam = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 1, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0x7fe3ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+        beam.geometry.translate(0, 0.5, 0);
+        race.extras.add(beam);
         const sh = race.o.shots;
         const d = sh.findIndex((x) => x.tag === 'defeat');
         const q = race.place(L + 9, -2.5);
         sh[d].cam = { mode: 'fixed', at: [q.x, q.y + 1.9, q.z], fov: 40, target: [sentHead2.x, sentHead2.y - 9, sentHead2.z], shake: 0.2 };
         sh[d].cam2 = { fov: 46, target: [sentHead2.x, sentHead2.y - 14, sentHead2.z] };
         for (let k = 1; k <= 4; k++) kmBoard(race, (k * 1000 * race.course.length) / dz2.distance, String(k));
+        for (const km of DZ2_KM) {
+          const shot = sh.find((x) => x.tag === 'km' + km.k)!;
+          shot.T = km.T - 2.5;
+          shot.cam = { ...shot.cam, target: [sentHead2.x, sentHead2.y - 8, sentHead2.z], targetMix: 0.3 };
+        }
       },
       shots: [
         { dur: 6, T: -12, cam: { mode: 'follow', dist: 10, h: 3.5, ang: 160, look: 1.2 }, cam2: { dist: 7, h: 2.5 }, grade: { letterbox: 1 } },
         { dur: 4, T: 3, cam: { mode: 'follow', dist: 5, h: 1.2, ang: 150, look: 1.1 } },
-        { dur: 5, T: 205, cam: { mode: 'follow', dist: 4.2, h: 1.6, ang: 15, look: 1.3 }, tag: 'km1' },
-        { dur: 5, T: 560, cam: { mode: 'follow', dist: 3.3, h: 0.9, ang: 92 } },
-        { dur: 5, T: 820, cam: { mode: 'follow', dist: 18, h: 9, ang: 200, look: 0.6 } },
-        { dur: 5, T: 1040, cam: { mode: 'follow', dist: 3.4, h: 1.4, ang: 160, look: 1.5 } },
+        // each km marker: the split is the shot
+        ...[0, 1, 2, 3].map((k) => ({ dur: 5, T: 0, cam: { mode: 'follow' as const, dist: 5, h: 1.6, ang: k % 2 ? -25 : 25, look: 2, fov: 52 }, tag: 'km' + (k + 1) })),
         // the last 90 seconds, stretched
         { dur: 5, T: 1100, cam: { mode: 'follow', dist: 6, h: 1.7, ang: 172, look: 2.4 }, cam2: { dist: 7.5, h: 1.5 }, tag: 'run-in' },
         { dur: 5, T: 1126, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: 100, look: 1.2 }, tag: 'run-in' },
@@ -607,11 +628,51 @@ export function ch2(): Scene[] {
           kneel: i.tag === 'defeat' ? smooth(1.8, 6, dT) : i.tag === 'after' ? 1 : 0,
         });
         if (i.shot === 0) eventTag(h, { name: 'FINSBURY PARK', date: '18.03.2023', t: i.shotT });
+        if (i.tag?.startsWith('km')) {
+          // over his shoulder, the sentinel looming in the frame
+          const cam = race.stage!.camera;
+          const sp = new THREE.Vector3(sentHead2.x, 0, sentHead2.z);
+          const me = i.pos.clone();
+          const away = me.clone().sub(sp).setY(0).normalize();
+          const side = new THREE.Vector3(-away.z, 0, away.x);
+          cam.position.copy(me).addScaledVector(away, 5.5).addScaledVector(side, 1.6).add(new THREE.Vector3(0, 1.5, 0));
+          cam.lookAt(me.x * 0.55 + sp.x * 0.45, me.y + 8, me.z * 0.55 + sp.z * 0.45);
+          cam.fov = 58;
+          cam.updateProjectionMatrix();
+        }
+        // the split shots
+        const shotKm = DZ2_KM.find((k) => i.T > k.T && i.T < k.T + 1.2);
+        const bm = beam.material as THREE.MeshBasicMaterial;
+        if (shotKm) {
+          const hit = shotKm.split < 240;
+          const from = new THREE.Vector3();
+          race.runner.bone('hand_l').getWorldPosition(from);
+          const to = new THREE.Vector3(sentHead2.x, sentHead2.y - (hit ? 6 : 16), sentHead2.z);
+          const v = to.clone().sub(from);
+          beam.position.copy(from);
+          beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.clone().normalize());
+          beam.scale.set(1, v.length(), 1);
+          bm.color.setHex(hit ? 0x7fe3ff : 0xff5030);
+          bm.opacity = (1 - (i.T - shotKm.T) / 1.2) * (hit ? 1 : 0.6);
+        } else bm.opacity = 0;
         if (i.shot >= 1 && i.tag !== 'after' && i.tag !== 'defeat') {
-          bossPlate(h, { name: 'DOUBLE ZERO', sub: 'ROUND 2', frac: 1 - clamp01(i.d / dz2.distance), alpha: i.finished ? 1 - smooth(0, 1, fin) : 1 });
+          h.time = i.t;
+          const miss = DZ2_KM.find((k) => k.split >= 240 && i.T > k.T && i.T < k.T + 0.6);
+          lifeHud(h, { life: 1 - (i.T > DZ2_KM[3].T ? 0.2 : 0), stamina: 1 - clamp01(i.d / dz2.distance) * 0.85, hurt: miss ? 1 : 0 });
+          equip(h, { item: 'GPS WATCH', weapon: 'KM SPLITS', weaponSub: '<4:00' });
+          bossHp(h, { name: 'DOUBLE ZERO', hp: dz2Hp(i.T), phase: 'ROUND 2', hit: DZ2_KM.some((k) => k.split < 240 && i.T > k.T && i.T < k.T + 0.5) ? 1 : 0, alpha: i.finished ? 1 - smooth(0, 1, fin) : 1 });
           targetBlock(h, { target: 1199, projection: i.finished ? undefined : proj, result: i.finished ? 1165 : undefined });
-          raceClock(h, { T: Math.min(i.T, dz2.finish), d: Math.min(i.d, dz2.distance) });
-          if (i.tag !== 'line') kmSplits(h, race, i);
+          if (i.tag?.startsWith('km')) {
+            const km = DZ2_KM[Number(i.tag.slice(2)) - 1];
+            const since = i.T - km.T;
+            if (since > -2.2 && since < 0) prompt(h, { b: 'R1', text: 'SPLIT', t: since + 2.2, hold: (since + 2.2) / 2.2, y: 800 });
+            if (since > 0) {
+              const hit = km.split < 240;
+              popup(h, `KM ${km.k}  ${Math.floor(km.split / 60)}:${String(Math.round(km.split % 60)).padStart(2, '0')}`, 960, 440, since, hit ? COL.cyan : COL.red, 84);
+              popup(h, hit ? (km.split < 225 ? 'CRITICAL HIT' : 'HIT') : 'MISS  -  OVER 4:00', 960, 540, since - 0.3, hit ? COL.green : COL.red, 64);
+            }
+          }
+          if (i.tag === 'line' && !i.finished) prompt(h, { b: 'X', text: 'SPRINT', t: i.shotT, mash: true, y: 800 });
         }
         if (i.tag === 'line') {
           g.saturation = 0.9 - 0.3 * smooth(0, 2, fin);
@@ -621,7 +682,7 @@ export function ch2(): Scene[] {
           g.saturation = 0.75;
           g.exposure = 0.72;
           g.contrast = 1.15;
-          bossPlate(h, { name: 'DOUBLE ZERO', sub: 'DEFEATED', frac: 0, alpha: smooth(2.5, 3.5, i.shotT) });
+          banner(h, 'DOUBLE ZERO', i.shotT - 2.6, { col: COL.white, sub: 'DEFEATED  -  19:25', dur: 4 });
         }
         if (i.tag === 'after') {
           const a = smooth(0.5, 2, i.shotT);
