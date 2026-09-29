@@ -19,6 +19,8 @@ import { Gate } from '../bosses/Gate';
 import { Sentinel } from '../bosses/Sentinel';
 import { clawBoss } from './claw';
 import { phantomLevel } from './phantom';
+import { phantomBuildUp } from './sightings';
+import { briefing } from './door';
 import { furnaceLevel } from './furnace';
 import { lifeHud, bossHp, prompt, banner } from '../../hud/game';
 import { aimAt, mmss } from '../bosses/place';
@@ -35,7 +37,17 @@ function kmSplits(h: Hud, race: RaceScene, i: Info, fast = 240) {
 }
 
 export function ch3(): Scene[] {
-  const scenes: Scene[] = [chapterCard('c3-card', 'CHAPTER 3', 'AMBITION', 'APRIL  -  DECEMBER 2023')];
+  const scenes: Scene[] = [
+    chapterCard('c3-card', 'CHAPTER 3', 'AMBITION', 'APRIL  -  DECEMBER 2023'),
+    // the next line: forty minutes for 10 km, and the course has a gate on it
+    briefing('c3-brief-forty', {
+      op: 'BATTERSEA 10K',
+      objective: 'SUB 40:00',
+      intel: ['Its guardian is a gate. It starts to fall before forty minutes.', 'At 40:00 it is shut.', 'Be under it.'],
+      enemy: 'FORTY',
+      dur: 8.5,
+    }),
+  ];
 
   // --- FORTY (mini): Battersea 10K, 15.04.2023, 39:35
   const bat = RunProfile.fromGpsProfile(batterseaJ as any, 2375);
@@ -98,17 +110,7 @@ export function ch3(): Scene[] {
 
   // --- the Phantom is named
   scenes.push(
-    new CodecScene({
-      id: 'c3-codec-130',
-      freq: '140.85',
-      lines: [
-        { who: 'TEMPO', text: 'Thirty-nine thirty-five. That puts a half marathon in a different place.' },
-        { who: 'PAUSE', dur: 1.2 },
-        { who: 'TEMPO', text: "You're chasing it again." },
-        { who: 'STRIDE', text: '1:30?' },
-        { who: 'TEMPO', text: 'You know exactly what I mean.' },
-      ],
-    }),
+    ...phantomBuildUp(),
     boardCard('c3-board-130', { dur: 8, op: 'HACKNEY HALF', objective: 'PRIMARY OBJECTIVE', target: '1:29:59', size: 0.9, route: 'hackney-half', sub: '21.1 KM  -  4:15 /KM', status: 'HALF PB 1:38:12   GAP 8:13' }),
   );
 
@@ -149,6 +151,20 @@ export function ch3(): Scene[] {
   // --- NINETEEN: Lordship 01.07.2023, 19:00 exactly (the Double Zero echo)
   const lord = RunProfile.fromGpsProfile(lordshipJ as any, 1140);
   let sent19: Sentinel;
+  // the Sentinel had a twin
+  scenes.push(
+    new CodecScene({
+      id: 'c3-codec-19',
+      freq: '140.85',
+      lines: [
+        { who: 'STRIDE', text: 'Nineteen. That was the next line.' },
+        { who: 'TEMPO', text: 'The Sentinel had a twin. It has been watching you, Stride.' },
+        { who: 'TEMPO', text: 'It knows every result you have ever posted. Every split. Every excuse.' },
+        { who: 'STRIDE', text: 'So it knows what I will do.' },
+        { who: 'TEMPO', text: "Before you do. So don't be predictable." },
+      ],
+    }),
+  );
   scenes.push(
     new RaceScene({
       id: 'c3-lordship',
@@ -279,12 +295,38 @@ export function ch3(): Scene[] {
       ['LONG RUN 26 KM', '8 weeks to Richmond'],
       ['LONG RUN 28 KM', 'I have become death, destroyer of long runs'],
     ], { title: 'MISSION LOG  -  FIRST MARATHON BUILD', hold: 1 }),
+    new CodecScene({
+      id: 'c3-codec-furnace',
+      freq: '140.96',
+      tint: 'amber',
+      lines: [
+        { who: 'LACTATE', text: 'Your first marathon. And the forecast for Sunday is hot.' },
+        { who: 'LACTATE', text: 'Something wakes up in heat like that. Runners call it the Furnace.' },
+        { who: 'STRIDE', text: 'How do I beat it?' },
+        { who: 'LACTATE', text: "You don't. You drink at every station, you let the pace go when it asks, and you get to the end." },
+        { who: 'STRIDE', text: "That's not a plan to win." },
+        { who: 'LACTATE', text: "It's a plan to finish." },
+      ],
+    }),
     boardCard('c3-board-richmond', { dur: 7, op: 'RICHMOND RUNFEST MARATHON', objective: 'OBJECTIVE', target: 'FINISH', size: 0.7, route: 'richmond-marathon', sub: '42.2 KM  -  FIRST MARATHON', status: 'FORECAST: HOT', statusCol: COL.red }),
     furnaceLevel(),
   );
 
   // --- THE CLAW: Highgate hills 26.11.2023 (boss level)
-  scenes.push(clawBoss());
+  scenes.push(
+    new CodecScene({
+      id: 'c3-codec-claw',
+      freq: '140.85',
+      lines: [
+        { who: 'TEMPO', text: 'Highgate. Five climbs in one run.' },
+        { who: 'STRIDE', text: "People say there's something buried in that hill." },
+        { who: 'TEMPO', text: "A hand. One finger for every climb. It doesn't want anyone at the top." },
+        { who: 'STRIDE', text: 'So how do I get up?' },
+        { who: 'TEMPO', text: 'Up the fingers. Jump the knuckles, hold on when it curls, and never stop on a hill.' },
+      ],
+    }),
+    clawBoss(),
+  );
 
   // --- the December Finsbury grind: 19:21, 19:20, 19:18
   const f1918 = RunProfile.fromRuns('finsbury-1918');

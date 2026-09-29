@@ -298,6 +298,8 @@ function drawNews(c: HTMLCanvasElement, t: number) {
 
 /** 3D point -> 1080p screen */
 function toScreen(p: THREE.Vector3, cam: THREE.Camera) {
+  // the camera may have been moved this frame (after the renderer last updated it)
+  cam.updateMatrixWorld();
   const v = p.clone().project(cam);
   return [(v.x + 1) * 960, (1 - v.y) * 540] as const;
 }

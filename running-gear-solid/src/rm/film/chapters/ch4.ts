@@ -98,7 +98,19 @@ export function ch4(): Scene[] {
   );
 
   // --- PHANTOM 1:30, encounter 02: Hackney Half 19.05.2024. Its own level again: the ghost town.
-  scenes.push(phantomLevel(2));
+  scenes.push(
+    new CodecScene({
+      id: 'c4-codec-hunt',
+      freq: '140.85',
+      lines: [
+        { who: 'TEMPO', text: 'A year.' },
+        { who: 'STRIDE', text: 'Goggles are packed.' },
+        { who: 'TEMPO', text: 'Last time it hunted you. This time you hunt it.' },
+        { who: 'TEMPO', text: "Sit in its light for the first few kilometres. Don't pass it early. Then go, and don't look back." },
+      ],
+    }),
+    phantomLevel(2),
+  );
 
   // --- consequence: what the breakthrough unlocked
   scenes.push(

@@ -21,7 +21,7 @@ function paceAt(d: number) {
 }
 
 /** a white hare with a pocket watch on a chain (upright-galloping, ~1 m tall) */
-function makeHare() {
+export function makeHare() {
   const g = new THREE.Group();
   const fur = new THREE.MeshStandardMaterial({ color: 0xf2eee6, roughness: 0.95 });
   const pink = new THREE.MeshStandardMaterial({ color: 0xe8a0a8, roughness: 0.8 });

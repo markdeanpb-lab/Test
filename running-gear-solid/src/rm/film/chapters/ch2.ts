@@ -124,6 +124,10 @@ export function ch2(): Scene[] {
         { who: 'PAUSE', dur: 1.4 },
         { who: 'TEMPO', text: 'Four minutes a kilometre. For five of them.' },
         { who: 'STRIDE', text: 'Sub twenty.' },
+        { who: 'PAUSE', dur: 1 },
+        { who: 'TEMPO', text: 'One more thing. Once you draw a line, something comes to hold it.' },
+        { who: 'STRIDE', text: 'Hold it?' },
+        { who: 'TEMPO', text: "You'll see." },
       ],
     }),
     boardCard('c2-board-sub20', { dur: 8, op: 'FINSBURY PARK', objective: 'PRIMARY OBJECTIVE', target: 'SUB 20:00', size: 1, route: 'finsbury-parkrun', sub: '5 KM  -  4:00 /KM', status: 'CURRENT BEST 21:04   GAP 1:05' }),
@@ -138,6 +142,19 @@ export function ch2(): Scene[] {
   const hingePhase = (km: number) => (km < 5 ? 0 : km < 14 ? 1 : 2);
   scenes.push(
     logCard('c2-log-knee', [['21.05.2022', 'Parkrun - Testing the knee']], { title: 'MISSION LOG', hold: 1 }),
+    new CodecScene({
+      id: 'c2-codec-knee',
+      freq: '140.96',
+      tint: 'amber',
+      lines: [
+        { who: 'LACTATE', text: 'How did it feel?' },
+        { who: 'STRIDE', text: 'It held. Mostly.' },
+        { who: 'LACTATE', text: "Hackney is tomorrow. If that knee wants to lock, it'll lock late, under the viaduct." },
+        { who: 'LACTATE', text: 'Short, quick steps. Keep your cadence up. Never let it grind.' },
+        { who: 'STRIDE', text: 'And if it starts to go?' },
+        { who: 'LACTATE', text: 'Then you hold it together until the line.' },
+      ],
+    }),
     new RaceScene({
       id: 'c2-hinge',
       arena: 'hackney',
@@ -264,6 +281,7 @@ export function ch2(): Scene[] {
 
   // --- near misses: 20:37, 20:34, then 20:15 at the Return of Finsbury Parkrun
   const ret = RunProfile.fromRuns('return-2015');
+  let sent0: Sentinel;
   scenes.push(
     new RaceScene({
       id: 'c2-near',
@@ -272,7 +290,21 @@ export function ch2(): Scene[] {
       sky: SKY.morning,
       halfWidth: 2.2,
       field: { count: 170, pack: 5, kmin: 0.72, kmax: 1.15, seed: 24 },
-      build: parkrunDressing,
+      build: async (race) => {
+        parkrunDressing(race);
+        // the omen: a clock-faced sentinel on the skyline beyond the finish, showing 20:00
+        sent0 = await Sentinel.create();
+        const L = race.course.length;
+        let cx = 0, cz = 0;
+        for (let k = 0; k < 40; k++) {
+          const q = race.courseAt((k / 40) * L * 0.5);
+          cx += q.x / 40;
+          cz += q.z / 40;
+        }
+        sent0.root.position.set(cx, race.arena.heightAt(cx, cz), cz);
+        sent0.root.scale.setScalar(1.35);
+        race.extras.add(sent0.root);
+      },
       shots: [
         { dur: 3.5, T: 300, cam: { mode: 'follow', dist: 4.5, h: 1.5, ang: 30 }, tag: '20:37' },
         { dur: 3.5, T: 800, cam: { mode: 'follow', dist: 3.5, h: 1.0, ang: 110 }, tag: '20:34' },
@@ -281,6 +313,8 @@ export function ch2(): Scene[] {
       ],
       onFrame: (race, i, ctx) => {
         const h = ctx.hud;
+        sent0.update(i.t, { wind: 0.2, text: '20:00', look: i.pos, flicker: Math.sin(i.t * 3) > 0.7 ? 0.3 : 0 });
+        if (i.shot < 2) aimAt(race.stage!.camera, sent0.root.position.clone().add(new THREE.Vector3(0, 30, 0)), 0.5);
         if (i.shot < 2) {
           const a = env(i.shotT, 0.2, 3.5, 0.3, 0.3);
           h.text('PARKRUN  SUMMER 2022', 960, 780, { font: 'mono', size: 26, color: COL.uiDim, align: 'center', alpha: a, tracking: 10, shadow: true });
@@ -301,6 +335,20 @@ export function ch2(): Scene[] {
         void race;
       },
       cues: [{ t: 0, kind: 'amb-park', dur: 21 }, { t: 0.2, kind: 'number-hit' }, { t: 2.1, kind: 'fail' }, { t: 3.3, kind: 'select' }, { t: 3.7, kind: 'number-hit' }, { t: 5.6, kind: 'fail' }, { t: 6.8, kind: 'select' }, { t: 7, kind: 'music', id: 'tension', dur: 14 }, { t: 15, kind: 'fail' }],
+    }),
+    new CodecScene({
+      id: 'c2-codec-sentinel',
+      freq: '140.85',
+      lines: [
+        { who: 'STRIDE', text: 'Twenty thirty-seven. Twenty thirty-four. Twenty fifteen.' },
+        { who: 'STRIDE', text: "And every time, there's a clock. Over the finish. It says twenty." },
+        { who: 'TEMPO', text: 'The Sentinel.' },
+        { who: 'STRIDE', text: "You said something would come to hold the line. That's it?" },
+        { who: 'TEMPO', text: 'That is it. It guards twenty minutes. It feeds on seconds.' },
+        { who: 'TEMPO', text: 'Every kilometre over four minutes feeds it. Every one under breaks a piece off.' },
+        { who: 'STRIDE', text: 'Five hits, then.' },
+        { who: 'TEMPO', text: 'Five. Find flat ground and a calm day.' },
+      ],
     }),
   );
 

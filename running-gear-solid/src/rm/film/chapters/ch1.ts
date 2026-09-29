@@ -11,7 +11,10 @@ import { COL, env, smooth, fmt } from '../../hud/Hud';
 import { raceClock, stamp } from '../../hud/widgets';
 import { funnel, flag } from '../dressing';
 import { Scene } from '../core';
-import { lockdownScenes, briefing } from './door';
+import * as THREE from 'three';
+import { lockdownScenes, briefing, toScreen } from './door';
+import { makeHare } from './hare';
+import { aimAt } from '../bosses/place';
 import { lifeHud, equip, banner, results } from '../../hud/game';
 import type { Kit } from '../../char/Runner';
 
@@ -146,6 +149,7 @@ export function ch1(): Scene[] {
     cues: [{ t: 0.8, kind: 'counter', dur: 1.6 }, { t: 2.6, kind: 'counter', dur: 1.6 }],
   });
 
+  let hare: ReturnType<typeof makeHare>;
   const parkrun = new RaceScene({
     id: 'c1-parkrun-back',
     arena: 'finsbury',
@@ -159,10 +163,14 @@ export function ch1(): Scene[] {
     build: (race) => {
       funnel(race, race.course.length, 30);
       flag(race, 0, -3.2, '#5c2a86', 'START');
+      // the first sighting: a white hare with a pocket watch, just off the start line
+      hare = makeHare();
+      race.extras.add(hare.g);
     },
     shots: [
       { dur: 6, T: -10, cam: { mode: 'follow', dist: 14, h: 6, ang: 150, look: 0.8, fov: 38, shake: 0.2 }, cam2: { dist: 11, h: 4.5 }, grade: { letterbox: 1 } },
-      { dur: 4, T: 2, cam: { mode: 'follow', dist: 6, h: 2.4, ang: 18, look: 1.1, fov: 38, shake: 0.4, ahead: 4 } },
+      { dur: 4.5, T: -6, cam: { mode: 'follow', dist: 3.2, h: 1.3, ang: 35, look: 1.2, fov: 40 }, tag: 'hare' },
+      { dur: 4, T: 2, cam: { mode: 'follow', dist: 6, h: 2.4, ang: 18, look: 1.1, fov: 38, shake: 0.4, ahead: 4 }, tag: 'go' },
       { dur: 4, T: 540, cam: { mode: 'follow', dist: 4.5, h: 1.6, ang: 10, look: 1.2, fov: 40 } },
       { dur: 4, T: 1180, cam: { mode: 'follow', dist: 3.4, h: 1.0, ang: 95, look: 1.1, fov: 40 } },
       { dur: 9, T: 1533, rate: 0.45, cam: { mode: 'follow', dist: 5.5, h: 1.4, ang: 168, look: 1.2, fov: 36, shake: 0.3 }, cam2: { dist: 7.5 }, tag: 'finish' },
@@ -175,7 +183,22 @@ export function ch1(): Scene[] {
         g.fade = 1 - smooth(0, 1.5, i.shotT);
         h.caption(['21.08.2021', 'FINSBURY PARK', 'LOG: "FIRST PARKRUN BACK"'], i.shotT, 0.8, env(i.shotT, 0.6, 6, 0.4, 0.5), 110, 150);
       }
-      if (i.shot >= 1 && i.shot <= 4) raceClock(h, { T: Math.min(i.T, 1539), d: Math.min(i.d, race.o.profile.distance), alpha: i.shot === 4 ? 1 - smooth(5, 6, i.shotT) : 0.95 });
+      // the hare: waits at the start checking its watch, then bounds off up the course at the gun
+      const hs = i.T < 0 ? 9 : 9 + i.T * 7.5;
+      const hp = race.place(hs, i.T < 0 ? -3.4 : -1.5);
+      hare.g.position.set(hp.x, hp.y + (i.T > 0 ? Math.abs(Math.sin(i.t * 9)) * 0.45 : 0), hp.z);
+      hare.g.rotation.y = i.T < 0 ? Math.atan2(-hp.dx, -hp.dz) + 0.8 : Math.atan2(hp.dx, hp.dz);
+      hare.legs.forEach((l, k) => (l.rotation.x = i.T > 0 ? Math.sin(i.t * 18 + k * Math.PI) * 0.9 : 0));
+      hare.watch.rotation.z = i.T < 0 ? Math.sin(i.t * 2) * 0.2 : 0;
+      hare.g.visible = i.tag === 'hare' || i.tag === 'go';
+      if (i.tag === 'hare') {
+        aimAt(race.stage!.camera, new THREE.Vector3(hp.x, hp.y + 0.9, hp.z), 0.5 * smooth(0.3, 1.4, i.shotT));
+        if (i.shotT > 1.6) {
+          const [sx, sy] = toScreen(new THREE.Vector3(hp.x, hp.y + 2.4, hp.z), race.stage!.camera);
+          h.text('?', sx, sy, { font: 'head', size: 110, weight: 700, color: COL.amber, align: 'center', alpha: env(i.shotT, 1.6, 4.4, 0.05, 0.3), glow: 10, shadow: true });
+        }
+      }
+      if (i.shot >= 2 && i.shot <= 5) raceClock(h, { T: Math.min(i.T, 1539), d: Math.min(i.d, race.o.profile.distance), alpha: i.tag === 'finish' ? 1 - smooth(5, 6, i.shotT) : 0.95 });
       if (i.tag === 'finish') {
         const a = smooth(4.5, 5.5, i.shotT);
         stamp(h, '25:39', { alpha: a, size: 170, sub: 'THE FIRST NUMBER', y: 560 });
@@ -185,7 +208,7 @@ export function ch1(): Scene[] {
         fades(g, i.shotT, 9, 0.6, 2.5);
       }
     },
-    cues: [{ t: 0, kind: 'amb-park', dur: 36 }, { t: 7, kind: 'music', id: 'first-steps', dur: 20 }, { t: 22.5, kind: 'result', big: false }],
+    cues: [{ t: 0, kind: 'amb-park', dur: 40.5 }, { t: 7.6, kind: 'alert' }, { t: 11.5, kind: 'music', id: 'first-steps', dur: 20 }, { t: 27, kind: 'result', big: false }],
   });
 
   const [flat, door] = lockdownScenes();
@@ -210,7 +233,20 @@ export function ch1(): Scene[] {
     enemy: 'UNKNOWN',
     dur: 8,
   });
-  return [chapterCard('c1-card', 'CHAPTER 1', 'BASIC TRAINING', '2020  -  2021'), flat, call, brief, door, first, standing, shins, years, parkrun];
+  // the first omen: something was waiting at the start line
+  const hareCall = new CodecScene({
+    id: 'c1-codec-hare',
+    freq: '140.85',
+    lines: [
+      { who: 'STRIDE', text: 'Tempo. There was a hare at the start. A white one. With a pocket watch.' },
+      { who: 'TEMPO', text: 'Red eyes?' },
+      { who: 'STRIDE', text: "You've seen it." },
+      { who: 'TEMPO', text: 'Everyone has. It waits at start lines. It wants you to chase it.' },
+      { who: 'STRIDE', text: 'And if I do?' },
+      { who: 'TEMPO', text: "Then you'll find out why nobody talks about it." },
+    ],
+  });
+  return [chapterCard('c1-card', 'CHAPTER 1', 'BASIC TRAINING', '2020  -  2021'), flat, call, brief, door, first, standing, shins, years, parkrun, hareCall];
 }
 
 export { steady };

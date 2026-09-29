@@ -1,5 +1,6 @@
 // CHAPTER 5 - HAIRLINE (Oct - Dec 2024)
 // A stress reaction. The boss you cannot fight: a crack that grows across the screen.
+import { CodecScene } from '../Codec';
 import { chapterCard, logCard, boardCard } from '../common';
 import { hairlineBoss } from './hairline';
 import { Card, grid } from '../Cards';
@@ -44,6 +45,16 @@ export function ch5(): Scene[] {
       ['15.10.2024', 'sore ankles'],
       ['29.10.2024', 'Ankle test'],
     ], { title: 'MISSION LOG  -  VALENCIA BUILD', hold: 0.8, col: COL.amber }),
+    new CodecScene({
+      id: 'c5-codec-ankles',
+      freq: '140.96',
+      tint: 'amber',
+      lines: [
+        { who: 'LACTATE', text: 'Your ankles. How long have they been sore?' },
+        { who: 'STRIDE', text: "A couple of weeks. It's fine. Valencia's close. I'll run through it." },
+        { who: 'LACTATE', text: 'Stride. If you run through it, something comes through the other way.' },
+      ],
+    }),
     hairlineBoss(),
     logCard('c5-over', [['01.11.2024', 'Valencia Marathon dream over - we will come back stronger.']], { hold: 1.8, col: COL.red }),
     boardCard('c5-cancelled', { dur: 7, op: 'VALENCIA MARATHON', objective: 'OBJECTIVE', target: 'VALENCIA', size: 0.55, strike: 1, sub: 'MARATHON  -  DECEMBER 2024', status: 'MISSION CANCELLED', statusCol: COL.red }),

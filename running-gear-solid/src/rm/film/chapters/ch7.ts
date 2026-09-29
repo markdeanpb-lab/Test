@@ -32,6 +32,18 @@ export function ch7(): Scene[] {
       ],
       tail: 1.8,
     }),
+    new CodecScene({
+      id: 'c7-codec-wall',
+      freq: '140.85',
+      ring: false,
+      lines: [
+        { who: 'TEMPO', text: 'Every line you have drawn grew something to hold it. A clock. A ghost. A drone.' },
+        { who: 'STRIDE', text: 'And this one?' },
+        { who: 'TEMPO', text: 'Somewhere around thirty kilometres, this one builds a wall.' },
+        { who: 'STRIDE', text: 'Out of what?' },
+        { who: 'TEMPO', text: "Out of every brick you didn't lay. So lay all of them." },
+      ],
+    }),
     new BricksScene(),
   );
 

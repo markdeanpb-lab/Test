@@ -1,6 +1,7 @@
 // EPILOGUE - STILL STANDING. Understated: crutches, small races, the Phantom leaving STRIDE this
 // time, an unexpected 18:43, the defeated bosses, the mission log with two lines still open,
 // silence, a new mission. STRIDE runs again.
+import { makeHare } from './hare';
 import { RaceScene } from '../RaceScene';
 import { RunProfile } from '../profile';
 import chipJ from '../../../data/gps/chippenham-half.json';
@@ -156,6 +157,7 @@ export function epilogue(): Scene[] {
   );
 
   // --- silence; a new mission; the runner moves again
+  let hareE: ReturnType<typeof makeHare>;
   scenes.push(
     new Card({
       id: 'e7-new',
@@ -181,12 +183,26 @@ export function epilogue(): Scene[] {
         return p;
       })(),
       sky: SKY.sunrise,
+      // the Hare, one last time: it waits, looks back with its watch up, and bolts. He lets it go.
+      build: (race) => {
+        hareE = makeHare();
+        race.extras.add(hareE.g);
+      },
       shots: [
         { dur: 6, T: -2, cam: { mode: 'follow', dist: 3.6, h: 1.7, ang: 160, look: 1.6, fov: 34 }, grade: { letterbox: 1 } },
         { dur: 12, T: 4, cam: { mode: 'follow', dist: 6, h: 1.4, ang: -10, look: 1.2, fov: 30 }, cam2: { dist: 26, h: 2.5 }, grade: { letterbox: 1 } },
       ],
       onFrame: (race, i, ctx) => {
         const g = ctx.r.grade;
+        const go = Math.max(0, i.T - 1.2);
+        // it waits behind him, then bolts past and away up the path; he doesn't follow
+        const hs = 60 - 6 + go * 9 + go * go * 1.2;
+        const hp = race.place(hs, 0.8);
+        hareE.g.position.set(hp.x, hp.y + (go > 0 ? Math.abs(Math.sin(i.t * 9)) * 0.45 : 0), hp.z);
+        hareE.g.rotation.y = Math.atan2(hp.dx, hp.dz) + (go > 0 ? 0 : 0.4);
+        hareE.legs.forEach((l, k) => (l.rotation.x = go > 0 ? Math.sin(i.t * 18 + k * Math.PI) * 0.9 : 0));
+        hareE.watch.rotation.z = go > 0 ? 0 : 0.5;
+        hareE.g.visible = hs < 60 + 140;
         if (i.shot === 0) g.fade = 1 - smooth(0, 2, i.shotT);
         if (i.shot === 1) {
           ctx.hud.text('END', 960, 960, { font: 'mono', size: 30, color: COL.white, align: 'center', alpha: smooth(9, 10, i.shotT), tracking: 20 });

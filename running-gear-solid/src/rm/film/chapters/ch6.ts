@@ -1,6 +1,7 @@
 // CHAPTER 6 - RETURN (2025)
 // The comeback (and the Hare again), the last Finsbury parkrun, a new home, the ghost of 2023,
 // SUB 18 appears, SUB 20 comes back, and EIGHTEEN refuses to fall.
+import { CodecScene } from '../Codec';
 import { RaceScene } from '../RaceScene';
 import { eighteenBoss } from './eighteen';
 import { RunProfile } from '../profile';
@@ -198,6 +199,18 @@ export function ch6(): Scene[] {
 
   // --- EIGHTEEN: Striders Festive 5K 16.12.2025. Target 17:59, result 18:19 (its own level: the arcade).
   scenes.push(
+    new CodecScene({
+      id: 'c6-codec-18',
+      freq: '140.85',
+      lines: [
+        { who: 'TEMPO', text: 'Sub eighteen. The line you drew in June.' },
+        { who: 'STRIDE', text: "What's guarding it?" },
+        { who: 'TEMPO', text: "Eighteen. It doesn't hide like the Phantom or stand still like the Sentinel. It's a drone." },
+        { who: 'TEMPO', text: 'It flies at three thirty-six a kilometre, right in front of you, and it never gets tired.' },
+        { who: 'STRIDE', text: 'So how do I beat it?' },
+        { who: 'TEMPO', text: 'Keep up with it. Twelve laps under the Christmas lights. That is all.' },
+      ],
+    }),
     eighteenBoss(),
     textCard('c6-week1', [{ t: 0.8, text: 'Five days later.', out: 5.5 }, { t: 2.6, text: 'WEEK 1 OF 18', font: 'mono', col: COL.ui, y: 620, size: 44, out: 5.5 }], 6.2),
   );
