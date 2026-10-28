@@ -79,10 +79,13 @@ the original game binary under Wine, which is the same core the APK uses.
 | Date advanced (Sun 1 → Mon 2 Nov), save files rewritten in `s1` | ✅ |
 | In-game Quit → full exit → relaunch → Load Game shows "Phone Test" → loads at Monday 02 Nov | ✅ |
 
-**Not tested** (needs your phone): the APK itself. The build was blocked in my environment: its safety policy did not
-allow running the third-party Winlator Gradle build. So the Android-side code (launcher, touch layer, zoom, backup/restore)
-has not been compiled or run yet, and the first build may need small fixes. Also untested: Box64 speed on the S23,
-and the Samsung keyboard with the game's text boxes.
+**APK build:** ✅ `./gradlew assembleDebug` of the patched Winlator 11.2 succeeded with no errors (161 MB debug APK;
+package `com.winlator`, label "EWR", launcher `EWRLauncherActivity`, `assets/ewr/game.zip` + `msvbvm60.dll` inside).
+
+**Not tested (needs your phone):** running the APK. This build machine has no hardware virtualisation, so an arm64
+Android emulator was not possible. That leaves these still to confirm on the S23: first-run setup, the game starting
+under Box64, the touch gestures and side buttons, pinch zoom, the Samsung keyboard in the game's text boxes,
+backup/restore/import, and speed.
 
 ## Build the APK
 
@@ -95,7 +98,7 @@ export ANDROID_HOME=/path/to/android-sdk
 # -> ewr-android/EWR-Android.apk
 ```
 
-The script checks out Winlator 11.2 (`brunodev85/winlator-app` @ `8077f37`) and applies `winlator-ewr.patch`.
+The script needs no GitHub login. It checks out Winlator 11.2 (`brunodev85/winlator-app` @ `8077f37`) and applies `winlator-ewr.patch`.
 It bundles your EWR ZIP unchanged, downloads `vbrun60.exe` from Microsoft (SHA-256 checked), extracts
 `msvbvm60.dll` from it, and builds. The game and the Microsoft DLL are deliberately **not** stored in this public repository.
 
