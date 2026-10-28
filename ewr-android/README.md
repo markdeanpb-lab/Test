@@ -107,6 +107,12 @@ It bundles your EWR ZIP unchanged, downloads `vbrun60.exe` from Microsoft (SHA-2
 1. If the official **Winlator** app is installed, uninstall it first (or back up its data). This app must use the same
    package name, `com.winlator`, because Winlator's Linux/Wine files have that path built in.
 2. Copy `EWR-Android.apk` to the phone and open it. Allow "Install unknown apps" for your file manager when asked.
+   Play Protect will warn that the app *"was built for an older version of Android and doesn't include the latest
+   privacy protections"*. Tap **More details → Install anyway**. If that option is missing, temporarily turn off
+   Play Store → profile → Play Protect → ⚙ → *Scan apps with Play Protect*, install, then turn it back on. If Samsung
+   **Auto Blocker** blocks it, switch it off under Settings → Security and privacy → Auto Blocker for the install.
+   The warning is expected and cannot be removed. Wine/Box64 runs programs from the app's own storage, which
+   Android only allows for apps targeting Android 9 (API 28). The official Winlator shows the same warning.
 3. Open **EWR**. The first start installs the system files (about a minute, offline). Then tap **Play EWR**.
 4. Turn the phone sideways. Tap to click, hold to right-click, pinch to zoom, three-finger tap for the keyboard.
 5. Quit with the game's own **Quit** button, then **Exit** from the ☰ menu. Use **Back up saves** now and then.
