@@ -1,0 +1,1218 @@
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index 1262c0d..39e8270 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -24,10 +24,10 @@
+         android:allowAudioPlaybackCapture="true"
+         android:label="@string/app_name">
+ 
+-        <activity android:name="com.winlator.MainActivity"
++        <activity android:name="com.winlator.EWRLauncherActivity"
+             android:theme="@style/AppThemeDark"
+             android:exported="true"
+-            android:screenOrientation="sensor"
++            android:screenOrientation="sensorLandscape"
+             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation">
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN"/>
+@@ -35,6 +35,12 @@
+             </intent-filter>
+         </activity>
+ 
++        <activity android:name="com.winlator.MainActivity"
++            android:theme="@style/AppThemeDark"
++            android:exported="false"
++            android:screenOrientation="sensor"
++            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|density|navigation" />
++
+         <activity android:name="com.winlator.XServerDisplayActivity"
+             android:exported="false"
+             android:theme="@style/AppThemeFullscreenDark"
+diff --git a/app/src/main/java/com/winlator/EWRLauncherActivity.java b/app/src/main/java/com/winlator/EWRLauncherActivity.java
+new file mode 100644
+index 0000000..2b1ffc3
+--- /dev/null
++++ b/app/src/main/java/com/winlator/EWRLauncherActivity.java
+@@ -0,0 +1,546 @@
++package com.winlator;
++
++import android.app.Activity;
++import android.app.AlertDialog;
++import android.content.Intent;
++import android.content.SharedPreferences;
++import android.graphics.Color;
++import android.graphics.Typeface;
++import android.net.Uri;
++import android.os.Bundle;
++import android.util.TypedValue;
++import android.view.Gravity;
++import android.view.View;
++import android.widget.Button;
++import android.widget.LinearLayout;
++import android.widget.ScrollView;
++import android.widget.TextView;
++
++import androidx.annotation.Nullable;
++import androidx.appcompat.app.AppCompatActivity;
++import androidx.preference.PreferenceManager;
++
++import com.winlator.container.Container;
++import com.winlator.container.ContainerManager;
++import com.winlator.core.AppUtils;
++import com.winlator.core.FileUtils;
++import com.winlator.core.PreloaderDialog;
++import com.winlator.core.StreamUtils;
++import com.winlator.xenvironment.RootFSInstaller;
++
++import org.json.JSONException;
++import org.json.JSONObject;
++
++import java.io.BufferedInputStream;
++import java.io.BufferedOutputStream;
++import java.io.File;
++import java.io.FileInputStream;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.OutputStream;
++import java.text.SimpleDateFormat;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.Date;
++import java.util.Enumeration;
++import java.util.List;
++import java.util.Locale;
++import java.util.concurrent.Executors;
++import java.util.zip.ZipEntry;
++import java.util.zip.ZipFile;
++import java.util.zip.ZipInputStream;
++import java.util.zip.ZipOutputStream;
++
++/**
++ * Entry point of the EWR build: prepares the Wine environment once, keeps the original
++ * Extreme Warfare Revenge files inside the container's C: drive and launches EWRevenge.exe.
++ */
++public class EWRLauncherActivity extends AppCompatActivity {
++    public static final String EXTRA_EWR_MODE = "ewr_mode";
++    private static final String GAME_ASSET = "ewr/game.zip";
++    private static final String VB6_RUNTIME_ASSET = "ewr/msvbvm60.dll";
++    private static final String EXE_NAME = "EWRevenge.exe";
++    private static final int REQUEST_BACKUP = 101;
++    private static final int REQUEST_RESTORE = 102;
++    private static final int REQUEST_IMPORT_DATABASE = 103;
++    private static final int MAX_AUTO_BACKUPS = 5;
++    private static final List<String> GAME_FOLDERS = Arrays.asList("DATA", "GFX", "GUIDE", "PICS", "LOGOS", "BANNERS", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8");
++    private static final List<String> DATABASE_FOLDERS = Arrays.asList("DATA", "PICS", "LOGOS", "BANNERS");
++
++    private Container container;
++    private TextView statusText;
++    private final ArrayList<Button> actionButtons = new ArrayList<>();
++    private PreloaderDialog preloaderDialog;
++
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        AppUtils.setActivityTheme(this);
++        super.onCreate(savedInstanceState);
++        preloaderDialog = new PreloaderDialog(this);
++        applyDefaultPreferences();
++        setContentView(createContentView());
++        setButtonsEnabled(false);
++
++        if (RootFSInstaller.isInstallNeeded(this)) {
++            statusText.setText(R.string.ewr_status_installing);
++            RootFSInstaller.install(this, this::prepareGame);
++        }
++        else prepareGame();
++    }
++
++    private void applyDefaultPreferences() {
++        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
++        if (!preferences.getBoolean("ewr_defaults_applied", false)) {
++            preferences.edit()
++                .putBoolean("ewr_defaults_applied", true)
++                .putBoolean("open_android_browser_from_wine", true)
++                .putFloat("cursor_scale", 1.0f)
++                .apply();
++        }
++    }
++
++    private View createContentView() {
++        float density = getResources().getDisplayMetrics().density;
++        int pad = (int)(16 * density);
++
++        LinearLayout column = new LinearLayout(this);
++        column.setOrientation(LinearLayout.VERTICAL);
++        column.setPadding(pad, pad, pad, pad);
++        column.setGravity(Gravity.CENTER_HORIZONTAL);
++
++        TextView title = new TextView(this);
++        title.setText(R.string.ewr_title);
++        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24);
++        title.setTypeface(Typeface.DEFAULT_BOLD);
++        title.setTextColor(Color.WHITE);
++        title.setGravity(Gravity.CENTER);
++        column.addView(title);
++
++        statusText = new TextView(this);
++        statusText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
++        statusText.setTextColor(0xffcccccc);
++        statusText.setGravity(Gravity.CENTER);
++        statusText.setPadding(0, pad / 2, 0, pad);
++        column.addView(statusText);
++
++        addButton(column, R.string.ewr_play, this::play).setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
++        addButton(column, R.string.ewr_backup, this::requestBackup);
++        addButton(column, R.string.ewr_restore, () -> pickZip(REQUEST_RESTORE));
++        addButton(column, R.string.ewr_import_database, () -> pickZip(REQUEST_IMPORT_DATABASE));
++        addButton(column, R.string.ewr_reset_database, this::confirmResetDatabase);
++        addButton(column, R.string.ewr_controls_help, this::showControlsHelp);
++        addButton(column, R.string.ewr_advanced, () -> startActivity(new Intent(this, MainActivity.class)));
++
++        ScrollView scrollView = new ScrollView(this);
++        scrollView.setBackgroundColor(0xff10105a);
++        scrollView.setFillViewport(true);
++        scrollView.addView(column);
++        return scrollView;
++    }
++
++    private Button addButton(LinearLayout parent, int textResId, Runnable action) {
++        float density = getResources().getDisplayMetrics().density;
++        Button button = new Button(this);
++        button.setText(textResId);
++        button.setAllCaps(false);
++        button.setOnClickListener((v) -> action.run());
++        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams((int)(320 * density), LinearLayout.LayoutParams.WRAP_CONTENT);
++        params.setMargins(0, (int)(4 * density), 0, (int)(4 * density));
++        button.setLayoutParams(params);
++        parent.addView(button);
++        actionButtons.add(button);
++        return button;
++    }
++
++    private void setButtonsEnabled(boolean enabled) {
++        for (Button button : actionButtons) button.setEnabled(enabled);
++    }
++
++    private File getGameDir() {
++        return new File(container.getRootDir(), ".wine/drive_c/EWR");
++    }
++
++    private File getAutoBackupDir() {
++        File dir = new File(getFilesDir(), "ewr_backups");
++        dir.mkdirs();
++        return dir;
++    }
++
++    private void prepareGame() {
++        statusText.setText(R.string.ewr_status_preparing);
++        ContainerManager manager = new ContainerManager(this);
++        for (Container candidate : manager.getContainers()) {
++            if (candidate.getExtra("ewr").equals("1")) container = candidate;
++        }
++
++        if (container != null) {
++            installGameFilesAsync();
++            return;
++        }
++
++        try {
++            JSONObject data = new JSONObject();
++            data.put("name", "EWR");
++            // EWR's screens are designed for an 800x600 desktop; the renderer scales this to the phone without changing proportions.
++            data.put("screenSize", "800x600");
++            // The game was written for an English (period-as-decimal) Windows; pin the locale so data files parse identically.
++            data.put("envVars", Container.DEFAULT_ENV_VARS+" LC_ALL=en_US.UTF-8");
++            data.put("drives", "");
++            preloaderDialog.show(R.string.ewr_status_preparing);
++            manager.createContainerAsync(data, (created) -> {
++                preloaderDialog.close();
++                if (created == null) {
++                    statusText.setText(R.string.ewr_status_failed);
++                    return;
++                }
++                created.putExtra("ewr", "1");
++                created.saveData();
++                container = created;
++                installGameFilesAsync();
++            });
++        }
++        catch (JSONException e) {
++            statusText.setText(R.string.ewr_status_failed);
++        }
++    }
++
++    private void installGameFilesAsync() {
++        preloaderDialog.show(R.string.ewr_status_preparing);
++        Executors.newSingleThreadExecutor().execute(() -> {
++            boolean success = installGameFiles();
++            runOnUiThread(() -> {
++                preloaderDialog.close();
++                if (success) {
++                    setButtonsEnabled(true);
++                    updateStatus();
++                }
++                else statusText.setText(R.string.ewr_status_failed);
++            });
++        });
++    }
++
++    /** Copies the original game on first run only; existing saves and databases are never overwritten here. */
++    private boolean installGameFiles() {
++        File gameDir = getGameDir();
++        if (!new File(gameDir, EXE_NAME).isFile()) {
++            gameDir.mkdirs();
++            try (InputStream inStream = getAssets().open(GAME_ASSET)) {
++                if (!extractZip(inStream, gameDir, null)) return false;
++            }
++            catch (IOException e) {
++                return false;
++            }
++        }
++        for (String folder : GAME_FOLDERS) new File(gameDir, folder).mkdirs();
++        return installVB6Runtime() && new File(gameDir, EXE_NAME).isFile();
++    }
++
++    private boolean installVB6Runtime() {
++        File dstFile = new File(container.getRootDir(), ".wine/drive_c/windows/syswow64/msvbvm60.dll");
++        if (dstFile.isFile() && dstFile.length() > 0) return true;
++        FileUtils.copy(this, VB6_RUNTIME_ASSET, dstFile);
++        return dstFile.isFile();
++    }
++
++    private void updateStatus() {
++        int slots = 0;
++        File gameDir = getGameDir();
++        for (int i = 1; i <= 8; i++) {
++            if (new File(gameDir, "s"+i+"/gameinfo.dat").isFile()) slots++;
++        }
++        statusText.setText(getString(R.string.ewr_status_ready, slots));
++    }
++
++    private void play() {
++        if (!installVB6Runtime()) {
++            AppUtils.showToast(this, R.string.ewr_status_failed);
++            return;
++        }
++        Intent intent = new Intent(this, XServerDisplayActivity.class);
++        intent.putExtra("container_id", container.id);
++        intent.putExtra("exec_path", new File(getGameDir(), EXE_NAME).getPath());
++        intent.putExtra(EXTRA_EWR_MODE, true);
++        startActivity(intent);
++        finish();
++    }
++
++    private static String timestamp() {
++        return new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
++    }
++
++    private void requestBackup() {
++        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
++        intent.addCategory(Intent.CATEGORY_OPENABLE);
++        intent.setType("application/zip");
++        intent.putExtra(Intent.EXTRA_TITLE, "EWR-backup-"+timestamp()+".zip");
++        startActivityForResult(intent, REQUEST_BACKUP);
++    }
++
++    private void pickZip(int requestCode) {
++        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
++        intent.addCategory(Intent.CATEGORY_OPENABLE);
++        intent.setType("*/*");
++        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/zip", "application/x-zip-compressed", "application/octet-stream"});
++        startActivityForResult(intent, requestCode);
++    }
++
++    private void confirmResetDatabase() {
++        new AlertDialog.Builder(this)
++            .setTitle(R.string.ewr_reset_database)
++            .setMessage(R.string.ewr_reset_database_message)
++            .setPositiveButton(android.R.string.ok, (d, w) -> runTask(() -> {
++                createAutoBackup();
++                try (InputStream inStream = getAssets().open(GAME_ASSET)) {
++                    return extractZip(inStream, getGameDir(), Arrays.asList("DATA"));
++                }
++            }, R.string.ewr_reset_database_done))
++            .setNegativeButton(android.R.string.cancel, null)
++            .show();
++    }
++
++    private void showControlsHelp() {
++        new AlertDialog.Builder(this)
++            .setTitle(R.string.ewr_controls_help)
++            .setMessage(R.string.ewr_controls_help_message)
++            .setPositiveButton(android.R.string.ok, null)
++            .show();
++    }
++
++    private interface Task {
++        boolean run() throws Exception;
++    }
++
++    private void runTask(Task task, int successResId) {
++        setButtonsEnabled(false);
++        preloaderDialog.show(R.string.ewr_working);
++        Executors.newSingleThreadExecutor().execute(() -> {
++            boolean success;
++            try {
++                success = task.run();
++            }
++            catch (Exception e) {
++                success = false;
++            }
++            final boolean result = success;
++            runOnUiThread(() -> {
++                preloaderDialog.close();
++                setButtonsEnabled(true);
++                updateStatus();
++                new AlertDialog.Builder(this)
++                    .setMessage(result ? successResId : R.string.ewr_operation_failed)
++                    .setPositiveButton(android.R.string.ok, null)
++                    .show();
++            });
++        });
++    }
++
++    @Override
++    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
++        super.onActivityResult(requestCode, resultCode, data);
++        if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null || container == null) return;
++        final Uri uri = data.getData();
++
++        switch (requestCode) {
++            case REQUEST_BACKUP:
++                runTask(() -> {
++                    try (OutputStream outStream = getContentResolver().openOutputStream(uri)) {
++                        return outStream != null && zipGameDir(outStream);
++                    }
++                }, R.string.ewr_backup_done);
++                break;
++            case REQUEST_RESTORE:
++                runTask(() -> importZip(uri, GAME_FOLDERS, true), R.string.ewr_restore_done);
++                break;
++            case REQUEST_IMPORT_DATABASE:
++                runTask(() -> importZip(uri, DATABASE_FOLDERS, false), R.string.ewr_import_database_done);
++                break;
++        }
++    }
++
++    private boolean zipGameDir(OutputStream outStream) throws IOException {
++        try (ZipOutputStream zip = new ZipOutputStream(new BufferedOutputStream(outStream, StreamUtils.BUFFER_SIZE))) {
++            addToZip(zip, getGameDir(), "EWR/");
++        }
++        return true;
++    }
++
++    private void addToZip(ZipOutputStream zip, File dir, String basePath) throws IOException {
++        File[] files = dir.listFiles();
++        if (files == null) return;
++        zip.putNextEntry(new ZipEntry(basePath));
++        zip.closeEntry();
++        for (File file : files) {
++            if (FileUtils.isSymlink(file)) continue;
++            if (file.isDirectory()) {
++                addToZip(zip, file, basePath+file.getName()+"/");
++            }
++            else {
++                ZipEntry entry = new ZipEntry(basePath+file.getName());
++                entry.setTime(file.lastModified());
++                zip.putNextEntry(entry);
++                try (InputStream inStream = new BufferedInputStream(new FileInputStream(file), StreamUtils.BUFFER_SIZE)) {
++                    StreamUtils.copy(inStream, zip);
++                }
++                zip.closeEntry();
++            }
++        }
++    }
++
++    /** Keeps a private copy of the whole game folder before anything is overwritten. */
++    private void createAutoBackup() throws IOException {
++        File dir = getAutoBackupDir();
++        File file = new File(dir, "auto-"+timestamp()+".zip");
++        try (OutputStream outStream = new FileOutputStream(file)) {
++            zipGameDir(outStream);
++        }
++
++        File[] backups = dir.listFiles((d, name) -> name.startsWith("auto-") && name.endsWith(".zip"));
++        if (backups != null && backups.length > MAX_AUTO_BACKUPS) {
++            Arrays.sort(backups, (a, b) -> a.getName().compareTo(b.getName()));
++            for (int i = 0; i < backups.length - MAX_AUTO_BACKUPS; i++) FileUtils.delete(backups[i]);
++        }
++    }
++
++    /**
++     * Imports a zip made from a PC or phone EWR folder. The game folder may sit at any depth
++     * (e.g. "EWR/s1/..." or "s1/..."); only the listed top-level folders are written.
++     * For databases, a zip that just contains the .dat files is also accepted.
++     */
++    private boolean importZip(Uri uri, List<String> allowedFolders, boolean allowExe) throws Exception {
++        File tempFile = new File(getCacheDir(), "ewr-import.zip");
++        try (InputStream inStream = getContentResolver().openInputStream(uri);
++             OutputStream outStream = new FileOutputStream(tempFile)) {
++            if (inStream == null) return false;
++            StreamUtils.copy(inStream, outStream);
++        }
++
++        try (ZipFile zipFile = new ZipFile(tempFile)) {
++            String prefix = null;
++            String looseDataPrefix = null;
++            Enumeration<? extends ZipEntry> entries = zipFile.entries();
++            while (entries.hasMoreElements() && prefix == null) {
++                String name = entries.nextElement().getName().replace('\\', '/');
++                String[] parts = name.split("/");
++                for (int i = 0; i < parts.length; i++) {
++                    boolean isFolder = i < parts.length - 1 && canonicalFolder(parts[i], allowedFolders) != null;
++                    boolean isExe = allowExe && i == parts.length - 1 && parts[i].equalsIgnoreCase(EXE_NAME);
++                    if (isFolder || isExe) {
++                        prefix = joinPrefix(parts, i);
++                        break;
++                    }
++                }
++                if (looseDataPrefix == null && parts[parts.length - 1].equalsIgnoreCase("wrestler.dat")) {
++                    looseDataPrefix = joinPrefix(parts, parts.length - 1);
++                }
++            }
++
++            String targetPrefix = "";
++            if (prefix == null) {
++                if (allowedFolders.contains("DATA") && looseDataPrefix != null) {
++                    prefix = looseDataPrefix;
++                    targetPrefix = "DATA/";
++                }
++                else return false;
++            }
++
++            createAutoBackup();
++            File gameDir = getGameDir();
++            int written = 0;
++            entries = zipFile.entries();
++            while (entries.hasMoreElements()) {
++                ZipEntry entry = entries.nextElement();
++                String name = entry.getName().replace('\\', '/');
++                if (entry.isDirectory() || !name.startsWith(prefix)) continue;
++                String relative = targetPrefix + name.substring(prefix.length());
++                String[] parts = relative.split("/");
++
++                if (parts.length == 1) {
++                    if (!(allowExe && parts[0].equalsIgnoreCase(EXE_NAME))) continue;
++                }
++                else {
++                    String folder = canonicalFolder(parts[0], allowedFolders);
++                    if (folder == null) continue;
++                    if (!targetPrefix.isEmpty() && (parts.length != 2 || !parts[1].toLowerCase(Locale.ENGLISH).endsWith(".dat"))) continue;
++                    parts[0] = folder;
++                }
++
++                File dstFile = resolvePath(gameDir, parts);
++                if (dstFile == null) continue;
++                try (InputStream inStream = zipFile.getInputStream(entry);
++                     OutputStream outStream = new BufferedOutputStream(new FileOutputStream(dstFile), StreamUtils.BUFFER_SIZE)) {
++                    StreamUtils.copy(inStream, outStream);
++                }
++                if (entry.getTime() > 0) dstFile.setLastModified(entry.getTime());
++                written++;
++            }
++            return written > 0;
++        }
++        finally {
++            FileUtils.delete(tempFile);
++        }
++    }
++
++    private static String joinPrefix(String[] parts, int count) {
++        StringBuilder sb = new StringBuilder();
++        for (int i = 0; i < count; i++) sb.append(parts[i]).append('/');
++        return sb.toString();
++    }
++
++    private static String canonicalFolder(String name, List<String> allowedFolders) {
++        for (String folder : allowedFolders) if (folder.equalsIgnoreCase(name)) return folder;
++        return null;
++    }
++
++    /**
++     * Maps a relative path onto the game folder, reusing existing files/folders that differ only by
++     * letter case (Windows is case-insensitive, Android is not) and refusing anything outside it.
++     */
++    private static File resolvePath(File baseDir, String[] parts) {
++        File current = baseDir;
++        for (int i = 0; i < parts.length; i++) {
++            String part = parts[i];
++            if (part.isEmpty() || part.equals(".") || part.equals("..")) return null;
++            File match = new File(current, part);
++            if (!match.exists()) {
++                String[] names = current.list();
++                if (names != null) {
++                    for (String existing : names) {
++                        if (existing.equalsIgnoreCase(part)) {
++                            match = new File(current, existing);
++                            break;
++                        }
++                    }
++                }
++            }
++            if (i < parts.length - 1) match.mkdirs();
++            current = match;
++        }
++        return current;
++    }
++
++    /** Extracts a bundled zip; when onlyFolders is set, only those top-level folders are written. */
++    private static boolean extractZip(InputStream source, File destination, List<String> onlyFolders) throws IOException {
++        boolean any = false;
++        try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(source, StreamUtils.BUFFER_SIZE))) {
++            ZipEntry entry;
++            while ((entry = zip.getNextEntry()) != null) {
++                String[] parts = entry.getName().split("/");
++                if (onlyFolders != null && (parts.length < 2 || !onlyFolders.contains(parts[0]))) continue;
++                if (entry.isDirectory()) {
++                    File dir = resolvePath(destination, parts);
++                    if (dir != null) dir.mkdirs();
++                    continue;
++                }
++                File file = resolvePath(destination, parts);
++                if (file == null) continue;
++                try (OutputStream outStream = new BufferedOutputStream(new FileOutputStream(file), StreamUtils.BUFFER_SIZE)) {
++                    StreamUtils.copy(zip, outStream);
++                }
++                if (entry.getTime() > 0) file.setLastModified(entry.getTime());
++                any = true;
++            }
++        }
++        return any;
++    }
++}
+diff --git a/app/src/main/java/com/winlator/XServerDisplayActivity.java b/app/src/main/java/com/winlator/XServerDisplayActivity.java
+index 667f1b3..5ba1fe9 100644
+--- a/app/src/main/java/com/winlator/XServerDisplayActivity.java
++++ b/app/src/main/java/com/winlator/XServerDisplayActivity.java
+@@ -12,11 +12,16 @@ import android.os.Bundle;
+ import android.view.KeyEvent;
+ import android.view.Menu;
+ import android.view.MenuItem;
++import android.util.TypedValue;
++import android.view.Gravity;
+ import android.view.MotionEvent;
++import android.view.ViewGroup;
+ import android.view.View;
+ import android.widget.ArrayAdapter;
+ import android.widget.CheckBox;
+ import android.widget.FrameLayout;
++import android.widget.LinearLayout;
++import android.widget.TextView;
+ import android.widget.Spinner;
+ 
+ import androidx.annotation.NonNull;
+@@ -68,6 +73,7 @@ import com.winlator.inputcontrols.InputControlsManager;
+ import com.winlator.math.Mathf;
+ import com.winlator.renderer.GLRenderer;
+ import com.winlator.services.ForegroundService;
++import com.winlator.widget.DirectTouchView;
+ import com.winlator.widget.FrameRating;
+ import com.winlator.widget.InputControlsView;
+ import com.winlator.widget.MagnifierView;
+@@ -91,6 +97,7 @@ import com.winlator.xserver.Property;
+ import com.winlator.xserver.ScreenInfo;
+ import com.winlator.xserver.Window;
+ import com.winlator.xserver.WindowManager;
++import com.winlator.xserver.XKeycode;
+ import com.winlator.xserver.XServer;
+ 
+ import org.json.JSONArray;
+@@ -106,6 +113,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
+     private XServerView xServerView;
+     private InputControlsView inputControlsView;
+     private TouchpadView touchpadView;
++    private DirectTouchView directTouchView;
+     private XEnvironment environment;
+     private DrawerLayout drawerLayout;
+     private Container container;
+@@ -627,10 +635,62 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
+             }
+         }
+ 
++        if (getIntent().getBooleanExtra(EWRLauncherActivity.EXTRA_EWR_MODE, false)) setupEWRTouchUI(rootView);
++
+         if (MainActivity.DEBUG_MODE) rootView.addView(AppUtils.createDebugMsgTextView(this));
+         AppUtils.observeSoftKeyboardVisibility(drawerLayout, renderer::setScreenOffsetYRelativeToCursor);
+     }
+ 
++    private void setupEWRTouchUI(FrameLayout rootView) {
++        directTouchView = new DirectTouchView(this, xServer, touchpadView);
++        directTouchView.setKeyboardCallback(() -> AppUtils.showKeyboard(this));
++        directTouchView.setMenuCallback(() -> {
++            if (!drawerLayout.isDrawerOpen(GravityCompat.START)) drawerLayout.openDrawer(GravityCompat.START);
++        });
++        rootView.addView(directTouchView);
++
++        float density = getResources().getDisplayMetrics().density;
++        LinearLayout toolbar = new LinearLayout(this);
++        toolbar.setOrientation(LinearLayout.VERTICAL);
++        FrameLayout.LayoutParams toolbarParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL);
++        toolbarParams.setMarginEnd((int)(6 * density));
++        toolbar.setLayoutParams(toolbarParams);
++        toolbar.setAlpha(0.55f);
++
++        addEWRToolbarButton(toolbar, "\u2328", R.string.ewr_keyboard, () -> AppUtils.showKeyboard(this));
++        final TextView rightClickButton = addEWRToolbarButton(toolbar, "R", R.string.ewr_right_click, () -> directTouchView.setRightClickNext(!directTouchView.isRightClickNext()));
++        directTouchView.setRightClickModeChangedCallback(() -> rightClickButton.setBackgroundColor(directTouchView.isRightClickNext() ? 0xcc1e88e5 : 0x99000000));
++        addEWRToolbarButton(toolbar, "1:1", R.string.ewr_reset_zoom, directTouchView::resetZoom);
++        addEWRToolbarButton(toolbar, "Esc", R.string.ewr_escape, () -> {
++            xServer.injectKeyPress(XKeycode.KEY_ESC);
++            AppUtils.runDelayed(() -> xServer.injectKeyRelease(XKeycode.KEY_ESC), 40);
++        });
++        addEWRToolbarButton(toolbar, "\u2630", R.string.ewr_menu, () -> drawerLayout.openDrawer(GravityCompat.START));
++        rootView.addView(toolbar);
++    }
++
++    private TextView addEWRToolbarButton(LinearLayout toolbar, String label, int descriptionResId, Runnable action) {
++        float density = getResources().getDisplayMetrics().density;
++        TextView button = new TextView(this);
++        button.setText(label);
++        button.setTextColor(0xffffffff);
++        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
++        button.setGravity(Gravity.CENTER);
++        button.setBackgroundColor(0x99000000);
++        button.setContentDescription(getString(descriptionResId));
++        int size = (int)(44 * density);
++        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
++        params.setMargins(0, (int)(4 * density), 0, (int)(4 * density));
++        button.setLayoutParams(params);
++        button.setOnClickListener((v) -> action.run());
++        button.setOnLongClickListener((v) -> {
++            AppUtils.showToast(this, descriptionResId);
++            return true;
++        });
++        toolbar.addView(button);
++        return button;
++    }
++
+     private void showInputControlsDialog() {
+         final ContentDialog dialog = new ContentDialog(this, R.layout.input_controls_dialog);
+         dialog.setTitle(R.string.input_controls);
+diff --git a/app/src/main/java/com/winlator/renderer/GLRenderer.java b/app/src/main/java/com/winlator/renderer/GLRenderer.java
+index 48a8344..3a7639a 100644
+--- a/app/src/main/java/com/winlator/renderer/GLRenderer.java
++++ b/app/src/main/java/com/winlator/renderer/GLRenderer.java
+@@ -60,6 +60,9 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
+     private int cursorForeColor = 0x000000;
+     private boolean screenOffsetYRelativeToCursor = false;
+     private float magnifierZoom = 1.0f;
++    private float viewZoom = 1.0f;
++    private float viewPanX = 0;
++    private float viewPanY = 0;
+     protected short surfaceWidth;
+     protected short surfaceHeight;
+     public final EffectComposer effectComposer = new EffectComposer(this);
+@@ -144,7 +147,10 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
+             pointerY = Mathf.clamp(xServer.pointer.getY() * magnifierZoom - offsetY, 0, xServer.screenInfo.height * scaleY);
+         }
+ 
+-        XForm.makeTransform(tmpXForm2, -pointerX, -pointerY, magnifierZoom, magnifierZoom, 0);
++        if (magnifierZoom == 1.0f && !screenOffsetYRelativeToCursor && viewZoom != 1.0f) {
++            XForm.makeTransform(tmpXForm2, -viewPanX * viewZoom, -viewPanY * viewZoom, viewZoom, viewZoom, 0);
++        }
++        else XForm.makeTransform(tmpXForm2, -pointerX, -pointerY, magnifierZoom, magnifierZoom, 0);
+ 
+         renderWindows();
+         if (cursorVisible) renderCursor();
+@@ -406,6 +412,30 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
+         xServerView.requestRender();
+     }
+ 
++    public float getViewZoom() {
++        return viewZoom;
++    }
++
++    public float getViewPanX() {
++        return viewPanX;
++    }
++
++    public float getViewPanY() {
++        return viewPanY;
++    }
++
++    /** Pinch zoom: shows the region starting at (panX, panY) of the X screen scaled by zoom; values are clamped to the screen. */
++    public void setViewZoom(float zoom, float panX, float panY) {
++        zoom = Mathf.clamp(zoom, 1.0f, 4.0f);
++        if (zoom < 1.02f) zoom = 1.0f;
++        float maxPanX = xServer.screenInfo.width - xServer.screenInfo.width / zoom;
++        float maxPanY = xServer.screenInfo.height - xServer.screenInfo.height / zoom;
++        this.viewZoom = zoom;
++        this.viewPanX = Mathf.clamp(panX, 0, maxPanX);
++        this.viewPanY = Mathf.clamp(panY, 0, maxPanY);
++        xServerView.requestRender();
++    }
++
+     public int[] getPixelsARGB(int x, int y, int width, int height, boolean flipY) {
+         ByteBuffer pixelBuffer = ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder());
+         GLES20.glReadPixels(x, y, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, pixelBuffer);
+diff --git a/app/src/main/java/com/winlator/services/ForegroundService.java b/app/src/main/java/com/winlator/services/ForegroundService.java
+index 0940581..7b305fc 100644
+--- a/app/src/main/java/com/winlator/services/ForegroundService.java
++++ b/app/src/main/java/com/winlator/services/ForegroundService.java
+@@ -21,6 +21,7 @@ import androidx.annotation.NonNull;
+ import androidx.annotation.Nullable;
+ import androidx.preference.PreferenceManager;
+ 
++import com.winlator.EWRLauncherActivity;
+ import com.winlator.MainActivity;
+ import com.winlator.R;
+ import com.winlator.XServerDisplayActivity;
+@@ -275,7 +276,7 @@ public class ForegroundService extends Service {
+         boolean containerActive = sessionActive.get();
+ 
+         // Determine target activity: Game screen if active, else Main menu
+-        Class<?> targetActivity = containerActive ? XServerDisplayActivity.class : MainActivity.class;
++        Class<?> targetActivity = containerActive ? XServerDisplayActivity.class : EWRLauncherActivity.class;
+ 
+         Notification n = notificationUtils.createForegroundNotification(
+                 getNotificationContent(),
+diff --git a/app/src/main/java/com/winlator/services/NotificationUtils.java b/app/src/main/java/com/winlator/services/NotificationUtils.java
+index c3f422c..a3ed708 100644
+--- a/app/src/main/java/com/winlator/services/NotificationUtils.java
++++ b/app/src/main/java/com/winlator/services/NotificationUtils.java
+@@ -8,6 +8,7 @@ import android.content.Context;
+ import android.content.Intent;
+ import androidx.core.app.NotificationCompat;
+ import com.winlator.R;
++import com.winlator.EWRLauncherActivity;
+ import com.winlator.MainActivity;
+ import java.lang.ref.WeakReference;
+ 
+@@ -59,7 +60,7 @@ public class NotificationUtils {
+      * Sends or updates a notification with all parameters.
+      */
+     public void notify(int id, String content, String title, Class<?> serviceClass, String exitAction) {
+-        Notification notification = createForegroundNotification(content, title, serviceClass, exitAction, MainActivity.class);
++        Notification notification = createForegroundNotification(content, title, serviceClass, exitAction, EWRLauncherActivity.class);
+         notificationManager.notify(id, notification);
+     }
+ 
+@@ -115,14 +116,14 @@ public class NotificationUtils {
+      * Overload of createForegroundNotification() with default target activity.
+      */
+     public Notification createForegroundNotification(String content, String title, Class<?> serviceClass, String exitAction) {
+-        return createForegroundNotification(content, title, serviceClass, exitAction, MainActivity.class);
++        return createForegroundNotification(content, title, serviceClass, exitAction, EWRLauncherActivity.class);
+     }
+ 
+     /**
+      * Overload of createForegroundNotification() with default title and target activity.
+      */
+     public Notification createForegroundNotification(String content, String title) {
+-        return createForegroundNotification(content, title, null, null, MainActivity.class);
++        return createForegroundNotification(content, title, null, null, EWRLauncherActivity.class);
+     }
+ 
+     /**
+diff --git a/app/src/main/java/com/winlator/widget/DirectTouchView.java b/app/src/main/java/com/winlator/widget/DirectTouchView.java
+new file mode 100644
+index 0000000..7dc9e61
+--- /dev/null
++++ b/app/src/main/java/com/winlator/widget/DirectTouchView.java
+@@ -0,0 +1,327 @@
++package com.winlator.widget;
++
++import android.content.Context;
++import android.view.HapticFeedbackConstants;
++import android.view.InputDevice;
++import android.view.MotionEvent;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.FrameLayout;
++
++import com.winlator.renderer.GLRenderer;
++import com.winlator.renderer.ViewTransformation;
++import com.winlator.xserver.Pointer;
++import com.winlator.xserver.XServer;
++
++/**
++ * Touchscreen-as-mouse layer used for EWR: the cursor goes exactly where the finger is.
++ *
++ * One finger: tap = left click, drag = left-button drag, hold = right click.
++ * Two fingers: drag = mouse wheel (or pan when zoomed), pinch = zoom, tap = right click.
++ * Three-finger tap: toggle the on-screen keyboard. Four-finger tap: open the menu.
++ */
++public class DirectTouchView extends View {
++    private static final int LONG_PRESS_MS = 550;
++    private static final int TAP_MS = 300;
++    private static final int DOUBLE_TAP_MS = 450;
++    private static final byte MODE_IDLE = 0;
++    private static final byte MODE_PENDING = 1;
++    private static final byte MODE_DRAG = 2;
++    private static final byte MODE_MULTI = 3;
++    private static final byte MODE_DONE = 4;
++
++    private final XServer xServer;
++    private final TouchpadView touchpadView;
++    private final float slop;
++    private final float scrollStep;
++    private byte mode = MODE_IDLE;
++    private int maxFingers = 0;
++    private long downTime;
++    private float startX, startY;
++    private float lastX, lastY;
++    private boolean rightClickNext = false;
++    private long lastTapTime = 0;
++    private float lastTapViewX, lastTapViewY;
++    private int lastTapSceneX, lastTapSceneY;
++
++    private float pinchStartDist;
++    private float pinchStartMidX, pinchStartMidY;
++    private float pinchStartZoom, pinchStartPanX, pinchStartPanY;
++    private boolean pinching = false;
++    private boolean multiMoved = false;
++    private float scrollAccum = 0;
++    private float lastMidY;
++
++    private Runnable keyboardCallback;
++    private Runnable menuCallback;
++    private Runnable rightClickModeChangedCallback;
++
++    private final Runnable longPressRunnable = () -> {
++        if (mode == MODE_PENDING && maxFingers == 1) {
++            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
++            int[] p = toScene(startX, startY);
++            click(Pointer.Button.BUTTON_RIGHT, p[0], p[1]);
++            mode = MODE_DONE;
++        }
++    };
++
++    public DirectTouchView(Context context, XServer xServer, TouchpadView touchpadView) {
++        super(context);
++        this.xServer = xServer;
++        this.touchpadView = touchpadView;
++        float density = context.getResources().getDisplayMetrics().density;
++        slop = 10 * density;
++        scrollStep = 28 * density;
++        setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
++        setClickable(true);
++    }
++
++    public void setKeyboardCallback(Runnable keyboardCallback) {
++        this.keyboardCallback = keyboardCallback;
++    }
++
++    public void setMenuCallback(Runnable menuCallback) {
++        this.menuCallback = menuCallback;
++    }
++
++    public void setRightClickModeChangedCallback(Runnable callback) {
++        this.rightClickModeChangedCallback = callback;
++    }
++
++    public boolean isRightClickNext() {
++        return rightClickNext;
++    }
++
++    public void setRightClickNext(boolean rightClickNext) {
++        this.rightClickNext = rightClickNext;
++        if (rightClickModeChangedCallback != null) rightClickModeChangedCallback.run();
++    }
++
++    private GLRenderer renderer() {
++        return xServer.getRenderer();
++    }
++
++    /** Unzoomed X-screen coordinates of a point on this view. */
++    private float[] toScreenUnzoomed(float x, float y) {
++        GLRenderer renderer = renderer();
++        int w = xServer.screenInfo.width, h = xServer.screenInfo.height;
++        if (renderer.isFullscreen()) return new float[]{x * w / getWidth(), y * h / getHeight()};
++        ViewTransformation vt = new ViewTransformation();
++        vt.update(getWidth(), getHeight(), w, h);
++        return new float[]{(x - vt.viewOffsetX) / vt.aspect, (y - vt.viewOffsetY) / vt.aspect};
++    }
++
++    private int[] toScene(float x, float y) {
++        GLRenderer renderer = renderer();
++        float[] p = toScreenUnzoomed(x, y);
++        float sx, sy;
++        if (renderer.isScreenOffsetYRelativeToCursor()) {
++            // While the soft keyboard is open the renderer shifts the screen up to keep the cursor visible (see GLRenderer.drawFrame).
++            int h = xServer.screenInfo.height;
++            float offsetY = Math.max(0, Math.min(h * 0.5f, xServer.pointer.getY() - h * 0.25f));
++            sx = p[0];
++            sy = p[1] + offsetY;
++        }
++        else {
++            float zoom = renderer.getViewZoom();
++            sx = renderer.getViewPanX() + p[0] / zoom;
++            sy = renderer.getViewPanY() + p[1] / zoom;
++        }
++        int maxX = xServer.screenInfo.width - 1, maxY = xServer.screenInfo.height - 1;
++        return new int[]{(int)Math.max(0, Math.min(maxX, sx)), (int)Math.max(0, Math.min(maxY, sy))};
++    }
++
++    private void moveTo(int x, int y) {
++        xServer.injectPointerMove(x, y);
++    }
++
++    private void click(Pointer.Button button, int x, int y) {
++        moveTo(x, y);
++        if (xServer.pointer.isButtonPressed(button)) xServer.injectPointerButtonRelease(button);
++        xServer.injectPointerButtonPress(button);
++        postDelayed(() -> xServer.injectPointerButtonRelease(button), 40);
++    }
++
++    private void releaseLeftIfPressed() {
++        if (xServer.pointer.isButtonPressed(Pointer.Button.BUTTON_LEFT)) xServer.injectPointerButtonRelease(Pointer.Button.BUTTON_LEFT);
++    }
++
++    @Override
++    public boolean onTouchEvent(MotionEvent event) {
++        if (event.isFromSource(InputDevice.SOURCE_MOUSE)) return touchpadView.onTouchEvent(event);
++
++        int action = event.getActionMasked();
++        int count = event.getPointerCount();
++
++        switch (action) {
++            case MotionEvent.ACTION_DOWN:
++                mode = MODE_PENDING;
++                maxFingers = 1;
++                downTime = System.currentTimeMillis();
++                startX = lastX = event.getX();
++                startY = lastY = event.getY();
++                int[] p = toScene(startX, startY);
++                moveTo(p[0], p[1]);
++                if (!rightClickNext) postDelayed(longPressRunnable, LONG_PRESS_MS);
++                break;
++            case MotionEvent.ACTION_POINTER_DOWN:
++                removeCallbacks(longPressRunnable);
++                maxFingers = Math.max(maxFingers, count);
++                if (mode == MODE_DRAG) releaseLeftIfPressed();
++                if (mode == MODE_PENDING || mode == MODE_DRAG || mode == MODE_MULTI) {
++                    if (count == 2) startMulti(event);
++                    mode = MODE_MULTI;
++                }
++                break;
++            case MotionEvent.ACTION_MOVE:
++                if (mode == MODE_PENDING && count == 1) {
++                    if (Math.hypot(event.getX() - startX, event.getY() - startY) > slop) {
++                        removeCallbacks(longPressRunnable);
++                        if (rightClickNext) {
++                            mode = MODE_DONE;
++                        }
++                        else {
++                            int[] s = toScene(startX, startY);
++                            moveTo(s[0], s[1]);
++                            xServer.injectPointerButtonPress(Pointer.Button.BUTTON_LEFT);
++                            mode = MODE_DRAG;
++                        }
++                    }
++                }
++                if (mode == MODE_DRAG) {
++                    int[] s = toScene(event.getX(), event.getY());
++                    moveTo(s[0], s[1]);
++                }
++                else if (mode == MODE_MULTI && count == 2 && maxFingers == 2) {
++                    handleMultiMove(event);
++                }
++                lastX = event.getX();
++                lastY = event.getY();
++                break;
++            case MotionEvent.ACTION_POINTER_UP:
++                if (mode == MODE_MULTI) {
++                    long duration = System.currentTimeMillis() - downTime;
++                    if (duration < TAP_MS && !pinching && !multiMoved) {
++                        if (maxFingers == 2) {
++                            int[] s = toScene(startX, startY);
++                            click(Pointer.Button.BUTTON_RIGHT, s[0], s[1]);
++                        }
++                        else if (maxFingers == 3 && keyboardCallback != null) keyboardCallback.run();
++                        else if (maxFingers == 4 && menuCallback != null) menuCallback.run();
++                    }
++                    mode = MODE_DONE;
++                }
++                break;
++            case MotionEvent.ACTION_UP:
++                removeCallbacks(longPressRunnable);
++                if (mode == MODE_PENDING) {
++                    handleTap(event.getX(), event.getY());
++                }
++                else if (mode == MODE_DRAG) {
++                    int[] s = toScene(event.getX(), event.getY());
++                    moveTo(s[0], s[1]);
++                    releaseLeftIfPressed();
++                }
++                mode = MODE_IDLE;
++                pinching = false;
++                break;
++            case MotionEvent.ACTION_CANCEL:
++                removeCallbacks(longPressRunnable);
++                if (mode == MODE_DRAG) releaseLeftIfPressed();
++                mode = MODE_IDLE;
++                pinching = false;
++                break;
++        }
++        return true;
++    }
++
++    private void handleTap(float x, float y) {
++        long now = System.currentTimeMillis();
++        int[] s;
++        // Fingers wobble by more than Windows' double-click rectangle, so a quick second tap near the first one reuses its exact position.
++        if (now - lastTapTime < DOUBLE_TAP_MS && Math.hypot(x - lastTapViewX, y - lastTapViewY) < slop * 3) {
++            s = new int[]{lastTapSceneX, lastTapSceneY};
++        }
++        else s = toScene(x, y);
++
++        if (rightClickNext) {
++            click(Pointer.Button.BUTTON_RIGHT, s[0], s[1]);
++            setRightClickNext(false);
++            lastTapTime = 0;
++            return;
++        }
++
++        click(Pointer.Button.BUTTON_LEFT, s[0], s[1]);
++        lastTapTime = now;
++        lastTapViewX = x;
++        lastTapViewY = y;
++        lastTapSceneX = s[0];
++        lastTapSceneY = s[1];
++    }
++
++    private void startMulti(MotionEvent event) {
++        GLRenderer renderer = renderer();
++        pinchStartDist = distance(event);
++        pinchStartMidX = (event.getX(0) + event.getX(1)) * 0.5f;
++        pinchStartMidY = lastMidY = (event.getY(0) + event.getY(1)) * 0.5f;
++        pinchStartZoom = renderer.getViewZoom();
++        pinchStartPanX = renderer.getViewPanX();
++        pinchStartPanY = renderer.getViewPanY();
++        pinching = false;
++        multiMoved = false;
++        scrollAccum = 0;
++    }
++
++    private static float distance(MotionEvent event) {
++        return (float)Math.hypot(event.getX(0) - event.getX(1), event.getY(0) - event.getY(1));
++    }
++
++    private void handleMultiMove(MotionEvent event) {
++        GLRenderer renderer = renderer();
++        float dist = distance(event);
++        float midX = (event.getX(0) + event.getX(1)) * 0.5f;
++        float midY = (event.getY(0) + event.getY(1)) * 0.5f;
++
++        if (!pinching && pinchStartDist > 0 && Math.abs(dist - pinchStartDist) > slop * 3) pinching = true;
++        if (!multiMoved && Math.hypot(midX - pinchStartMidX, midY - pinchStartMidY) > slop) multiMoved = true;
++
++        if (pinching) {
++            float zoom = pinchStartZoom * (dist / pinchStartDist);
++            float[] startMid = toScreenUnzoomed(pinchStartMidX, pinchStartMidY);
++            float anchorX = pinchStartPanX + startMid[0] / pinchStartZoom;
++            float anchorY = pinchStartPanY + startMid[1] / pinchStartZoom;
++            float[] mid = toScreenUnzoomed(midX, midY);
++            float clampedZoom = Math.max(1.0f, Math.min(4.0f, zoom));
++            renderer.setViewZoom(clampedZoom, anchorX - mid[0] / clampedZoom, anchorY - mid[1] / clampedZoom);
++        }
++        else if (multiMoved) {
++            if (renderer.getViewZoom() > 1.0f) {
++                float[] startMid = toScreenUnzoomed(pinchStartMidX, pinchStartMidY);
++                float[] mid = toScreenUnzoomed(midX, midY);
++                float zoom = renderer.getViewZoom();
++                renderer.setViewZoom(zoom, pinchStartPanX - (mid[0] - startMid[0]) / zoom, pinchStartPanY - (mid[1] - startMid[1]) / zoom);
++            }
++            else {
++                scrollAccum += midY - lastMidY;
++                while (scrollAccum <= -scrollStep) {
++                    wheel(Pointer.Button.BUTTON_SCROLL_DOWN);
++                    scrollAccum += scrollStep;
++                }
++                while (scrollAccum >= scrollStep) {
++                    wheel(Pointer.Button.BUTTON_SCROLL_UP);
++                    scrollAccum -= scrollStep;
++                }
++            }
++        }
++        lastMidY = midY;
++    }
++
++    private void wheel(Pointer.Button button) {
++        xServer.injectPointerButtonPress(button);
++        xServer.injectPointerButtonRelease(button);
++    }
++
++    public void resetZoom() {
++        renderer().setViewZoom(1.0f, 0, 0);
++    }
++}
+diff --git a/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java b/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java
+index 08fbf80..2a8c99e 100644
+--- a/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java
++++ b/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java
+@@ -45,6 +45,10 @@ public abstract class RootFSInstaller {
+     }
+ 
+     public static void install(final MainActivity activity) {
++        install(activity, null);
++    }
++
++    public static void install(final AppCompatActivity activity, final Runnable onComplete) {
+         AppUtils.keepScreenOn(activity);
+         RootFS rootFS = RootFS.find(activity);
+         final File rootDir = rootFS.getRootDir();
+@@ -74,12 +78,17 @@ public abstract class RootFSInstaller {
+             else AppUtils.showToast(activity, R.string.unable_to_install_system_files);
+ 
+             dialog.closeOnUiThread();
++            if (success && onComplete != null) activity.runOnUiThread(onComplete);
+         });
+     }
+ 
+     public static void installIfNeeded(final MainActivity activity) {
+-        RootFS rootFS = RootFS.find(activity);
+-        if (!rootFS.isValid() || rootFS.getVersion() < LATEST_VERSION) install(activity);
++        if (isInstallNeeded(activity)) install(activity);
++    }
++
++    public static boolean isInstallNeeded(Context context) {
++        RootFS rootFS = RootFS.find(context);
++        return !rootFS.isValid() || rootFS.getVersion() < LATEST_VERSION;
+     }
+ 
+     private static void clearOptDir(File optDir) {
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index e943712..bbb82c9 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -1,6 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string name="app_name">Winlator</string>
++    <string name="app_name">EWR</string>
+     <string name="run">Run</string>
+     <string name="edit">Edit</string>
+     <string name="remove">Remove</string>
+@@ -358,4 +358,29 @@
+     <string name="fgs_notification_content_else">Winlator is running in the background</string>
+     <string name="save_mem_on_run_from_steam">Save memory on run from Steam</string>
+     <string name="present_mode">Present Mode</string>
+-</resources>
+\ No newline at end of file
++    <string name="ewr_title">Extreme Warfare Revenge 4.0</string>
++    <string name="ewr_status_installing">First start: installing the Windows compatibility layer (one time only, about a minute)…</string>
++    <string name="ewr_status_preparing">Preparing the game…</string>
++    <string name="ewr_status_failed">Setup failed. Close the app and open it again. If it keeps failing, reinstall the APK.</string>
++    <string name="ewr_status_ready">Ready. Save slots in use: %1$d of 8.\nSaves are kept inside the app and survive closing it. Use Back up saves to keep a copy outside the app (e.g. Downloads or Google Drive).</string>
++    <string name="ewr_play">Play EWR</string>
++    <string name="ewr_backup">Back up saves &amp; databases (.zip)</string>
++    <string name="ewr_restore">Restore a backup / import PC saves (.zip)</string>
++    <string name="ewr_import_database">Import database / pictures (.zip)</string>
++    <string name="ewr_reset_database">Restore original database</string>
++    <string name="ewr_reset_database_message">Replaces the files in the DATA folder (the database used for new games) with the original EWR 4.0 database. Your save slots are not touched. A safety copy of everything is made first.</string>
++    <string name="ewr_reset_database_done">The original database has been restored.</string>
++    <string name="ewr_controls_help">Touch controls</string>
++    <string name="ewr_controls_help_message">• Tap: left click\n• Tap twice quickly: double click\n• Touch and drag: drag with the left button (scroll bars, sliders)\n• Touch and hold: right click\n• Two-finger tap: right click\n• Two-finger swipe up/down: mouse wheel (scroll lists)\n• Pinch: zoom in/out; two-finger drag pans while zoomed\n• Three-finger tap: show/hide the keyboard\n• Back gesture or ☰ button: menu (keyboard, exit…)\n\nSide buttons: ⌨ keyboard · R next tap is a right click · 1:1 reset zoom · Esc key · ☰ menu.\n\nAlways leave the game with its own Quit button so the save is written completely; then use Exit in the menu.</string>
++    <string name="ewr_advanced">Advanced (Winlator settings)</string>
++    <string name="ewr_working">Working…</string>
++    <string name="ewr_operation_failed">That did not work. Check that you picked a .zip containing EWR files (for example a zip of your PC EWR folder, an s1–s8 save folder, or a DATA folder). Nothing was changed.</string>
++    <string name="ewr_backup_done">Backup saved. It contains the whole EWR folder: all save slots, the database and pictures.</string>
++    <string name="ewr_restore_done">Backup restored. A safety copy of the previous files was kept inside the app.</string>
++    <string name="ewr_import_database_done">Database/pictures imported into the DATA, PICS, LOGOS and BANNERS folders. Start a New Game to use a new database.</string>
++    <string name="ewr_keyboard">Show/hide keyboard</string>
++    <string name="ewr_right_click">Next tap is a right click</string>
++    <string name="ewr_reset_zoom">Reset zoom</string>
++    <string name="ewr_escape">Escape key</string>
++    <string name="ewr_menu">Menu</string>
++</resources>
